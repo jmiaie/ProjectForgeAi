@@ -6,9 +6,10 @@ import { Card } from '@/components/ui/card';
 
 type IntakeWizardProps = {
   onComplete?: () => void;
+  projectId?: string;
 };
 
-export default function IntakeWizard({ onComplete }: IntakeWizardProps) {
+export default function IntakeWizard({ onComplete, projectId = 'proj_123' }: IntakeWizardProps) {
   const [recommended, setRecommended] = useState<string[]>([
     'google',
     'microsoft',
@@ -34,15 +35,18 @@ export default function IntakeWizard({ onComplete }: IntakeWizardProps) {
     const payload =
       type === 'mcp_server'
         ? { server_url: 'https://example-mcp.local' }
-        : { code: 'placeholder-oauth-code' };
+        : type === 'jira'
+          ? { api_key: 'placeholder-api-key' }
+          : { code: 'placeholder-oauth-code' };
 
     const response = await fetch('/api/v1/intake/connections', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ connector_type: type, auth_data: payload }),
+      body: JSON.stringify({ connector_type: type, auth_data: payload, project_id: projectId }),
     });
 
     setStatus(response.ok ? `${type} connected` : `${type} needs configuration`);
+    if (response.ok) onComplete?.();
   };
 
   return (

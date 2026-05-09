@@ -503,6 +503,25 @@ Endpoints:
 - `GET /api/v1/intake/connections/{project_id}/{connector_type}/health`
 - `GET /api/v1/intake/connections/{project_id}/mcp/tools`
 
+### Frontend Project OS
+
+The `frontend/` Next.js app provides the starter operator dashboard:
+
+- Runtime, graph, compliance, and connection summary cards
+- Multipart upload panel
+- Graph build/status panel
+- Orchestrator run/status panel
+- Compliance profile/audit panel
+- Connections panel with Intake Wizard
+
+Run locally:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
 Direct Python:
 
 ```bash

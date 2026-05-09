@@ -78,7 +78,7 @@ projectforge-ai/
 
 ```bash
 cp .env.example .env
-docker-compose up backend
+docker-compose up backend frontend
 curl http://localhost:8000/health
 ```
 
@@ -172,6 +172,25 @@ Endpoints:
 - `GET /api/v1/intake/connections/{project_id}/{connector_type}/status`
 - `GET /api/v1/intake/connections/{project_id}/{connector_type}/health`
 - `GET /api/v1/intake/connections/{project_id}/mcp/tools`
+
+### Frontend Project OS
+
+The Next.js dashboard at `frontend/` exposes:
+
+- Runtime, graph, compliance, and connection summary cards
+- Multipart document upload panel
+- Graph build panel
+- Orchestrator run panel
+- Compliance profile and audit controls
+- Connections panel with Intake Wizard
+
+Run locally:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
 For direct Python execution:
 

@@ -90,13 +90,15 @@ Parallel owners:
 
 ## Sprint 6: Frontend Project OS
 
+**Status:** Active. Runnable Next.js shell, dashboard cards, ingestion, graph, orchestrator, compliance, and connections panels are in place.
+
 Expose the living project graph and agent workflows.
 
-- Project dashboard shell.
+- Project dashboard shell. **Done.**
 - React Flow graph viewer.
 - Chat/workbench tied to Locus + graph context.
-- Document ingestion status panel.
-- Template and report generation UI.
+- Document ingestion status panel. **Starter done.**
+- Template and report generation UI. **Orchestrator artifact view starter done.**
 - Gantt/timeline placeholder fed by graph milestones.
 
 Parallel owners:
