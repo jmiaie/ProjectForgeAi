@@ -82,6 +82,9 @@ The intake wizard is mounted at `/` and `/settings/connections` and talks to the
 | GET    | `/api/v1/intake/connectors`            | List recommended connectors per tier          |
 | POST   | `/api/v1/intake/connections`           | Authenticate + persist a connector (encrypted) |
 | GET    | `/api/v1/intake/connections`           | List persisted connections                    |
+| GET    | `/api/v1/intake/oauth/providers`       | List OAuth providers + default scopes         |
+| GET    | `/api/v1/intake/oauth/{provider}/authorize` | Begin OAuth flow (returns authorize URL) |
+| GET    | `/api/v1/intake/oauth/{provider}/callback`  | OAuth redirect target — exchanges code   |
 | POST   | `/api/v1/projects/`                    | Create project, ingest files, plan agents     |
 | GET    | `/api/v1/projects/`                    | List projects                                 |
 | GET    | `/api/v1/projects/{project_id}`        | Fetch single project                          |
