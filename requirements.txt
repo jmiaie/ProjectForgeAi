@@ -6,3 +6,4 @@ litellm
 authlib
 mcp
 pypdf
+langgraph

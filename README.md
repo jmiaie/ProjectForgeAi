@@ -23,3 +23,10 @@ curl -X POST http://localhost:8000/api/v1/intake/connections \
   -H "Content-Type: application/json" \
   -d '{"connector_type":"github","auth_data":{"code":"demo"},"project_id":"proj_123"}'
 ```
+
+Workflow endpoints:
+
+```bash
+curl -X POST http://localhost:8000/api/v1/projects/proj_123/orchestrate
+curl http://localhost:8000/api/v1/projects/proj_123/workflow
+```
