@@ -7,8 +7,24 @@ class MCPConnector:
             import mcp
         except ImportError:
             # Keep bootstrapping functional even when MCP SDK is not installed yet.
-            return {"client": None, "tools": [], "server_url": server_url, "token_present": bool(token)}
+            return {
+                "client": None,
+                "tools": [],
+                "server_url": server_url,
+                "token_present": bool(token),
+                "mode": "fallback",
+            }
 
-        client = mcp.Client(server_url=server_url, auth_token=token)
-        tools = await client.list_tools()
-        return {"client": client, "tools": tools}
+        try:
+            client = mcp.Client(server_url=server_url, auth_token=token)
+            tools = await client.list_tools()
+            tool_names = [getattr(tool, "name", str(tool)) for tool in tools]
+            return {"client": client, "tools": tool_names, "server_url": server_url, "mode": "live"}
+        except Exception as exc:
+            return {
+                "client": None,
+                "tools": [],
+                "server_url": server_url,
+                "mode": "error",
+                "error": str(exc),
+            }
