@@ -6,6 +6,7 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 .locus/
+.ingestion/
 vaults/
 node_modules/
 .next/

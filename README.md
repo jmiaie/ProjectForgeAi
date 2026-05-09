@@ -98,6 +98,17 @@ REQUIRE_NATIVE_LOCUS_OMPA=true
 
 `/health` and `/api/v1/storage/{project_id}/status` report whether native Locus/OMPA are loaded or the development fallback is active.
 
+### Phase 1 Ingestion
+
+Current ingestion supports:
+
+- PDF text extraction via `pypdf`
+- Email `.eml` body/header extraction
+- Office Open XML starters for DOCX, XLSX, and PPTX
+- Image metadata stubs with explicit OCR-not-configured warnings
+- Multipart upload endpoint: `POST /api/v1/projects/upload`
+- Per-project ingestion manifest at `INGESTION_MANIFEST_ROOT/{project_id}/latest.json`
+
 For direct Python execution:
 
 ```bash

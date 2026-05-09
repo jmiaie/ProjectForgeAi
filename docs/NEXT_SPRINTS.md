@@ -4,16 +4,16 @@ This roadmap is ordered by dependency and integration value. Multiple agents can
 
 ## Sprint 1: Phase 1 Document Ingestion
 
-**Status:** Started with PDF parser.
+**Status:** Active. Starter PDF, email, Office, image metadata, manifest, and multipart upload paths are in place.
 
 Build the file ingestion foundation that feeds Locus and OMPA with high-confidence source chunks.
 
-- PDF parser: text, page metadata, source hashes, warnings. **In progress/done for starter.**
-- Image parser: OCR-ready interface, EXIF metadata, confidence warnings.
-- Email parser: `.eml` and mailbox exports, headers, attachments, thread IDs.
-- Office parser: DOCX, XLSX, PPTX text and table extraction.
-- Ingestion manifest: per-file status, parser warnings, chunk counts, source hashes.
-- Upload endpoint: multipart `UploadFile` support instead of JSON-only file references.
+- PDF parser: text, page metadata, source hashes, warnings. **Starter done.**
+- Image parser: OCR-ready interface, EXIF metadata, confidence warnings. **Metadata starter done; OCR pending.**
+- Email parser: `.eml` headers, body, attachment metadata. **Starter done; mailbox exports pending.**
+- Office parser: DOCX, XLSX, PPTX text extraction. **Starter done; table fidelity pending.**
+- Ingestion manifest: per-file status, parser warnings, chunk counts, source hashes. **Starter done.**
+- Upload endpoint: multipart `UploadFile` support. **Starter done at `POST /api/v1/projects/upload`.**
 
 Parallel owners:
 - Parser agents can each own one file type.

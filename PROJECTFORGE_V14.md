@@ -428,6 +428,17 @@ REQUIRE_NATIVE_LOCUS_OMPA=true
 
 `/health` and `/api/v1/storage/{project_id}/status` expose whether native Locus/OMPA are loaded.
 
+### Phase 1 Ingestion
+
+The starter now supports:
+
+- PDF text extraction via `pypdf`
+- Email `.eml` body/header extraction
+- Office Open XML starters for DOCX, XLSX, and PPTX
+- Image metadata stubs with OCR-not-configured warnings
+- Multipart upload endpoint: `POST /api/v1/projects/upload`
+- Per-project manifests at `INGESTION_MANIFEST_ROOT/{project_id}/latest.json`
+
 Direct Python:
 
 ```bash
@@ -447,10 +458,12 @@ PYTHONPATH=backend/app uvicorn main:app --reload
 
 ## 8. Next File to Generate
 
-Build the Phase 1 PDF ingestion parser:
+Continue Sprint 1 by deepening ingestion:
 
 ```text
-backend/app/ingestion/parsers/common/pdf.py
+backend/app/ingestion/parsers/common/image.py
+backend/app/ingestion/parsers/common/email.py
+backend/app/ingestion/parsers/common/office.py
 ```
 
-It should extract text, page metadata, tables where possible, source hashes, and confidence warnings, then produce chunks ready for `LocusAdapter.index_files()` and OMPA decision records.
+Next targets: OCR integration, richer Office table extraction, attachment ingestion, and persisted ingestion status APIs.

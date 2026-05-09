@@ -1,4 +1,4 @@
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, File, Form, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -53,6 +53,24 @@ async def create_project(
         "project_id": project_id,
         "status": "orchestrated",
         "message": "ProjectForge AI is live!",
+        "ingestion": ingestion_result,
+    }
+
+
+@app.post("/api/v1/projects/upload")
+async def create_project_from_uploads(
+    files: list[UploadFile] = File(default_factory=list),
+    compliance: str = Form(default="standard"),
+    project_id: str = Form(default="proj_123"),
+    integrations_manager: IntegrationsManager = Depends(get_integrations_manager),
+    ingestion: IngestionPipeline = Depends(get_ingestion_pipeline),
+):
+    await integrations_manager.get_recommended_connectors(compliance=compliance)
+    ingestion_result = await ingestion.process_files(project_id, files)
+    return {
+        "project_id": project_id,
+        "status": "orchestrated",
+        "message": "ProjectForge AI uploaded project documents.",
         "ingestion": ingestion_result,
     }
 
