@@ -41,7 +41,7 @@ async def create_project(
 
     # 1) Intake wizard data can be used to auto-connect integrations.
     # 2) Files are ingested into Locus + OMPA adapters.
-    await pipeline.process_files(project_id=project_id, files=files)
+    ingestion_result = await pipeline.process_files(project_id=project_id, files=files)
 
     # Keep these dependencies resolved now so service wiring is validated.
     _ = integrations_manager
@@ -51,6 +51,7 @@ async def create_project(
         "project_id": project_id,
         "status": "orchestrated",
         "compliance": compliance,
+        "ingestion": ingestion_result,
         "message": "ProjectForge AI is live!",
     }
 
