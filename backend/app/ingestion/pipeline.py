@@ -8,6 +8,7 @@ class IngestionPipeline:
     async def process_files(self, project_id: str, files: list[Any]):
         locus = LocusAdapter(project_id)
         ompa = OmpaAdapter(project_id)
+        session = await ompa.session_start()
 
         indexed = 0
         for file in files:
@@ -21,4 +22,14 @@ class IngestionPipeline:
             await ompa.record_decision(f"Processed {filename}")
             indexed += 1
 
-        return {"status": "ingested", "project_id": project_id, "files_processed": indexed}
+        return {
+            "status": "ingested",
+            "project_id": project_id,
+            "files_processed": indexed,
+            "session": session,
+            "storage": {
+                "locus": locus.status(),
+                "ompa": ompa.status(),
+                "native_ready": locus.native and ompa.native,
+            },
+        }

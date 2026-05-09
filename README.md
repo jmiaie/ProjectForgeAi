@@ -82,6 +82,22 @@ docker-compose up backend
 curl http://localhost:8000/health
 ```
 
+### Native Locus + OMPA Integration
+
+ProjectForge loads your native Locus and OMPA implementations directly. Install them as Python packages or point the app at local checkouts:
+
+```env
+LOCUS_SOURCE_PATH=/absolute/path/to/locus
+LOCUS_ENGINE=locus:LocusEngine
+LOCUS_STORE_ROOT=./.locus
+OMPA_SOURCE_PATH=/absolute/path/to/ompa
+OMPA_ENGINE=ompa:Ompa
+OMPA_VAULT_ROOT=./vaults
+REQUIRE_NATIVE_LOCUS_OMPA=true
+```
+
+`/health` and `/api/v1/storage/{project_id}/status` report whether native Locus/OMPA are loaded or the development fallback is active.
+
 For direct Python execution:
 
 ```bash

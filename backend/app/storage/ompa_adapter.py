@@ -1,4 +1,13 @@
 import os
+from typing import Any
+
+from core.config import settings
+from storage.native_loader import (
+    NativeIntegrationError,
+    call_first_available,
+    instantiate_with_path,
+    load_symbol,
+)
 
 
 class InMemoryOmpa:
@@ -15,16 +24,39 @@ class InMemoryOmpa:
 
 class OmpaAdapter:
     def __init__(self, project_id: str):
-        self.vault_path = f"./vaults/project_{project_id}"
+        self.project_id = project_id
+        self.vault_path = os.path.join(settings.OMPA_VAULT_ROOT, f"project_{project_id}")
         os.makedirs(self.vault_path, exist_ok=True)
+        self.native = True
+        self.warning: str | None = None
         try:
-            from ompa import Ompa
-        except ImportError:
-            Ompa = InMemoryOmpa
-        self.ao = Ompa(vault_path=self.vault_path)
+            Ompa = load_symbol(settings.OMPA_ENGINE, settings.OMPA_SOURCE_PATH)
+            self.ao = instantiate_with_path(Ompa, "vault_path", self.vault_path)
+        except NativeIntegrationError as exc:
+            if settings.REQUIRE_NATIVE_LOCUS_OMPA:
+                raise
+            self.native = False
+            self.warning = str(exc)
+            self.ao = InMemoryOmpa(vault_path=self.vault_path)
 
     async def record_decision(self, message: str) -> None:
-        self.ao.classify(message)
+        await call_first_available(
+            self.ao,
+            ("record_decision", "classify", "record", "remember"),
+            message,
+        )
 
     async def session_start(self):
-        return self.ao.session_start()
+        return await call_first_available(
+            self.ao,
+            ("session_start", "start_session", "begin_session"),
+        )
+
+    def status(self) -> dict[str, Any]:
+        return {
+            "name": "ompa",
+            "native": self.native,
+            "engine": self.ao.__class__.__name__,
+            "vault_path": self.vault_path,
+            "warning": self.warning,
+        }

@@ -113,6 +113,13 @@ class Settings(BaseSettings):
     NEO4J_URI: str = "bolt://neo4j:7687"
     POSTGRES_URI: str = "postgresql://projectforge:projectforge@postgres:5432/projectforge"
     ENCRYPTION_KEY: str = "dev-only-change-me"
+    LOCUS_SOURCE_PATH: str | None = None
+    LOCUS_ENGINE: str = "locus:LocusEngine"
+    LOCUS_STORE_ROOT: str = "./.locus"
+    OMPA_SOURCE_PATH: str | None = None
+    OMPA_ENGINE: str = "ompa:Ompa"
+    OMPA_VAULT_ROOT: str = "./vaults"
+    REQUIRE_NATIVE_LOCUS_OMPA: bool = False
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
@@ -404,6 +411,22 @@ cp .env.example .env
 docker-compose up backend
 curl http://localhost:8000/health
 ```
+
+### Native Locus + OMPA
+
+Use installed packages or point ProjectForge at local source checkouts:
+
+```env
+LOCUS_SOURCE_PATH=/absolute/path/to/locus
+LOCUS_ENGINE=locus:LocusEngine
+LOCUS_STORE_ROOT=./.locus
+OMPA_SOURCE_PATH=/absolute/path/to/ompa
+OMPA_ENGINE=ompa:Ompa
+OMPA_VAULT_ROOT=./vaults
+REQUIRE_NATIVE_LOCUS_OMPA=true
+```
+
+`/health` and `/api/v1/storage/{project_id}/status` expose whether native Locus/OMPA are loaded.
 
 Direct Python:
 

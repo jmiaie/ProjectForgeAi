@@ -7,6 +7,7 @@ from core.integrations_manager import IntegrationsManager
 from core.llm_router import LLMRouter
 from ingestion.pipeline import IngestionPipeline
 from integrations.intake_form import router as intake_router
+from storage.status import get_storage_status
 
 
 app = FastAPI(title=settings.PROJECT_NAME)
@@ -58,7 +59,17 @@ async def create_project(
 
 @app.get("/health")
 async def health():
-    return {"status": "healthy", "llm_default": settings.DEFAULT_LLM_MODEL}
+    storage = get_storage_status()
+    return {
+        "status": "healthy",
+        "llm_default": settings.DEFAULT_LLM_MODEL,
+        "storage": storage,
+    }
+
+
+@app.get("/api/v1/storage/{project_id}/status")
+async def storage_status(project_id: str):
+    return get_storage_status(project_id)
 
 
 if __name__ == "__main__":
