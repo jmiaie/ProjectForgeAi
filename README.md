@@ -125,13 +125,31 @@ For local dev / tests the app will also auto-create tables on startup when `AUTO
 | Lovable     | Rapid full-stack UI + frontend backend bindings               |
 | Manus       | Autonomous testing (OAuth flows, MCP connectors, ingestion)   |
 
-## Phase 1 Roadmap
+## Ingestion (Phase 1)
 
-1. PDF parser hardening (tables, scans, structured forms).
-2. Complete LangGraph orchestrator with specialist agents.
-3. Locus + OMPA submodule wiring (replace in-memory fallbacks).
-4. Temporal-driven recurring comms / reports.
-5. Hybrid + on-prem deployment manifests.
+PDFs are parsed by `app.ingestion.parsers.common.PDFParser`, which:
+
+- Extracts text per page with width / height / rotation metadata.
+- Splits long pages via the sliding-window helper in
+  `app.ingestion.chunking` (configurable `chunk_size` / `overlap`).
+- Pulls AcroForm fields (when present) into a dedicated
+  `section: form_fields` chunk.
+- Detects tables via `pdfplumber` and emits each as a `section: table`
+  chunk with row / column counts.
+- Falls back to OCR (via `pypdfium2` -> `pytesseract`) for any page
+  with no extractable text — typical of scanned / image-only PDFs.
+
+Each Phase 1 path degrades gracefully when its optional dependency is
+unavailable; warnings surface in the parser result so operators can see
+why a page was skipped.
+
+## Roadmap (post Phase 1)
+
+1. Locus + OMPA submodule wiring (replace in-memory fallbacks).
+2. Hybrid + on-prem deployment manifests.
+3. CAD / BIM ingestion pipeline (Phase 2).
+4. Source-code repo ingestion (Phase 2).
+5. Multi-tenant auth + RBAC.
 
 ## License
 
