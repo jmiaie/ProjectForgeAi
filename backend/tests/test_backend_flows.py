@@ -126,6 +126,8 @@ class BackendFlowTests(unittest.TestCase):
         self.assertIn("workflow", dashboard_payload)
         self.assertIn("connections", dashboard_payload)
         self.assertIn("recent_events", dashboard_payload)
+        self.assertIn("state_store_backend", dashboard_payload)
+        self.assertIn(dashboard_payload["state_store_backend"], {"postgres", "in_memory"})
         self.assertGreaterEqual(dashboard_payload["metrics"]["workflow_steps_completed"], 1)
 
         audit = self.client.get(f"/api/v1/projects/{project_id}/audit-events")

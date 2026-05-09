@@ -206,8 +206,9 @@ class AutonomousRunner:
         response = self.client.get(f"/api/v1/projects/{self.project_id}/dashboard")
         payload = response.json() if response.status_code == 200 else {}
         metrics = payload.get("metrics", {})
-        ok = response.status_code == 200 and bool(metrics)
-        return ok, f"metrics_keys={len(metrics.keys())}"
+        backend = payload.get("state_store_backend")
+        ok = response.status_code == 200 and bool(metrics) and backend in {"postgres", "in_memory"}
+        return ok, f"metrics_keys={len(metrics.keys())},state_backend={backend}"
 
     def step_audit_events(self) -> tuple[bool, str]:
         response = self.client.get(f"/api/v1/projects/{self.project_id}/audit-events")

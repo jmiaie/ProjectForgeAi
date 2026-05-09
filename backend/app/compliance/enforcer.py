@@ -46,20 +46,52 @@ class ComplianceProfile:
     last_updated: str | None = None
 
 
-_COMPLIANCE_PROFILES: dict[str, ComplianceProfile] = {}
-_AUDIT_EVENTS: list[dict[str, Any]] = []
+class InMemoryComplianceStateBackend:
+    def __init__(self) -> None:
+        self._profiles: dict[str, dict[str, Any]] = {}
+        self._events: list[dict[str, Any]] = []
+
+    def upsert_compliance_profile(self, project_id: str, category: str, last_updated: str) -> dict[str, Any]:
+        profile = {"project_id": project_id, "category": category, "last_updated": last_updated}
+        self._profiles[project_id] = profile
+        return profile
+
+    def get_compliance_profile(self, project_id: str) -> dict[str, Any] | None:
+        return self._profiles.get(project_id)
+
+    def add_audit_event(self, event: dict[str, Any]) -> dict[str, Any]:
+        self._events.append(event)
+        return event
+
+    def list_audit_events(self, project_id: str, limit: int = 100) -> list[dict[str, Any]]:
+        events = [event for event in self._events if event["project_id"] == project_id]
+        return events[-limit:]
+
+
+_STATE_BACKEND: Any = InMemoryComplianceStateBackend()
 
 
 def _now_iso() -> str:
     return datetime.now(UTC).isoformat()
 
 
+def configure_state_backend(state_backend: Any) -> None:
+    global _STATE_BACKEND
+    _STATE_BACKEND = state_backend
+
+
 def set_compliance_profile(project_id: str, category: str) -> ComplianceProfile:
     normalized = category.lower()
     if normalized not in POLICY_MODELS:
         raise ValueError(f"Unsupported compliance category: {category}")
-    profile = ComplianceProfile(project_id=project_id, category=normalized, last_updated=_now_iso())
-    _COMPLIANCE_PROFILES[project_id] = profile
+    persisted = _STATE_BACKEND.upsert_compliance_profile(
+        project_id=project_id, category=normalized, last_updated=_now_iso()
+    )
+    profile = ComplianceProfile(
+        project_id=persisted["project_id"],
+        category=persisted["category"],
+        last_updated=persisted["last_updated"],
+    )
     record_audit_event(
         project_id=project_id,
         event_type="compliance_profile_updated",
@@ -69,12 +101,21 @@ def set_compliance_profile(project_id: str, category: str) -> ComplianceProfile:
 
 
 def get_compliance_profile(project_id: str) -> ComplianceProfile:
-    profile = _COMPLIANCE_PROFILES.get(project_id)
-    if profile:
-        return profile
-    default = ComplianceProfile(project_id=project_id, category="standard", last_updated=_now_iso())
-    _COMPLIANCE_PROFILES[project_id] = default
-    return default
+    persisted = _STATE_BACKEND.get_compliance_profile(project_id)
+    if persisted:
+        return ComplianceProfile(
+            project_id=persisted["project_id"],
+            category=persisted["category"],
+            last_updated=persisted["last_updated"],
+        )
+    default = _STATE_BACKEND.upsert_compliance_profile(
+        project_id=project_id, category="standard", last_updated=_now_iso()
+    )
+    return ComplianceProfile(
+        project_id=default["project_id"],
+        category=default["category"],
+        last_updated=default["last_updated"],
+    )
 
 
 def resolve_model_for_profile(
@@ -99,10 +140,8 @@ def record_audit_event(project_id: str, event_type: str, payload: dict[str, Any]
         "payload": payload,
         "timestamp": _now_iso(),
     }
-    _AUDIT_EVENTS.append(event)
-    return event
+    return _STATE_BACKEND.add_audit_event(event)
 
 
 def get_audit_events(project_id: str, limit: int = 100) -> list[dict[str, Any]]:
-    events = [event for event in _AUDIT_EVENTS if event["project_id"] == project_id]
-    return events[-limit:]
+    return _STATE_BACKEND.list_audit_events(project_id=project_id, limit=limit)

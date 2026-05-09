@@ -8,10 +8,17 @@ from uuid import uuid4
 class WorkflowScheduler:
     """Temporal-style workflow job registry with in-memory execution."""
 
-    def __init__(self) -> None:
+    def __init__(self, state_backend: Any | None = None) -> None:
+        self._state_backend = state_backend
         self._jobs_by_project: dict[str, dict[str, dict[str, Any]]] = {}
         self._runs_by_project: dict[str, list[dict[str, Any]]] = {}
         self._reports_by_project: dict[str, list[dict[str, Any]]] = {}
+
+    @property
+    def state_backend_mode(self) -> str:
+        if self._state_backend is None:
+            return "in_memory"
+        return getattr(self._state_backend, "backend_mode", "in_memory")
 
     @staticmethod
     def _now() -> datetime:
@@ -100,24 +107,36 @@ class WorkflowScheduler:
         }
 
         self._jobs_by_project.setdefault(project_id, {})[job_id] = job
+        if self._state_backend is not None:
+            self._state_backend.upsert_workflow_job(job)
         return job
 
     def list_jobs(self, project_id: str) -> list[dict[str, Any]]:
+        if self._state_backend is not None and self.state_backend_mode == "postgres":
+            return self._state_backend.list_workflow_jobs(project_id=project_id)
         jobs = list(self._jobs_by_project.get(project_id, {}).values())
         jobs.sort(key=lambda value: value.get("created_at", ""))
         return jobs
 
     def list_runs(self, project_id: str) -> list[dict[str, Any]]:
+        if self._state_backend is not None and self.state_backend_mode == "postgres":
+            return self._state_backend.list_workflow_runs(project_id=project_id)
         return self._runs_by_project.get(project_id, [])
 
     def list_reports(self, project_id: str) -> list[dict[str, Any]]:
+        if self._state_backend is not None and self.state_backend_mode == "postgres":
+            return self._state_backend.list_reports(project_id=project_id)
         return self._reports_by_project.get(project_id, [])
 
     def _store_run(self, project_id: str, run: dict[str, Any]) -> None:
         self._runs_by_project.setdefault(project_id, []).append(run)
+        if self._state_backend is not None:
+            self._state_backend.add_workflow_run(run)
 
     def _store_report(self, project_id: str, report: dict[str, Any]) -> None:
         self._reports_by_project.setdefault(project_id, []).append(report)
+        if self._state_backend is not None:
+            self._state_backend.add_report(report)
 
     def _execute_job(
         self,
@@ -168,6 +187,10 @@ class WorkflowScheduler:
         payload_override: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         job = self._jobs_by_project.get(project_id, {}).get(job_id)
+        if job is None and self._state_backend is not None:
+            for persisted in self._state_backend.list_workflow_jobs(project_id=project_id):
+                self._jobs_by_project.setdefault(project_id, {})[persisted["job_id"]] = persisted
+            job = self._jobs_by_project.get(project_id, {}).get(job_id)
         if not job:
             raise ValueError(f"Unknown job_id: {job_id}")
         if not job.get("enabled", True):
@@ -192,6 +215,8 @@ class WorkflowScheduler:
                 now,
             )
             job["next_run_at"] = next_run.isoformat() if next_run else None
+        if self._state_backend is not None:
+            self._state_backend.upsert_workflow_job(job)
 
         run = {
             "run_id": f"run_{uuid4().hex[:12]}",

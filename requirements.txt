@@ -8,3 +8,6 @@ mcp
 pypdf
 langgraph
 neo4j
+sqlalchemy
+alembic
+psycopg[binary]

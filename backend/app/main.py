@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 
 from app.agents.orchestrator import Orchestrator
 from app.compliance.enforcer import (
+    configure_state_backend,
     get_audit_events,
     get_compliance_profile,
     record_audit_event,
@@ -17,13 +18,16 @@ from app.core.llm_router import LLMRouter
 from app.ingestion.pipeline import IngestionPipeline
 from app.integrations.intake_form import router as intake_router
 from app.storage.neo4j_adapter import ProjectGraphStore
+from app.storage.postgres_state_store import PostgresStateStore
 from app.workflows.scheduler import WorkflowScheduler
 
 settings = Settings()
 app = FastAPI(title=settings.PROJECT_NAME)
 orchestrator = Orchestrator()
 project_graph_store = ProjectGraphStore(settings=settings)
-workflow_scheduler = WorkflowScheduler()
+state_store = PostgresStateStore(settings=settings)
+configure_state_backend(state_store)
+workflow_scheduler = WorkflowScheduler(state_backend=state_store)
 
 app.add_middleware(
     CORSMiddleware,
@@ -219,6 +223,8 @@ async def get_project_dashboard(
         },
         "workflow": workflow,
         "graph_summary": graph_summary,
+        "state_store_backend": state_store.backend_mode,
+        "scheduler_backend": scheduler.state_backend_mode,
         "connections": connections.get("connections", []),
         "workflow_jobs": jobs,
         "reports": reports[-10:],

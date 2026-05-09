@@ -81,3 +81,11 @@ PYTHONPATH=backend python3 -m unittest discover -s backend/tests -p "test_*.py"
 PYTHONPATH=backend python3 scripts/manus_autonomous_test.py
 bash scripts/ci_backend_checks.sh
 ```
+
+Persistence migration scaffolding (Sprint 9):
+
+```bash
+# run from repository root
+PYTHONPATH=backend alembic -c backend/alembic.ini upgrade head
+PYTHONPATH=backend alembic -c backend/alembic.ini downgrade -1
+```

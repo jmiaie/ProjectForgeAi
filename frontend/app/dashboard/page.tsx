@@ -32,6 +32,8 @@ type DashboardPayload = {
     edges?: number;
     backend?: string;
   };
+  state_store_backend?: string;
+  scheduler_backend?: string;
   connections: Array<{
     connector?: string;
     type?: string;
@@ -147,6 +149,9 @@ export default function DashboardPage() {
           </p>
           <p className="mt-1 text-xs text-slate-500">
             Backend: {data?.graph_summary.backend ?? 'unknown'}
+          </p>
+          <p className="mt-1 text-xs text-slate-500">
+            State store: {data?.state_store_backend ?? 'unknown'} • Scheduler: {data?.scheduler_backend ?? 'unknown'}
           </p>
         </Card>
       </section>
