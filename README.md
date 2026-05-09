@@ -109,6 +109,19 @@ Current ingestion supports:
 - Multipart upload endpoint: `POST /api/v1/projects/upload`
 - Per-project ingestion manifest at `INGESTION_MANIFEST_ROOT/{project_id}/latest.json`
 
+### Project Graph Builder
+
+Ingestion manifests now build starter project graphs with provenance:
+
+- Project, document, and chunk nodes
+- `HAS_DOCUMENT` and `HAS_CHUNK` edges
+- Source hash and parser metadata on graph nodes
+- Neo4j adapter with in-memory fallback for local development
+- Graph endpoints:
+  - `POST /api/v1/projects/{project_id}/graph/build`
+  - `GET /api/v1/projects/{project_id}/graph`
+  - `GET /api/v1/projects/{project_id}/graph/status`
+
 For direct Python execution:
 
 ```bash

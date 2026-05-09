@@ -22,13 +22,15 @@ Parallel owners:
 
 ## Sprint 2: Project Graph Builder
 
+**Status:** Active. Starter manifest-to-graph projection, Neo4j adapter, in-memory fallback, and graph API endpoints are in place.
+
 Convert extracted document facts into the living project graph.
 
-- Define graph schema: project, stakeholder, company, task, milestone, document, decision, risk, dependency.
-- Add Neo4j adapter and migrations/bootstrap.
+- Define graph schema: project, stakeholder, company, task, milestone, document, decision, risk, dependency. **Starter labels added.**
+- Add Neo4j adapter and migrations/bootstrap. **Adapter/fallback added; migrations pending.**
 - Build document-to-graph extraction service through LLMRouter.
-- Store graph provenance: every node/edge links back to source chunks.
-- Add graph status endpoint and minimal query endpoint.
+- Store graph provenance: every node/edge links back to source chunks. **Manifest provenance starter added.**
+- Add graph status endpoint and minimal query endpoint. **Starter endpoints added.**
 
 Parallel owners:
 - Graph schema agent.

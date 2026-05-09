@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 from core.config import settings
 from core.integrations_manager import IntegrationsManager
 from core.llm_router import LLMRouter
+from graph.builder import ProjectGraphBuilder
 from ingestion.pipeline import IngestionPipeline
 from integrations.intake_form import router as intake_router
 from storage.status import get_storage_status
@@ -40,20 +41,27 @@ def get_ingestion_pipeline() -> IngestionPipeline:
     return IngestionPipeline()
 
 
+def get_graph_builder() -> ProjectGraphBuilder:
+    return ProjectGraphBuilder()
+
+
 @app.post("/api/v1/projects/")
 async def create_project(
     request: CreateProjectRequest,
     integrations_manager: IntegrationsManager = Depends(get_integrations_manager),
     ingestion: IngestionPipeline = Depends(get_ingestion_pipeline),
+    graph_builder: ProjectGraphBuilder = Depends(get_graph_builder),
 ):
     project_id = "proj_123"
     await integrations_manager.get_recommended_connectors(compliance=request.compliance)
     ingestion_result = await ingestion.process_files(project_id, request.files)
+    graph_result = graph_builder.build_from_latest_manifest(project_id)
     return {
         "project_id": project_id,
         "status": "orchestrated",
         "message": "ProjectForge AI is live!",
         "ingestion": ingestion_result,
+        "graph": _graph_summary(graph_result),
     }
 
 
@@ -64,14 +72,17 @@ async def create_project_from_uploads(
     project_id: str = Form(default="proj_123"),
     integrations_manager: IntegrationsManager = Depends(get_integrations_manager),
     ingestion: IngestionPipeline = Depends(get_ingestion_pipeline),
+    graph_builder: ProjectGraphBuilder = Depends(get_graph_builder),
 ):
     await integrations_manager.get_recommended_connectors(compliance=compliance)
     ingestion_result = await ingestion.process_files(project_id, files)
+    graph_result = graph_builder.build_from_latest_manifest(project_id)
     return {
         "project_id": project_id,
         "status": "orchestrated",
         "message": "ProjectForge AI uploaded project documents.",
         "ingestion": ingestion_result,
+        "graph": _graph_summary(graph_result),
     }
 
 
@@ -88,6 +99,40 @@ async def health():
 @app.get("/api/v1/storage/{project_id}/status")
 async def storage_status(project_id: str):
     return get_storage_status(project_id)
+
+
+@app.post("/api/v1/projects/{project_id}/graph/build")
+async def build_project_graph(
+    project_id: str,
+    graph_builder: ProjectGraphBuilder = Depends(get_graph_builder),
+):
+    return graph_builder.build_from_latest_manifest(project_id)
+
+
+@app.get("/api/v1/projects/{project_id}/graph")
+async def get_project_graph(
+    project_id: str,
+    graph_builder: ProjectGraphBuilder = Depends(get_graph_builder),
+):
+    return graph_builder.get_graph(project_id)
+
+
+@app.get("/api/v1/projects/{project_id}/graph/status")
+async def project_graph_status(
+    project_id: str,
+    graph_builder: ProjectGraphBuilder = Depends(get_graph_builder),
+):
+    return graph_builder.status(project_id)
+
+
+def _graph_summary(graph_result: dict) -> dict:
+    return {
+        "project_id": graph_result["project_id"],
+        "node_count": graph_result["node_count"],
+        "edge_count": graph_result["edge_count"],
+        "warnings": graph_result["warnings"],
+        "storage": graph_result["storage"],
+    }
 
 
 if __name__ == "__main__":

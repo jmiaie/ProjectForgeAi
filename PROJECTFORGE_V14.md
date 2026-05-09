@@ -439,6 +439,19 @@ The starter now supports:
 - Multipart upload endpoint: `POST /api/v1/projects/upload`
 - Per-project manifests at `INGESTION_MANIFEST_ROOT/{project_id}/latest.json`
 
+### Project Graph Builder
+
+Ingestion manifests project into a starter graph:
+
+- Project, document, and chunk nodes
+- `HAS_DOCUMENT` and `HAS_CHUNK` provenance edges
+- Source hashes and parser metadata carried onto graph nodes
+- Neo4j adapter with local in-memory fallback
+- Endpoints:
+  - `POST /api/v1/projects/{project_id}/graph/build`
+  - `GET /api/v1/projects/{project_id}/graph`
+  - `GET /api/v1/projects/{project_id}/graph/status`
+
 Direct Python:
 
 ```bash
@@ -466,4 +479,4 @@ backend/app/ingestion/parsers/common/email.py
 backend/app/ingestion/parsers/common/office.py
 ```
 
-Next targets: OCR integration, richer Office table extraction, attachment ingestion, and persisted ingestion status APIs.
+Next targets: OCR integration, richer Office table extraction, attachment ingestion, LLM-based fact extraction into stakeholder/task/risk/milestone nodes, and Neo4j migrations.
