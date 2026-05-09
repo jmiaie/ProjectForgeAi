@@ -7,3 +7,4 @@ authlib
 mcp
 pypdf
 langgraph
+neo4j

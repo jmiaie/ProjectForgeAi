@@ -29,4 +29,7 @@ Workflow endpoints:
 ```bash
 curl -X POST http://localhost:8000/api/v1/projects/proj_123/orchestrate
 curl http://localhost:8000/api/v1/projects/proj_123/workflow
+curl http://localhost:8000/api/v1/projects/proj_123/graph/summary
+curl http://localhost:8000/api/v1/projects/proj_123/graph/nodes
+curl http://localhost:8000/api/v1/projects/proj_123/graph/edges
 ```
