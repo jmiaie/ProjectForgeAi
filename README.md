@@ -51,6 +51,17 @@ curl -X POST http://localhost:8000/api/v1/projects/proj_123/compliance \
   -d '{"category":"hipaa"}'
 curl http://localhost:8000/api/v1/projects/proj_123/compliance
 curl http://localhost:8000/api/v1/projects/proj_123/audit-events
+curl -X POST http://localhost:8000/api/v1/projects/proj_123/workflows/jobs \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Weekly Status Automation","job_type":"weekly_status_report","schedule_type":"weekly"}'
+curl http://localhost:8000/api/v1/projects/proj_123/workflows/jobs
+curl -X POST http://localhost:8000/api/v1/projects/proj_123/workflows/tick
+curl http://localhost:8000/api/v1/projects/proj_123/workflows/runs
+curl -X POST http://localhost:8000/api/v1/projects/proj_123/reports/weekly-status
+curl -X POST http://localhost:8000/api/v1/projects/proj_123/reports/weekly-status/schedule \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Weekly Report Schedule","schedule_type":"weekly"}'
+curl http://localhost:8000/api/v1/projects/proj_123/reports
 curl http://localhost:8000/api/v1/projects/proj_123/graph/summary
 curl http://localhost:8000/api/v1/projects/proj_123/graph/nodes
 curl http://localhost:8000/api/v1/projects/proj_123/graph/edges

@@ -136,6 +136,68 @@ class BackendFlowTests(unittest.TestCase):
         self.assertIn("compliance_profile_updated", event_types)
         self.assertIn("integration_connected", event_types)
 
+    def test_workflow_job_registry_and_reports(self) -> None:
+        project_id = self._project_id("proj_workflow")
+
+        create_job = self.client.post(
+            f"/api/v1/projects/{project_id}/workflows/jobs",
+            json={
+                "name": "Hourly Weekly Report",
+                "job_type": "weekly_status_report",
+                "schedule_type": "hourly",
+                "interval_minutes": 1,
+                "payload": {"channel": "email"},
+            },
+        )
+        self.assertEqual(create_job.status_code, 200)
+        job = create_job.json()["job"]
+        job_id = job["job_id"]
+
+        jobs = self.client.get(f"/api/v1/projects/{project_id}/workflows/jobs")
+        self.assertEqual(jobs.status_code, 200)
+        self.assertGreaterEqual(len(jobs.json().get("jobs", [])), 1)
+
+        run_job = self.client.post(
+            f"/api/v1/projects/{project_id}/workflows/jobs/{job_id}/run",
+            json={},
+        )
+        self.assertEqual(run_job.status_code, 200)
+        self.assertEqual(run_job.json()["status"], "executed")
+
+        runs = self.client.get(f"/api/v1/projects/{project_id}/workflows/runs")
+        self.assertEqual(runs.status_code, 200)
+        self.assertGreaterEqual(len(runs.json().get("runs", [])), 1)
+
+        report = self.client.post(f"/api/v1/projects/{project_id}/reports/weekly-status")
+        self.assertEqual(report.status_code, 200)
+        self.assertEqual(report.json()["status"], "generated")
+
+        schedule = self.client.post(
+            f"/api/v1/projects/{project_id}/reports/weekly-status/schedule",
+            json={"name": "Weekly Report Schedule", "schedule_type": "weekly"},
+        )
+        self.assertEqual(schedule.status_code, 200)
+        self.assertEqual(schedule.json()["status"], "scheduled")
+
+        due_job = self.client.post(
+            f"/api/v1/projects/{project_id}/workflows/jobs",
+            json={
+                "name": "Past Due Digest",
+                "job_type": "audit_digest",
+                "schedule_type": "once",
+                "run_at": "2000-01-01T00:00:00+00:00",
+            },
+        )
+        self.assertEqual(due_job.status_code, 200)
+
+        tick = self.client.post(f"/api/v1/projects/{project_id}/workflows/tick")
+        self.assertEqual(tick.status_code, 200)
+        self.assertGreaterEqual(tick.json().get("executed", 0), 1)
+
+        reports = self.client.get(f"/api/v1/projects/{project_id}/reports")
+        self.assertEqual(reports.status_code, 200)
+        self.assertGreaterEqual(len(reports.json().get("reports", [])), 2)
+
 
 if __name__ == "__main__":
     unittest.main()

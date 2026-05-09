@@ -14,6 +14,8 @@ type DashboardPayload = {
     graph_edges: number;
     workflow_steps_completed: number;
     audit_events: number;
+    scheduled_jobs?: number;
+    reports_generated?: number;
   };
   compliance: {
     category: string;
@@ -35,6 +37,21 @@ type DashboardPayload = {
     type?: string;
     status?: string;
     connected_at?: string;
+  }>;
+  workflow_jobs?: Array<{
+    job_id: string;
+    name: string;
+    job_type: string;
+    schedule_type: string;
+    next_run_at?: string | null;
+    enabled: boolean;
+  }>;
+  reports?: Array<{
+    report_id: string;
+    type: string;
+    generated_at: string;
+    source: string;
+    summary: string;
   }>;
   recent_events: Array<{
     event_type: string;
@@ -79,6 +96,8 @@ export default function DashboardPage() {
     { label: 'Graph Edges', value: data?.metrics.graph_edges ?? 0 },
     { label: 'Workflow Steps', value: data?.metrics.workflow_steps_completed ?? 0 },
     { label: 'Audit Events', value: data?.metrics.audit_events ?? 0 },
+    { label: 'Scheduled Jobs', value: data?.metrics.scheduled_jobs ?? 0 },
+    { label: 'Reports', value: data?.metrics.reports_generated ?? 0 },
   ];
 
   return (
@@ -98,7 +117,7 @@ export default function DashboardPage() {
       {loading ? <p className="text-sm text-slate-600">Loading dashboard...</p> : null}
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
-      <section className="grid grid-cols-1 gap-4 md:grid-cols-5">
+      <section className="grid grid-cols-1 gap-4 md:grid-cols-7">
         {metricCards.map((metric) => (
           <Card key={metric.label} className="p-4">
             <p className="text-xs uppercase tracking-wide text-slate-500">{metric.label}</p>
@@ -163,6 +182,46 @@ export default function DashboardPage() {
             ))}
             {(data?.recent_events?.length ?? 0) === 0 ? (
               <li className="text-slate-500">No audit events recorded yet.</li>
+            ) : null}
+          </ul>
+        </Card>
+      </section>
+
+      <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Card className="p-5">
+          <h2 className="text-lg font-semibold">Scheduled Workflow Jobs</h2>
+          <ul className="mt-3 space-y-2 text-sm">
+            {(data?.workflow_jobs ?? []).map((job) => (
+              <li key={job.job_id} className="rounded border p-2">
+                <p>
+                  <span className="font-medium">{job.name}</span> ({job.job_type})
+                </p>
+                <p className="text-slate-600">
+                  Schedule: {job.schedule_type} • Next run: {job.next_run_at ?? 'n/a'} •{' '}
+                  {job.enabled ? 'enabled' : 'disabled'}
+                </p>
+              </li>
+            ))}
+            {(data?.workflow_jobs?.length ?? 0) === 0 ? (
+              <li className="text-slate-500">No workflow jobs scheduled yet.</li>
+            ) : null}
+          </ul>
+        </Card>
+
+        <Card className="p-5">
+          <h2 className="text-lg font-semibold">Generated Reports</h2>
+          <ul className="mt-3 space-y-2 text-sm">
+            {(data?.reports ?? []).map((report) => (
+              <li key={report.report_id} className="rounded border p-2">
+                <p className="font-medium">{report.type}</p>
+                <p className="text-slate-600">
+                  Source: {report.source} • {report.generated_at}
+                </p>
+                <p className="text-slate-700">{report.summary}</p>
+              </li>
+            ))}
+            {(data?.reports?.length ?? 0) === 0 ? (
+              <li className="text-slate-500">No reports generated yet.</li>
             ) : null}
           </ul>
         </Card>
