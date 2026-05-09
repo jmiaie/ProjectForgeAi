@@ -91,6 +91,11 @@ The intake wizard is mounted at `/` and `/settings/connections` and talks to the
 | POST   | `/api/v1/agents/orchestrate`           | Run orchestrator standalone                   |
 | GET    | `/api/v1/agents/specialists`           | List specialist agents                        |
 | GET    | `/api/v1/audit/`                       | Query audit log (filter by project / action)  |
+| GET    | `/api/v1/projects/{id}/graph/`         | Full project graph (nodes + edges)            |
+| GET    | `/api/v1/projects/{id}/graph/stats`    | Per-kind node + edge counts                   |
+| GET    | `/api/v1/projects/{id}/graph/react-flow` | React Flow-shaped payload                   |
+| GET    | `/api/v1/projects/{id}/graph/nodes/{node_id}` | Fetch a single node                    |
+| GET    | `/api/v1/projects/{id}/graph/schema`   | Node + edge taxonomy                          |
 
 ### Migrations
 

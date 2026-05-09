@@ -16,6 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.agents import router as agents_router
 from app.api.audit import router as audit_router
+from app.api.graph import router as graph_router
 from app.api.projects import router as projects_router
 from app.db.base import Base
 from app.db.session import get_engine
@@ -66,6 +67,7 @@ def create_app() -> FastAPI:
     app.include_router(projects_router, prefix="/api/v1")
     app.include_router(agents_router, prefix="/api/v1")
     app.include_router(audit_router, prefix="/api/v1")
+    app.include_router(graph_router, prefix="/api/v1")
 
     @app.get("/health")
     async def health() -> dict[str, str]:

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import shutil
 import tempfile
 
 import pytest
@@ -20,6 +21,12 @@ if os.path.exists(_TMP_DB):
 os.environ.setdefault("DATABASE_URL", f"sqlite+aiosqlite:///{_TMP_DB}")
 os.environ.setdefault("ENCRYPTION_KEY", "test-only-not-secure")
 os.environ.setdefault("AUTO_CREATE_SCHEMA", "true")
+
+_TMP_GRAPH = os.path.join(tempfile.gettempdir(), "projectforge_test_graph")
+if os.path.isdir(_TMP_GRAPH):
+    shutil.rmtree(_TMP_GRAPH, ignore_errors=True)
+os.environ.setdefault("GRAPH_DATA_ROOT", _TMP_GRAPH)
+os.environ.setdefault("GRAPH_BACKEND", "memory")
 
 from app.core.config import get_settings  # noqa: E402
 from app.db.base import Base  # noqa: E402

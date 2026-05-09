@@ -32,6 +32,7 @@ build/
 # ProjectForge runtime data
 .locus/
 vaults/
+.graph/
 
 # Logs
 *.log
