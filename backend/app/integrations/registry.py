@@ -32,7 +32,7 @@ class ConnectorRegistry:
         if config["type"] == "mcp":
             from integrations.connectors.mcp import MCPConnector
 
-            return MCPConnector()
+            return MCPConnector(name, config)
         if config["type"] == "api_key":
             from integrations.connectors.oauth import APIKeyConnector
 
@@ -45,3 +45,14 @@ class ConnectorRegistry:
         if compliance.lower() == "hipaa":
             return ["microsoft", "mcp_server"]
         return list(cls._connectors.keys())
+
+    @classmethod
+    def get_config(cls, name: str) -> dict[str, Any]:
+        config = cls._connectors.get(name)
+        if config is None:
+            raise ValueError(f"Unknown connector: {name}")
+        return config
+
+    @classmethod
+    def list_connectors(cls) -> dict[str, dict[str, Any]]:
+        return cls._connectors.copy()

@@ -153,6 +153,26 @@ Endpoints:
 - `POST /api/v1/projects/{project_id}/compliance/profile`
 - `GET /api/v1/projects/{project_id}/compliance/audit`
 
+### Integrations Wizard
+
+The Intake/Connections layer now supports managed connection flows:
+
+- OAuth start and callback scaffolding
+- Encrypted API-key and token storage
+- Connection listing/status/health endpoints
+- MCP server connection and tool discovery stubs
+- Compliance-gated external writes
+
+Endpoints:
+
+- `POST /api/v1/intake/connections/oauth/start`
+- `GET /api/v1/intake/oauth/{connector_type}/callback`
+- `POST /api/v1/intake/connections`
+- `GET /api/v1/intake/connections/{project_id}`
+- `GET /api/v1/intake/connections/{project_id}/{connector_type}/status`
+- `GET /api/v1/intake/connections/{project_id}/{connector_type}/health`
+- `GET /api/v1/intake/connections/{project_id}/mcp/tools`
+
 For direct Python execution:
 
 ```bash

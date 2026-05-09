@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from core.integrations_manager import IntegrationsManager
@@ -13,6 +13,12 @@ class ConnectionRequest(BaseModel):
     project_id: str | None = None
 
 
+class OAuthStartRequest(BaseModel):
+    connector_type: str = Field(..., examples=["google", "microsoft", "github"])
+    project_id: str | None = None
+    redirect_uri: str | None = None
+
+
 def get_integrations_manager() -> IntegrationsManager:
     return IntegrationsManager()
 
@@ -24,6 +30,37 @@ async def recommended_connections(
 ):
     connectors = await manager.get_recommended_connectors(compliance=compliance)
     return {"connectors": connectors}
+
+
+@router.post("/connections/oauth/start")
+async def start_oauth(
+    data: OAuthStartRequest,
+    manager: IntegrationsManager = Depends(get_integrations_manager),
+):
+    try:
+        return await manager.start_oauth(data.connector_type, data.project_id, data.redirect_uri)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/oauth/{connector_type}/callback")
+async def oauth_callback(
+    connector_type: str,
+    code: str = Query(...),
+    state: str | None = None,
+    project_id: str | None = None,
+    manager: IntegrationsManager = Depends(get_integrations_manager),
+):
+    try:
+        return await manager.connect(
+            connector_type,
+            {"code": code, "state": state},
+            project_id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
 
 
 @router.post("/connections")
@@ -41,3 +78,41 @@ async def run_intake(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except PermissionError as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from exc
+
+
+@router.get("/connections/{project_id}")
+async def list_connections(
+    project_id: str,
+    manager: IntegrationsManager = Depends(get_integrations_manager),
+):
+    return await manager.list_connections(project_id)
+
+
+@router.get("/connections/{project_id}/{connector_type}/status")
+async def connection_status(
+    project_id: str,
+    connector_type: str,
+    manager: IntegrationsManager = Depends(get_integrations_manager),
+):
+    return await manager.connection_status(project_id, connector_type)
+
+
+@router.get("/connections/{project_id}/{connector_type}/health")
+async def connection_health(
+    project_id: str,
+    connector_type: str,
+    manager: IntegrationsManager = Depends(get_integrations_manager),
+):
+    return await manager.health_check(project_id, connector_type)
+
+
+@router.get("/connections/{project_id}/mcp/tools")
+async def mcp_tools(
+    project_id: str,
+    connector_type: str = "mcp_server",
+    manager: IntegrationsManager = Depends(get_integrations_manager),
+):
+    try:
+        return await manager.discover_mcp_tools(project_id, connector_type)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc

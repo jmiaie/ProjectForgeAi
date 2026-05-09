@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     ORCHESTRATION_RUN_ROOT: str = "./.orchestrator"
     COMPLIANCE_PROFILE_ROOT: str = "./.compliance"
     COMPLIANCE_AUDIT_ROOT: str = "./.audit"
+    INTEGRATIONS_CONNECTION_ROOT: str = "./.connections"
+    FRONTEND_BASE_URL: str = "http://localhost:3000"
+    BACKEND_BASE_URL: str = "http://localhost:8000"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

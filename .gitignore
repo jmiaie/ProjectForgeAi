@@ -10,6 +10,7 @@ __pycache__/
 .orchestrator/
 .compliance/
 .audit/
+.connections/
 vaults/
 node_modules/
 .next/

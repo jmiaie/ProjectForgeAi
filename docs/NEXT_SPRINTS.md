@@ -73,12 +73,14 @@ Parallel owners:
 
 ## Sprint 5: Integrations Wizard
 
+**Status:** Active. OAuth start/callback scaffolding, encrypted connection storage, API-key flows, MCP discovery stubs, and health/status endpoints are in place.
+
 Upgrade the starter Intake Wizard into real connections.
 
-- OAuth 2.0/PKCE start/callback routes.
-- API-key connector storage with encryption.
-- MCP server discovery, auth, and tool registry.
-- Connection health checks.
+- OAuth 2.0/PKCE start/callback routes. **Starter done; full PKCE token exchange pending.**
+- API-key connector storage with encryption. **Done.**
+- MCP server discovery, auth, and tool registry. **Starter done; live SDK discovery pending.**
+- Connection health checks. **Done.**
 - Frontend connection cards with live status.
 
 Parallel owners:
