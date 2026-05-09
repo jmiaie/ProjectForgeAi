@@ -5,3 +5,4 @@ pydantic-settings>=2.4.0
 litellm>=1.43.0
 authlib>=1.3.0
 python-multipart>=0.0.9
+pypdf>=6.11.0
