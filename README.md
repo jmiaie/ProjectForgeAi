@@ -45,6 +45,7 @@ Workflow endpoints:
 ```bash
 curl -X POST http://localhost:8000/api/v1/projects/proj_123/orchestrate
 curl http://localhost:8000/api/v1/projects/proj_123/workflow
+curl http://localhost:8000/api/v1/projects/proj_123/dashboard
 curl -X POST http://localhost:8000/api/v1/projects/proj_123/compliance \
   -H "Content-Type: application/json" \
   -d '{"category":"hipaa"}'
@@ -53,4 +54,11 @@ curl http://localhost:8000/api/v1/projects/proj_123/audit-events
 curl http://localhost:8000/api/v1/projects/proj_123/graph/summary
 curl http://localhost:8000/api/v1/projects/proj_123/graph/nodes
 curl http://localhost:8000/api/v1/projects/proj_123/graph/edges
+```
+
+Frontend routes:
+
+```text
+/dashboard
+/settings/connections
 ```

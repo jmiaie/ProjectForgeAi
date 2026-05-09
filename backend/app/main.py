@@ -154,6 +154,42 @@ async def get_project_audit_events(project_id: str, limit: int = 100) -> dict:
     return {"status": "ok", "project_id": project_id, "events": get_audit_events(project_id, limit=limit)}
 
 
+@app.get("/api/v1/projects/{project_id}/dashboard")
+async def get_project_dashboard(
+    project_id: str,
+    workflow_orchestrator: Orchestrator = Depends(get_orchestrator),
+    graph_store: ProjectGraphStore = Depends(get_project_graph_store),
+    integrations_manager: IntegrationsManager = Depends(get_integrations_manager),
+) -> dict:
+    workflow = await workflow_orchestrator.status(project_id=project_id)
+    graph_summary = await graph_store.get_summary(project_id=project_id)
+    compliance = get_compliance_profile(project_id=project_id)
+    connections = await integrations_manager.list_connections(project_id=project_id)
+    events = get_audit_events(project_id=project_id, limit=20)
+
+    # Lightweight KPI shaping for frontend dashboard cards.
+    metrics = {
+        "connections": len(connections.get("connections", [])),
+        "graph_nodes": graph_summary.get("nodes", 0),
+        "graph_edges": graph_summary.get("edges", 0),
+        "workflow_steps_completed": len(workflow.get("states_visited", [])),
+        "audit_events": len(events),
+    }
+    return {
+        "status": "ok",
+        "project_id": project_id,
+        "metrics": metrics,
+        "compliance": {
+            "category": compliance.category,
+            "last_updated": compliance.last_updated,
+        },
+        "workflow": workflow,
+        "graph_summary": graph_summary,
+        "connections": connections.get("connections", []),
+        "recent_events": events,
+    }
+
+
 @app.get("/api/v1/projects/{project_id}/workflow")
 async def get_project_workflow(
     project_id: str, workflow_orchestrator: Orchestrator = Depends(get_orchestrator)
