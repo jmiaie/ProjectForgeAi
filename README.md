@@ -62,3 +62,11 @@ Frontend routes:
 /dashboard
 /settings/connections
 ```
+
+Automated backend verification:
+
+```bash
+PYTHONPATH=backend python3 -m unittest discover -s backend/tests -p "test_*.py"
+PYTHONPATH=backend python3 scripts/manus_autonomous_test.py
+bash scripts/ci_backend_checks.sh
+```
