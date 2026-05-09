@@ -39,13 +39,15 @@ Parallel owners:
 
 ## Sprint 3: LangGraph Orchestrator
 
+**Status:** Active. Deterministic specialist workflow, run persistence, tool context, and API endpoints are in place; deeper LangGraph branching/checkpointing remains next.
+
 Turn ingestion + graph into agentic project operations.
 
-- Implement orchestrator state model.
-- Add specialist agent nodes: intake analyst, scheduler, risk analyst, compliance reviewer, template generator.
-- Add tool bindings for Locus retrieve, OMPA record/session, integrations, and graph queries.
-- Add deterministic checkpoints and audit events.
-- Add `/api/v1/orchestrator/run` endpoint.
+- Implement orchestrator state model. **Starter done.**
+- Add specialist agent nodes: intake analyst, scheduler, risk analyst, compliance reviewer, template generator. **Starter done.**
+- Add tool bindings for Locus retrieve, OMPA record/session, integrations, and graph queries. **Starter done.**
+- Add deterministic checkpoints and audit events. **Run JSON persistence done; full checkpoints pending.**
+- Add `/api/v1/orchestrator/run` endpoint. **Done.**
 
 Parallel owners:
 - LangGraph agent.

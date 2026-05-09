@@ -7,6 +7,7 @@ __pycache__/
 .ruff_cache/
 .locus/
 .ingestion/
+.orchestrator/
 vaults/
 node_modules/
 .next/

@@ -122,6 +122,21 @@ Ingestion manifests now build starter project graphs with provenance:
   - `GET /api/v1/projects/{project_id}/graph`
   - `GET /api/v1/projects/{project_id}/graph/status`
 
+### Orchestrator Agent
+
+The starter orchestrator runs deterministic specialist steps over the graph/Locus/OMPA tool context:
+
+- Intake analyst
+- Scheduler
+- Risk analyst
+- Compliance reviewer
+- Template generator
+
+Endpoints:
+
+- `POST /api/v1/orchestrator/run`
+- `GET /api/v1/projects/{project_id}/orchestrator/status`
+
 For direct Python execution:
 
 ```bash

@@ -452,6 +452,21 @@ Ingestion manifests project into a starter graph:
   - `GET /api/v1/projects/{project_id}/graph`
   - `GET /api/v1/projects/{project_id}/graph/status`
 
+### Orchestrator Agent
+
+The starter orchestrator runs specialist steps against graph, Locus, OMPA, and integration tool context:
+
+- Intake analyst
+- Scheduler
+- Risk analyst
+- Compliance reviewer
+- Template generator
+
+Endpoints:
+
+- `POST /api/v1/orchestrator/run`
+- `GET /api/v1/projects/{project_id}/orchestrator/status`
+
 Direct Python:
 
 ```bash

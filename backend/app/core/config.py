@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     OMPA_VAULT_ROOT: str = "./vaults"
     REQUIRE_NATIVE_LOCUS_OMPA: bool = False
     INGESTION_MANIFEST_ROOT: str = "./.ingestion"
+    ORCHESTRATION_RUN_ROOT: str = "./.orchestrator"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

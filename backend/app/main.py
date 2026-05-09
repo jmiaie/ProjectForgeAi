@@ -2,6 +2,8 @@ from fastapi import Depends, FastAPI, File, Form, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+from agents.orchestrator import OrchestratorAgent
+from agents.state import OrchestratorRequest
 from core.config import settings
 from core.integrations_manager import IntegrationsManager
 from core.llm_router import LLMRouter
@@ -43,6 +45,10 @@ def get_ingestion_pipeline() -> IngestionPipeline:
 
 def get_graph_builder() -> ProjectGraphBuilder:
     return ProjectGraphBuilder()
+
+
+def get_orchestrator_agent() -> OrchestratorAgent:
+    return OrchestratorAgent()
 
 
 @app.post("/api/v1/projects/")
@@ -123,6 +129,23 @@ async def project_graph_status(
     graph_builder: ProjectGraphBuilder = Depends(get_graph_builder),
 ):
     return graph_builder.status(project_id)
+
+
+@app.post("/api/v1/orchestrator/run")
+async def run_orchestrator(
+    request: OrchestratorRequest,
+    orchestrator: OrchestratorAgent = Depends(get_orchestrator_agent),
+):
+    return await orchestrator.run(request)
+
+
+@app.get("/api/v1/projects/{project_id}/orchestrator/status")
+async def orchestrator_status(
+    project_id: str,
+    run_id: str | None = None,
+    orchestrator: OrchestratorAgent = Depends(get_orchestrator_agent),
+):
+    return orchestrator.status(project_id, run_id)
 
 
 def _graph_summary(graph_result: dict) -> dict:
