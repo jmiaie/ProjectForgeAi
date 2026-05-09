@@ -28,6 +28,9 @@ class Project(Base, TimestampMixin):
     audit_entries: Mapped[list["AuditLog"]] = relationship(  # noqa: F821
         "AuditLog", back_populates="project", cascade="all, delete-orphan"
     )
+    automations: Mapped[list["Automation"]] = relationship(  # noqa: F821
+        "Automation", back_populates="project", cascade="all, delete-orphan"
+    )
 
     def to_dict(self) -> dict[str, Any]:
         return {

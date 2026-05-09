@@ -96,6 +96,12 @@ The intake wizard is mounted at `/` and `/settings/connections` and talks to the
 | GET    | `/api/v1/projects/{id}/graph/react-flow` | React Flow-shaped payload                   |
 | GET    | `/api/v1/projects/{id}/graph/nodes/{node_id}` | Fetch a single node                    |
 | GET    | `/api/v1/projects/{id}/graph/schema`   | Node + edge taxonomy                          |
+| GET    | `/api/v1/automations/kinds`            | List automation kinds + default intervals     |
+| POST   | `/api/v1/projects/{id}/automations/`   | Schedule a recurring automation               |
+| GET    | `/api/v1/projects/{id}/automations/`   | List automations for a project                |
+| GET    | `/api/v1/projects/{id}/automations/{automation_id}` | Fetch a single automation         |
+| POST   | `/api/v1/projects/{id}/automations/{automation_id}/run-now` | Trigger one cycle now      |
+| DELETE | `/api/v1/projects/{id}/automations/{automation_id}` | Cancel an automation              |
 
 ### Migrations
 
