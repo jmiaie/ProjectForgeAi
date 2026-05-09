@@ -3,7 +3,7 @@ from typing import Any
 import litellm
 from pydantic import BaseModel
 
-from app.compliance.enforcer import get_compliance_profile
+from app.compliance.enforcer import record_audit_event, resolve_model_for_profile
 from app.core.config import Settings
 
 
@@ -16,17 +16,26 @@ class LLMRequest(BaseModel):
 
 class LLMRouter:
     async def call(self, req: LLMRequest) -> str:
-        profile = get_compliance_profile(req.project_id)
-        if profile.category in {"hipaa", "legal"}:
-            model = "anthropic/claude-3-5-sonnet-20241022"
-        elif req.model:
-            model = req.model
-        else:
-            model = Settings().DEFAULT_LLM_MODEL
+        profile, model = resolve_model_for_profile(
+            project_id=req.project_id,
+            requested_model=req.model,
+            fallback_default_model=Settings().DEFAULT_LLM_MODEL,
+        )
+        record_audit_event(
+            project_id=req.project_id,
+            event_type="llm_request_routed",
+            payload={"model": model, "compliance": profile.category, "task_type": req.task_type},
+        )
 
         response = await litellm.acompletion(
             model=model,
             messages=req.messages,
             temperature=0.3 if req.task_type == "reasoning" else 0.0,
         )
-        return response.choices[0].message.content or ""
+        content = response.choices[0].message.content or ""
+        record_audit_event(
+            project_id=req.project_id,
+            event_type="llm_response_received",
+            payload={"model": model, "response_chars": len(content)},
+        )
+        return content

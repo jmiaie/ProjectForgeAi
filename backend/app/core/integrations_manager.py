@@ -6,6 +6,7 @@ import secrets
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from app.compliance.enforcer import record_audit_event
 from app.integrations.registry import ConnectorRegistry
 
 
@@ -63,9 +64,10 @@ class IntegrationsManager:
         expires_at = self._expiry()
         connector = ConnectorRegistry.get_connector(connector_type)
 
+        resolved_project = self._default_project(project_id)
         self._store.oauth_sessions[state] = {
             "connector_type": connector_type,
-            "project_id": self._default_project(project_id),
+            "project_id": resolved_project,
             "code_verifier": code_verifier,
             "redirect_uri": redirect_uri,
             "expires_at": expires_at,
@@ -76,10 +78,15 @@ class IntegrationsManager:
             state=state,
             code_challenge=code_challenge,
         )
+        record_audit_event(
+            project_id=resolved_project,
+            event_type="oauth_authorization_started",
+            payload={"connector": connector_type},
+        )
         return {
             "status": "authorization_required",
             "connector": connector_type,
-            "project_id": self._default_project(project_id),
+            "project_id": resolved_project,
             "authorization_url": authorize_url,
             "state": state,
             "code_challenge": code_challenge,
@@ -127,6 +134,11 @@ class IntegrationsManager:
             "status": "connected",
         }
         self._store.add_connection(expected_project, connection)
+        record_audit_event(
+            project_id=expected_project,
+            event_type="integration_connected",
+            payload={"connector": connector_type, "type": "oauth"},
+        )
         return {"status": "connected", "connection": connection}
 
     async def connect_api_key(self, connector_type: str, project_id: str | None, api_key: str) -> dict:
@@ -145,6 +157,11 @@ class IntegrationsManager:
             "status": "connected",
         }
         self._store.add_connection(project, connection)
+        record_audit_event(
+            project_id=project,
+            event_type="integration_connected",
+            payload={"connector": connector_type, "type": "api_key"},
+        )
         return {"status": "connected", "connection": connection}
 
     async def connect_mcp(
@@ -169,6 +186,16 @@ class IntegrationsManager:
             "status": "connected" if auth_result.get("mode") != "error" else "error",
         }
         self._store.add_connection(project, connection)
+        record_audit_event(
+            project_id=project,
+            event_type="integration_connected",
+            payload={
+                "connector": connector_type,
+                "type": "mcp",
+                "status": connection["status"],
+                "mode": auth_result.get("mode"),
+            },
+        )
         return {"status": connection["status"], "connection": connection}
 
     async def list_connections(self, project_id: str | None = None) -> dict:

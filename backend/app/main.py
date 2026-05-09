@@ -1,7 +1,14 @@
-from fastapi import Depends, FastAPI, File, UploadFile
+from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 from app.agents.orchestrator import Orchestrator
+from app.compliance.enforcer import (
+    get_audit_events,
+    get_compliance_profile,
+    record_audit_event,
+    set_compliance_profile,
+)
 from app.core.config import Settings
 from app.core.integrations_manager import IntegrationsManager
 from app.core.llm_router import LLMRouter
@@ -41,6 +48,10 @@ def get_project_graph_store() -> ProjectGraphStore:
     return project_graph_store
 
 
+class ComplianceUpdateRequest(BaseModel):
+    category: str
+
+
 @app.post("/api/v1/projects/")
 async def create_project(
     files: list[UploadFile] = File(default=[]),
@@ -52,6 +63,10 @@ async def create_project(
 ) -> dict:
     pipeline = IngestionPipeline()
     project_id = "proj_123"
+    try:
+        set_compliance_profile(project_id=project_id, category=compliance)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     # 1) Intake wizard data can be used to auto-connect integrations.
     # 2) Files are ingested into Locus + OMPA adapters.
@@ -71,6 +86,11 @@ async def create_project(
     # Keep these dependencies resolved now so service wiring is validated.
     _ = integrations_manager
     _ = llm_router
+    record_audit_event(
+        project_id=project_id,
+        event_type="project_created",
+        payload={"compliance": compliance, "files_uploaded": len(files)},
+    )
 
     return {
         "project_id": project_id,
@@ -90,6 +110,10 @@ async def orchestrate_project(
     workflow_orchestrator: Orchestrator = Depends(get_orchestrator),
     graph_store: ProjectGraphStore = Depends(get_project_graph_store),
 ) -> dict:
+    try:
+        set_compliance_profile(project_id=project_id, category=compliance)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     orchestration = await workflow_orchestrator.run(project_id=project_id, compliance=compliance)
     graph_summary = await graph_store.upsert_project_graph(
         project_id=project_id,
@@ -98,6 +122,36 @@ async def orchestrate_project(
         orchestration=orchestration,
     )
     return {"orchestration": orchestration, "graph": graph_summary}
+
+
+@app.post("/api/v1/projects/{project_id}/compliance")
+async def update_project_compliance(project_id: str, request: ComplianceUpdateRequest) -> dict:
+    try:
+        profile = set_compliance_profile(project_id=project_id, category=request.category)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {
+        "status": "updated",
+        "project_id": profile.project_id,
+        "category": profile.category,
+        "last_updated": profile.last_updated,
+    }
+
+
+@app.get("/api/v1/projects/{project_id}/compliance")
+async def get_project_compliance(project_id: str) -> dict:
+    profile = get_compliance_profile(project_id=project_id)
+    return {
+        "status": "ok",
+        "project_id": profile.project_id,
+        "category": profile.category,
+        "last_updated": profile.last_updated,
+    }
+
+
+@app.get("/api/v1/projects/{project_id}/audit-events")
+async def get_project_audit_events(project_id: str, limit: int = 100) -> dict:
+    return {"status": "ok", "project_id": project_id, "events": get_audit_events(project_id, limit=limit)}
 
 
 @app.get("/api/v1/projects/{project_id}/workflow")
