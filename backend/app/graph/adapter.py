@@ -46,7 +46,11 @@ class Neo4jGraphAdapter:
                 auth=(settings.NEO4J_USER, settings.NEO4J_PASSWORD),
                 connection_timeout=settings.NEO4J_CONNECTION_TIMEOUT,
             )
+            self._driver.verify_connectivity()
         except Exception as exc:
+            if self._driver is not None:
+                self._driver.close()
+                self._driver = None
             if settings.REQUIRE_NATIVE_NEO4J:
                 raise GraphAdapterError(f"Neo4j unavailable: {exc}") from exc
             self.native = False
