@@ -166,6 +166,20 @@ class BackendFlowTests(unittest.TestCase):
         self.assertEqual(run_job.status_code, 200)
         self.assertEqual(run_job.json()["status"], "executed")
 
+        update_job = self.client.patch(
+            f"/api/v1/projects/{project_id}/workflows/jobs/{job_id}",
+            json={"enabled": False},
+        )
+        self.assertEqual(update_job.status_code, 200)
+        self.assertEqual(update_job.json()["job"]["enabled"], False)
+
+        enable_job = self.client.patch(
+            f"/api/v1/projects/{project_id}/workflows/jobs/{job_id}",
+            json={"enabled": True},
+        )
+        self.assertEqual(enable_job.status_code, 200)
+        self.assertEqual(enable_job.json()["job"]["enabled"], True)
+
         runs = self.client.get(f"/api/v1/projects/{project_id}/workflows/runs")
         self.assertEqual(runs.status_code, 200)
         self.assertGreaterEqual(len(runs.json().get("runs", [])), 1)
@@ -195,6 +209,12 @@ class BackendFlowTests(unittest.TestCase):
         tick = self.client.post(f"/api/v1/projects/{project_id}/workflows/tick")
         self.assertEqual(tick.status_code, 200)
         self.assertGreaterEqual(tick.json().get("executed", 0), 1)
+
+        delete_due = self.client.delete(
+            f"/api/v1/projects/{project_id}/workflows/jobs/{due_job.json()['job']['job_id']}"
+        )
+        self.assertEqual(delete_due.status_code, 200)
+        self.assertEqual(delete_due.json()["status"], "deleted")
 
         reports = self.client.get(f"/api/v1/projects/{project_id}/reports")
         self.assertEqual(reports.status_code, 200)

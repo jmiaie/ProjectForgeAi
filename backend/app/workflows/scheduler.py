@@ -111,6 +111,48 @@ class WorkflowScheduler:
             self._state_backend.upsert_workflow_job(job)
         return job
 
+    def update_job(
+        self,
+        *,
+        project_id: str,
+        job_id: str,
+        updates: dict[str, Any],
+    ) -> dict[str, Any]:
+        job = self._jobs_by_project.get(project_id, {}).get(job_id)
+        if job is None and self._state_backend is not None:
+            for persisted in self._state_backend.list_workflow_jobs(project_id=project_id):
+                self._jobs_by_project.setdefault(project_id, {})[persisted["job_id"]] = persisted
+            job = self._jobs_by_project.get(project_id, {}).get(job_id)
+        if not job:
+            raise ValueError(f"Unknown job_id: {job_id}")
+
+        allowed_fields = {"name", "enabled", "interval_minutes", "payload", "next_run_at"}
+        for key, value in updates.items():
+            if key not in allowed_fields:
+                raise ValueError(f"Unsupported update field: {key}")
+            if key == "interval_minutes" and value is not None and int(value) <= 0:
+                raise ValueError("interval_minutes must be positive")
+            job[key] = value
+        if "next_run_at" in updates and updates["next_run_at"]:
+            parsed = self._parse_datetime(str(updates["next_run_at"]))
+            job["next_run_at"] = parsed.isoformat() if parsed else None
+        if self._state_backend is not None:
+            self._state_backend.upsert_workflow_job(job)
+        return job
+
+    def delete_job(self, *, project_id: str, job_id: str) -> bool:
+        project_jobs = self._jobs_by_project.get(project_id, {})
+        removed = project_jobs.pop(job_id, None)
+        if removed is not None:
+            if self._state_backend is not None:
+                self._state_backend.delete_workflow_job(project_id=project_id, job_id=job_id)
+            return True
+
+        if self._state_backend is not None:
+            deleted = self._state_backend.delete_workflow_job(project_id=project_id, job_id=job_id)
+            return bool(deleted)
+        return False
+
     def list_jobs(self, project_id: str) -> list[dict[str, Any]]:
         if self._state_backend is not None and self.state_backend_mode == "postgres":
             return self._state_backend.list_workflow_jobs(project_id=project_id)

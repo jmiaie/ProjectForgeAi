@@ -68,6 +68,10 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardPayload | null>(null);
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
+  const [operationStatus, setOperationStatus] = useState<string>('');
+  const [jobName, setJobName] = useState<string>('Dashboard Weekly Report');
+  const [scheduleType, setScheduleType] = useState<'once' | 'hourly' | 'daily' | 'weekly'>('weekly');
+  const [intervalMinutes, setIntervalMinutes] = useState<string>('60');
 
   const loadDashboard = useCallback(async () => {
     try {
@@ -91,6 +95,111 @@ export default function DashboardPage() {
   useEffect(() => {
     void loadDashboard();
   }, [loadDashboard]);
+
+  const runTick = useCallback(async () => {
+    setOperationStatus('Running workflow tick...');
+    const response = await fetch(`/api/v1/projects/${projectId}/workflows/tick`, { method: 'POST' });
+    const payload = await response.json();
+    if (!response.ok) {
+      setOperationStatus(`Workflow tick failed: ${payload.detail ?? 'unknown error'}`);
+      return;
+    }
+    setOperationStatus(`Workflow tick executed ${payload.executed} due job(s).`);
+    await loadDashboard();
+  }, [loadDashboard]);
+
+  const generateReport = useCallback(async () => {
+    setOperationStatus('Generating weekly status report...');
+    const response = await fetch(`/api/v1/projects/${projectId}/reports/weekly-status`, { method: 'POST' });
+    const payload = await response.json();
+    if (!response.ok) {
+      setOperationStatus(`Report generation failed: ${payload.detail ?? 'unknown error'}`);
+      return;
+    }
+    setOperationStatus(`Generated report ${payload.report?.report_id ?? 'unknown'}.`);
+    await loadDashboard();
+  }, [loadDashboard]);
+
+  const createWorkflowJob = useCallback(async () => {
+    setOperationStatus('Scheduling workflow job...');
+    const body: Record<string, unknown> = {
+      name: jobName,
+      job_type: 'weekly_status_report',
+      schedule_type: scheduleType,
+      payload: { source: 'dashboard' },
+    };
+    if (scheduleType !== 'once') {
+      body.interval_minutes = Number(intervalMinutes);
+    }
+
+    const response = await fetch(`/api/v1/projects/${projectId}/workflows/jobs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      setOperationStatus(`Schedule failed: ${payload.detail ?? 'unknown error'}`);
+      return;
+    }
+    setOperationStatus(`Scheduled job ${payload.job?.job_id ?? 'unknown'}.`);
+    await loadDashboard();
+  }, [intervalMinutes, jobName, loadDashboard, scheduleType]);
+
+  const runJob = useCallback(
+    async (jobId: string) => {
+      setOperationStatus(`Running job ${jobId}...`);
+      const response = await fetch(`/api/v1/projects/${projectId}/workflows/jobs/${jobId}/run`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        setOperationStatus(`Run failed: ${payload.detail ?? 'unknown error'}`);
+        return;
+      }
+      setOperationStatus(`Executed run ${payload.run?.run_id ?? 'unknown'}.`);
+      await loadDashboard();
+    },
+    [loadDashboard]
+  );
+
+  const toggleJobEnabled = useCallback(
+    async (jobId: string, enabled: boolean) => {
+      setOperationStatus(`${enabled ? 'Enabling' : 'Disabling'} job ${jobId}...`);
+      const response = await fetch(`/api/v1/projects/${projectId}/workflows/jobs/${jobId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled }),
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        setOperationStatus(`Update failed: ${payload.detail ?? 'unknown error'}`);
+        return;
+      }
+      setOperationStatus(`Job ${jobId} ${enabled ? 'enabled' : 'disabled'}.`);
+      await loadDashboard();
+    },
+    [loadDashboard]
+  );
+
+  const deleteJob = useCallback(
+    async (jobId: string) => {
+      setOperationStatus(`Deleting job ${jobId}...`);
+      const response = await fetch(`/api/v1/projects/${projectId}/workflows/jobs/${jobId}`, {
+        method: 'DELETE',
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        setOperationStatus(`Delete failed: ${payload.detail ?? 'unknown error'}`);
+        return;
+      }
+      setOperationStatus(`Deleted job ${payload.job_id ?? jobId}.`);
+      await loadDashboard();
+    },
+    [loadDashboard]
+  );
 
   const metricCards = [
     { label: 'Connections', value: data?.metrics.connections ?? 0 },
@@ -118,6 +227,7 @@ export default function DashboardPage() {
 
       {loading ? <p className="text-sm text-slate-600">Loading dashboard...</p> : null}
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {operationStatus ? <p className="text-sm text-indigo-700">{operationStatus}</p> : null}
 
       <section className="grid grid-cols-1 gap-4 md:grid-cols-7">
         {metricCards.map((metric) => (
@@ -157,6 +267,61 @@ export default function DashboardPage() {
       </section>
 
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Card className="p-5">
+          <h2 className="text-lg font-semibold">Automation Controls</h2>
+          <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+            <Button onClick={() => void runTick()} variant="outline">
+              Run Workflow Tick
+            </Button>
+            <Button onClick={() => void generateReport()} variant="outline">
+              Generate Weekly Report
+            </Button>
+          </div>
+          <div className="mt-4 space-y-2">
+            <label className="block text-xs font-medium uppercase tracking-wide text-slate-500">
+              Job Name
+            </label>
+            <input
+              className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+              value={jobName}
+              onChange={(event) => setJobName(event.target.value)}
+            />
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+              <div>
+                <label className="block text-xs font-medium uppercase tracking-wide text-slate-500">
+                  Schedule Type
+                </label>
+                <select
+                  className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm"
+                  value={scheduleType}
+                  onChange={(event) =>
+                    setScheduleType(event.target.value as 'once' | 'hourly' | 'daily' | 'weekly')
+                  }
+                >
+                  <option value="once">once</option>
+                  <option value="hourly">hourly</option>
+                  <option value="daily">daily</option>
+                  <option value="weekly">weekly</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium uppercase tracking-wide text-slate-500">
+                  Interval Minutes
+                </label>
+                <input
+                  className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm"
+                  value={intervalMinutes}
+                  onChange={(event) => setIntervalMinutes(event.target.value)}
+                  disabled={scheduleType === 'once'}
+                />
+              </div>
+            </div>
+            <Button onClick={() => void createWorkflowJob()} className="w-full">
+              Create Scheduled Job
+            </Button>
+          </div>
+        </Card>
+
         <Card className="p-5">
           <h2 className="text-lg font-semibold">Connections</h2>
           <ul className="mt-3 space-y-2 text-sm">
@@ -205,6 +370,17 @@ export default function DashboardPage() {
                   Schedule: {job.schedule_type} • Next run: {job.next_run_at ?? 'n/a'} •{' '}
                   {job.enabled ? 'enabled' : 'disabled'}
                 </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <Button variant="outline" onClick={() => void runJob(job.job_id)}>
+                    Run Now
+                  </Button>
+                  <Button variant="outline" onClick={() => void toggleJobEnabled(job.job_id, !job.enabled)}>
+                    {job.enabled ? 'Disable' : 'Enable'}
+                  </Button>
+                  <Button variant="outline" onClick={() => void deleteJob(job.job_id)}>
+                    Delete
+                  </Button>
+                </div>
               </li>
             ))}
             {(data?.workflow_jobs?.length ?? 0) === 0 ? (

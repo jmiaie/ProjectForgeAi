@@ -55,6 +55,10 @@ curl -X POST http://localhost:8000/api/v1/projects/proj_123/workflows/jobs \
   -H "Content-Type: application/json" \
   -d '{"name":"Weekly Status Automation","job_type":"weekly_status_report","schedule_type":"weekly"}'
 curl http://localhost:8000/api/v1/projects/proj_123/workflows/jobs
+curl -X PATCH http://localhost:8000/api/v1/projects/proj_123/workflows/jobs/<job_id> \
+  -H "Content-Type: application/json" \
+  -d '{"enabled":false}'
+curl -X DELETE http://localhost:8000/api/v1/projects/proj_123/workflows/jobs/<job_id>
 curl -X POST http://localhost:8000/api/v1/projects/proj_123/workflows/tick
 curl http://localhost:8000/api/v1/projects/proj_123/workflows/runs
 curl -X POST http://localhost:8000/api/v1/projects/proj_123/reports/weekly-status

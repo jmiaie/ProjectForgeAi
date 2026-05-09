@@ -78,6 +78,14 @@ class WorkflowJobRunRequest(BaseModel):
     payload_override: dict[str, Any] | None = None
 
 
+class WorkflowJobUpdateRequest(BaseModel):
+    name: str | None = None
+    enabled: bool | None = None
+    interval_minutes: int | None = None
+    payload: dict[str, Any] | None = None
+    next_run_at: str | None = None
+
+
 class WeeklyReportScheduleRequest(BaseModel):
     name: str = "Weekly Status Automation"
     schedule_type: Literal["once", "hourly", "daily", "weekly"] = "weekly"
@@ -289,6 +297,45 @@ async def run_workflow_job(
         payload={"job_id": job_id, "trigger": "manual", "run_id": run["run_id"]},
     )
     return {"status": "executed", "run": run}
+
+
+@app.patch("/api/v1/projects/{project_id}/workflows/jobs/{job_id}")
+async def update_workflow_job(
+    project_id: str,
+    job_id: str,
+    request: WorkflowJobUpdateRequest,
+    scheduler: WorkflowScheduler = Depends(get_workflow_scheduler),
+) -> dict:
+    updates = request.model_dump(exclude_none=True)
+    if not updates:
+        raise HTTPException(status_code=400, detail="No update fields provided")
+    try:
+        job = scheduler.update_job(project_id=project_id, job_id=job_id, updates=updates)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    record_audit_event(
+        project_id=project_id,
+        event_type="workflow_job_updated",
+        payload={"job_id": job_id, "updated_fields": sorted(updates.keys())},
+    )
+    return {"status": "updated", "job": job}
+
+
+@app.delete("/api/v1/projects/{project_id}/workflows/jobs/{job_id}")
+async def delete_workflow_job(
+    project_id: str,
+    job_id: str,
+    scheduler: WorkflowScheduler = Depends(get_workflow_scheduler),
+) -> dict:
+    deleted = scheduler.delete_job(project_id=project_id, job_id=job_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+    record_audit_event(
+        project_id=project_id,
+        event_type="workflow_job_deleted",
+        payload={"job_id": job_id},
+    )
+    return {"status": "deleted", "job_id": job_id}
 
 
 @app.post("/api/v1/projects/{project_id}/workflows/tick")

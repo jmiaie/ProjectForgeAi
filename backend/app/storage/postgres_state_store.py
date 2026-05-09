@@ -15,12 +15,13 @@ try:
         String,
         Table,
         Text,
+        and_,
         create_engine,
         select,
     )
 except ImportError:  # pragma: no cover - handled at runtime
     Boolean = Column = Integer = MetaData = String = Table = Text = None  # type: ignore
-    create_engine = select = None  # type: ignore
+    and_ = create_engine = select = None  # type: ignore
 
 
 metadata = MetaData() if MetaData else None
@@ -291,6 +292,25 @@ class PostgresStateStore:
             }
             for row in rows
         ]
+
+    def delete_workflow_job(self, project_id: str, job_id: str) -> bool:
+        if self._mode != "postgres" or workflow_jobs is None:
+            project_jobs = self._jobs_memory.get(project_id, {})
+            return project_jobs.pop(job_id, None) is not None
+
+        row = self._fetch_one(
+            select(workflow_jobs.c.job_id).where(
+                and_(workflow_jobs.c.project_id == project_id, workflow_jobs.c.job_id == job_id)
+            )
+        )
+        if not row:
+            return False
+        self._execute(
+            workflow_jobs.delete().where(
+                and_(workflow_jobs.c.project_id == project_id, workflow_jobs.c.job_id == job_id)
+            )
+        )
+        return True
 
     def add_workflow_run(self, run: dict[str, Any]) -> dict[str, Any]:
         project_id = run["project_id"]
