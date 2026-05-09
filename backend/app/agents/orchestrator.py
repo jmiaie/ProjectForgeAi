@@ -126,8 +126,10 @@ class OrchestratorAgent:
 
     async def _compliance_reviewer(self, goal: str, tools: OrchestratorToolContext) -> dict:
         storage = tools.storage_status()
+        profile = tools.compliance_profile()
         return {
             "summary": "Checked storage and graph backends for compliance gating readiness.",
+            "profile": profile,
             "storage": storage,
             "controls": [
                 "Keep self-learning gated by compliance profile.",

@@ -2,7 +2,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from compliance.enforcer import get_compliance_profile
+from compliance.enforcer import ComplianceEnforcer
 from core.config import settings
 
 
@@ -14,10 +14,19 @@ class LLMRequest(BaseModel):
 
 
 class LLMRouter:
+    def __init__(self, compliance: ComplianceEnforcer | None = None):
+        self.compliance = compliance or ComplianceEnforcer()
+
     async def call(self, req: LLMRequest) -> str:
-        profile = get_compliance_profile(req.project_id)
-        if profile.category in {"hipaa", "legal"}:
-            model = "anthropic/claude-3-5-sonnet-20241022"
+        decision = self.compliance.check_action(
+            req.project_id,
+            "llm_call",
+            payload=req.messages,
+        )
+        profile = decision.profile
+        messages = decision.payload if decision.payload is not None else req.messages
+        if profile.required_model:
+            model = profile.required_model
         else:
             model = req.model or settings.DEFAULT_LLM_MODEL
 
@@ -28,7 +37,7 @@ class LLMRouter:
 
         response = await litellm.acompletion(
             model=model,
-            messages=req.messages,
+            messages=messages,
             temperature=0.3 if req.task_type == "reasoning" else 0.0,
         )
         return response.choices[0].message.content

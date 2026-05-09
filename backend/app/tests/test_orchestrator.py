@@ -92,6 +92,9 @@ class _FakeToolContext:
     def storage_status(self):
         return {"locus": {"native": False}, "ompa": {"native": False}, "graph": {"backend": "memory"}}
 
+    def compliance_profile(self):
+        return {"project_id": self.project_id, "category": "standard"}
+
 
 if __name__ == "__main__":
     unittest.main()

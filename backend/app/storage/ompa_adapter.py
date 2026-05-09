@@ -1,6 +1,7 @@
 import os
 from typing import Any
 
+from compliance.enforcer import ComplianceEnforcer
 from core.config import settings
 from storage.native_loader import (
     NativeIntegrationError,
@@ -23,8 +24,9 @@ class InMemoryOmpa:
 
 
 class OmpaAdapter:
-    def __init__(self, project_id: str):
+    def __init__(self, project_id: str, compliance: ComplianceEnforcer | None = None):
         self.project_id = project_id
+        self.compliance = compliance or ComplianceEnforcer()
         self.vault_path = os.path.join(settings.OMPA_VAULT_ROOT, f"project_{project_id}")
         os.makedirs(self.vault_path, exist_ok=True)
         self.native = True
@@ -40,10 +42,17 @@ class OmpaAdapter:
             self.ao = InMemoryOmpa(vault_path=self.vault_path)
 
     async def record_decision(self, message: str) -> None:
+        decision = self.compliance.check_action(
+            self.project_id,
+            "memory_write",
+            payload=message,
+        )
+        if not decision.allowed:
+            return
         await call_first_available(
             self.ao,
             ("record_decision", "classify", "record", "remember"),
-            message,
+            decision.payload,
         )
 
     async def session_start(self):

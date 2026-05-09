@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     REQUIRE_NATIVE_LOCUS_OMPA: bool = False
     INGESTION_MANIFEST_ROOT: str = "./.ingestion"
     ORCHESTRATION_RUN_ROOT: str = "./.orchestrator"
+    COMPLIANCE_PROFILE_ROOT: str = "./.compliance"
+    COMPLIANCE_AUDIT_ROOT: str = "./.audit"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

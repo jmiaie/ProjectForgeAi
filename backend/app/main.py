@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 
 from agents.orchestrator import OrchestratorAgent
 from agents.state import OrchestratorRequest
+from compliance.enforcer import ComplianceEnforcer
 from core.config import settings
 from core.integrations_manager import IntegrationsManager
 from core.llm_router import LLMRouter
@@ -31,12 +32,20 @@ class CreateProjectRequest(BaseModel):
     compliance: str = "standard"
 
 
+class SetComplianceProfileRequest(BaseModel):
+    category: str = Field(..., examples=["standard", "hipaa", "legal", "soc2", "gdpr"])
+
+
 def get_llm_router() -> LLMRouter:
     return LLMRouter()
 
 
 def get_integrations_manager() -> IntegrationsManager:
     return IntegrationsManager()
+
+
+def get_compliance_enforcer() -> ComplianceEnforcer:
+    return ComplianceEnforcer()
 
 
 def get_ingestion_pipeline() -> IngestionPipeline:
@@ -54,11 +63,13 @@ def get_orchestrator_agent() -> OrchestratorAgent:
 @app.post("/api/v1/projects/")
 async def create_project(
     request: CreateProjectRequest,
+    compliance: ComplianceEnforcer = Depends(get_compliance_enforcer),
     integrations_manager: IntegrationsManager = Depends(get_integrations_manager),
     ingestion: IngestionPipeline = Depends(get_ingestion_pipeline),
     graph_builder: ProjectGraphBuilder = Depends(get_graph_builder),
 ):
     project_id = "proj_123"
+    compliance.set_profile(project_id, request.compliance)
     await integrations_manager.get_recommended_connectors(compliance=request.compliance)
     ingestion_result = await ingestion.process_files(project_id, request.files)
     graph_result = graph_builder.build_from_latest_manifest(project_id)
@@ -76,10 +87,12 @@ async def create_project_from_uploads(
     files: list[UploadFile] = File(default_factory=list),
     compliance: str = Form(default="standard"),
     project_id: str = Form(default="proj_123"),
+    compliance_enforcer: ComplianceEnforcer = Depends(get_compliance_enforcer),
     integrations_manager: IntegrationsManager = Depends(get_integrations_manager),
     ingestion: IngestionPipeline = Depends(get_ingestion_pipeline),
     graph_builder: ProjectGraphBuilder = Depends(get_graph_builder),
 ):
+    compliance_enforcer.set_profile(project_id, compliance)
     await integrations_manager.get_recommended_connectors(compliance=compliance)
     ingestion_result = await ingestion.process_files(project_id, files)
     graph_result = graph_builder.build_from_latest_manifest(project_id)
@@ -105,6 +118,32 @@ async def health():
 @app.get("/api/v1/storage/{project_id}/status")
 async def storage_status(project_id: str):
     return get_storage_status(project_id)
+
+
+@app.get("/api/v1/projects/{project_id}/compliance/profile")
+async def compliance_profile(
+    project_id: str,
+    compliance: ComplianceEnforcer = Depends(get_compliance_enforcer),
+):
+    return compliance.get_profile(project_id).as_dict()
+
+
+@app.post("/api/v1/projects/{project_id}/compliance/profile")
+async def set_compliance_profile(
+    project_id: str,
+    request: SetComplianceProfileRequest,
+    compliance: ComplianceEnforcer = Depends(get_compliance_enforcer),
+):
+    return compliance.set_profile(project_id, request.category).as_dict()
+
+
+@app.get("/api/v1/projects/{project_id}/compliance/audit")
+async def compliance_audit(
+    project_id: str,
+    limit: int = 100,
+    compliance: ComplianceEnforcer = Depends(get_compliance_enforcer),
+):
+    return {"project_id": project_id, "events": compliance.audit_events(project_id, limit)}
 
 
 @app.post("/api/v1/projects/{project_id}/graph/build")

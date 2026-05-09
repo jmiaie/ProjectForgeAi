@@ -56,13 +56,15 @@ Parallel owners:
 
 ## Sprint 4: Compliance Enforcer
 
+**Status:** Active. Profile persistence, redaction, policy checks, memory/external-write gates, and audit APIs are in place.
+
 Make HIPAA/legal/SOC2/GDPR controls first-class.
 
-- Expand compliance profiles by project category.
-- Add policy checks before LLM calls and integration writes.
-- Add redaction hooks for PHI/PII-sensitive chunks.
-- Gate self-learning and memory writes by compliance category.
-- Add audit log model and API.
+- Expand compliance profiles by project category. **Starter done.**
+- Add policy checks before LLM calls and integration writes. **Starter done.**
+- Add redaction hooks for PHI/PII-sensitive chunks. **Starter PII/PHI patterns done.**
+- Gate self-learning and memory writes by compliance category. **Memory write gating done.**
+- Add audit log model and API. **Done.**
 
 Parallel owners:
 - Policy model agent.

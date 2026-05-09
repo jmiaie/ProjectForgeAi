@@ -467,6 +467,22 @@ Endpoints:
 - `POST /api/v1/orchestrator/run`
 - `GET /api/v1/projects/{project_id}/orchestrator/status`
 
+### Compliance Enforcement
+
+Project-level compliance profiles gate sensitive actions:
+
+- Profiles: `standard`, `hipaa`, `legal`, `soc2`, `gdpr`
+- Restricted LLM calls redact email, phone, SSN, MRN, and DOB patterns before provider calls
+- HIPAA/legal/GDPR block ungated OMPA memory writes
+- Restricted profiles require human approval for external integration writes
+- Per-project audit trail records profile changes, LLM checks, memory-write checks, and external-write checks
+
+Endpoints:
+
+- `GET /api/v1/projects/{project_id}/compliance/profile`
+- `POST /api/v1/projects/{project_id}/compliance/profile`
+- `GET /api/v1/projects/{project_id}/compliance/audit`
+
 Direct Python:
 
 ```bash

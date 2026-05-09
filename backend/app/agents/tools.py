@@ -1,5 +1,6 @@
 from typing import Any
 
+from compliance.enforcer import ComplianceEnforcer
 from core.integrations_manager import IntegrationsManager
 from graph.builder import ProjectGraphBuilder
 from storage.locus_adapter import LocusAdapter
@@ -12,10 +13,12 @@ class OrchestratorToolContext:
         project_id: str,
         graph_builder: ProjectGraphBuilder | None = None,
         integrations_manager: IntegrationsManager | None = None,
+        compliance: ComplianceEnforcer | None = None,
     ):
         self.project_id = project_id
         self.graph_builder = graph_builder or ProjectGraphBuilder()
         self.integrations_manager = integrations_manager or IntegrationsManager()
+        self.compliance = compliance or ComplianceEnforcer()
         self.locus = LocusAdapter(project_id)
         self.ompa = OmpaAdapter(project_id)
 
@@ -43,3 +46,6 @@ class OrchestratorToolContext:
             "ompa": self.ompa.status(),
             "graph": self.graph_builder.adapter.status(),
         }
+
+    def compliance_profile(self) -> dict[str, Any]:
+        return self.compliance.get_profile(self.project_id).as_dict()
