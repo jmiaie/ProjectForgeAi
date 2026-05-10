@@ -522,6 +522,26 @@ npm install
 npm run dev
 ```
 
+### Temporal-Ready Automations
+
+Automation workflows are persisted locally now and shaped for Temporal worker execution:
+
+- Timed reminders
+- Recurring reports backed by orchestrator runs
+- Integration sync jobs with compliance checks
+- Human approval gates
+- Run history
+- Temporal worker configuration endpoint
+
+Endpoints:
+
+- `POST /api/v1/projects/{project_id}/automations`
+- `GET /api/v1/projects/{project_id}/automations`
+- `POST /api/v1/projects/{project_id}/automations/{automation_id}/run`
+- `POST /api/v1/projects/{project_id}/automations/{automation_id}/approve`
+- `GET /api/v1/projects/{project_id}/automations/runs`
+- `GET /api/v1/automations/temporal/status`
+
 Direct Python:
 
 ```bash

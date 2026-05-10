@@ -29,6 +29,10 @@ class Settings(BaseSettings):
     INTEGRATIONS_CONNECTION_ROOT: str = "./.connections"
     FRONTEND_BASE_URL: str = "http://localhost:3000"
     BACKEND_BASE_URL: str = "http://localhost:8000"
+    AUTOMATION_WORKFLOW_ROOT: str = "./.automations"
+    TEMPORAL_ADDRESS: str = "localhost:7233"
+    TEMPORAL_NAMESPACE: str = "default"
+    TEMPORAL_TASK_QUEUE: str = "projectforge-automations"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

@@ -108,13 +108,15 @@ Parallel owners:
 
 ## Sprint 7: Temporal Automations
 
+**Status:** Active. Local workflow persistence, reminders, recurring reports, integration sync jobs, approval gates, run history, and Temporal configuration boundaries are in place.
+
 Add durable project workflows.
 
-- Timed emails and reminders.
-- Recurring project status reports.
-- Integration sync jobs.
-- Human approval gates.
-- Retry/dead-letter strategy.
+- Timed emails and reminders. **Reminder starter done.**
+- Recurring project status reports. **Orchestrator-backed starter done.**
+- Integration sync jobs. **Health/sync starter done.**
+- Human approval gates. **Done.**
+- Retry/dead-letter strategy. **Pending.**
 
 Parallel owners:
 - Temporal worker agent.

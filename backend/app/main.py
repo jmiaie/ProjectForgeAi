@@ -4,6 +4,9 @@ from pydantic import BaseModel, Field
 
 from agents.orchestrator import OrchestratorAgent
 from agents.state import OrchestratorRequest
+from automations.models import AutomationDefinition, AutomationSchedule, AutomationStatus, AutomationType
+from automations.service import AutomationService
+from automations.temporal_worker import temporal_worker_settings
 from compliance.enforcer import ComplianceEnforcer
 from core.config import settings
 from core.integrations_manager import IntegrationsManager
@@ -36,6 +39,19 @@ class SetComplianceProfileRequest(BaseModel):
     category: str = Field(..., examples=["standard", "hipaa", "legal", "soc2", "gdpr"])
 
 
+class ApproveAutomationRequest(BaseModel):
+    approved_by: str = "project_owner"
+
+
+class CreateAutomationRequest(BaseModel):
+    type: AutomationType
+    name: str
+    payload: dict = Field(default_factory=dict)
+    schedule: AutomationSchedule = Field(default_factory=AutomationSchedule)
+    status: AutomationStatus = AutomationStatus.SCHEDULED
+    requires_approval: bool = False
+
+
 def get_llm_router() -> LLMRouter:
     return LLMRouter()
 
@@ -58,6 +74,10 @@ def get_graph_builder() -> ProjectGraphBuilder:
 
 def get_orchestrator_agent() -> OrchestratorAgent:
     return OrchestratorAgent()
+
+
+def get_automation_service() -> AutomationService:
+    return AutomationService()
 
 
 @app.post("/api/v1/projects/")
@@ -185,6 +205,57 @@ async def orchestrator_status(
     orchestrator: OrchestratorAgent = Depends(get_orchestrator_agent),
 ):
     return orchestrator.status(project_id, run_id)
+
+
+@app.post("/api/v1/projects/{project_id}/automations")
+async def create_automation(
+    project_id: str,
+    request: CreateAutomationRequest,
+    service: AutomationService = Depends(get_automation_service),
+):
+    automation = AutomationDefinition(project_id=project_id, **request.model_dump())
+    return service.create(automation)
+
+
+@app.get("/api/v1/projects/{project_id}/automations")
+async def list_automations(
+    project_id: str,
+    service: AutomationService = Depends(get_automation_service),
+):
+    return service.list(project_id)
+
+
+@app.post("/api/v1/projects/{project_id}/automations/{automation_id}/run")
+async def run_automation(
+    project_id: str,
+    automation_id: str,
+    service: AutomationService = Depends(get_automation_service),
+):
+    return await service.run(project_id, automation_id)
+
+
+@app.post("/api/v1/projects/{project_id}/automations/{automation_id}/approve")
+async def approve_automation(
+    project_id: str,
+    automation_id: str,
+    request: ApproveAutomationRequest,
+    service: AutomationService = Depends(get_automation_service),
+):
+    return service.approve(project_id, automation_id, request.approved_by)
+
+
+@app.get("/api/v1/projects/{project_id}/automations/runs")
+async def automation_runs(
+    project_id: str,
+    limit: int = 100,
+    service: AutomationService = Depends(get_automation_service),
+):
+    return service.runs(project_id, limit)
+
+
+@app.get("/api/v1/automations/temporal/status")
+async def temporal_status():
+    return temporal_worker_settings()
 
 
 def _graph_summary(graph_result: dict) -> dict:

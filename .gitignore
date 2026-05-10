@@ -12,6 +12,7 @@ __pycache__/
 .compliance/
 .audit/
 .connections/
+.automations/
 vaults/
 node_modules/
 .next/

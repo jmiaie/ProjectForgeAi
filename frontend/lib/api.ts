@@ -36,6 +36,15 @@ export type OrchestratorRun = {
   warnings: string[];
 };
 
+export type AutomationRecord = {
+  id: string;
+  project_id: string;
+  type: string;
+  name: string;
+  status: string;
+  run_count: number;
+};
+
 export async function apiGet<T>(path: string): Promise<T> {
   const response = await fetch(path, { cache: 'no-store' });
   if (!response.ok) {

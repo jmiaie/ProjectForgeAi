@@ -1,3 +1,4 @@
+import { AutomationsPanel } from '@/components/AutomationsPanel';
 import { CompliancePanel } from '@/components/CompliancePanel';
 import { ConnectionsPanel } from '@/components/ConnectionsPanel';
 import { GraphPanel } from '@/components/GraphPanel';
@@ -8,6 +9,7 @@ import {
   apiGet,
   defaultProjectId,
   type ComplianceProfile,
+  type AutomationRecord,
   type ConnectionRecord,
   type GraphStatus,
   type HealthResponse,
@@ -28,11 +30,12 @@ export default async function Home({
 }) {
   const params = await searchParams;
   const projectId = params?.projectId || defaultProjectId();
-  const [health, graph, compliance, connections] = await Promise.all([
+  const [health, graph, compliance, connections, automations] = await Promise.all([
     safeGet<HealthResponse>('/health'),
     safeGet<GraphStatus>(`/api/v1/projects/${projectId}/graph/status`),
     safeGet<ComplianceProfile>(`/api/v1/projects/${projectId}/compliance/profile`),
     safeGet<{ connections: ConnectionRecord[] }>(`/api/v1/intake/connections/${projectId}`),
+    safeGet<{ automations: AutomationRecord[] }>(`/api/v1/projects/${projectId}/automations`),
   ]);
 
   return (
@@ -67,6 +70,7 @@ export default async function Home({
             <CompliancePanel projectId={projectId} initialProfile={compliance} />
           </div>
           <ConnectionsPanel projectId={projectId} initialConnections={connections?.connections ?? []} />
+          <AutomationsPanel projectId={projectId} initialAutomations={automations?.automations ?? []} />
         </div>
       </div>
     </main>
