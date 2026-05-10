@@ -9,8 +9,16 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Upload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.orchestrator import OrchestratorAgent
+from app.auth.dependencies import get_current_user, require_authenticated_user
+from app.auth.roles import Role, role_at_least
 from app.core.integrations_manager import IntegrationsManager
-from app.db.repositories import AuditLogRepository, ProjectRepository
+from app.db.models import User
+from app.db.repositories import (
+    AuditLogRepository,
+    MembershipRepository,
+    OrganizationRepository,
+    ProjectRepository,
+)
 from app.db.session import fastapi_get_session
 from app.graph.builder import GraphBuilder
 from app.ingestion.pipeline import IngestionPipeline
@@ -36,16 +44,27 @@ async def create_project(
     name: str | None = Form(default=None),
     compliance: str = Form("standard"),
     objective: str | None = Form(default=None),
+    organization_id: str | None = Form(default=None),
     pipeline: IngestionPipeline = Depends(get_ingestion_pipeline),
     orchestrator: OrchestratorAgent = Depends(get_orchestrator),
     integrations_manager: IntegrationsManager = Depends(get_integrations_manager),
+    user: User | None = Depends(get_current_user),
     session: AsyncSession = Depends(fastapi_get_session),
 ) -> dict[str, Any]:
-    """Create a project, persist it, ingest uploaded files, and orchestrate."""
+    """Create a project, persist it, ingest uploaded files, and orchestrate.
+
+    When the caller is authenticated, the project is bound to the resolved
+    organization and tagged with the creator. Anonymous calls remain
+    supported in development (project rows are created without owner FKs).
+    """
 
     project_id = f"proj_{uuid.uuid4().hex[:12]}"
     projects = ProjectRepository(session)
     audit = AuditLogRepository(session)
+
+    bound_org_id = await _resolve_creation_org_id(
+        session=session, user=user, requested=organization_id
+    )
 
     project = await projects.create(
         project_id=project_id,
@@ -53,6 +72,8 @@ async def create_project(
         compliance=compliance,
         objective=objective,
         status="ingesting",
+        organization_id=bound_org_id,
+        created_by_user_id=user.id if user else None,
     )
     await audit.record(
         action="project.created",
@@ -147,3 +168,85 @@ async def get_project(
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
     return project.to_dict()
+
+
+@router.delete("/{project_id}")
+async def delete_project(
+    project_id: str,
+    user: User = Depends(require_authenticated_user),
+    session: AsyncSession = Depends(fastapi_get_session),
+) -> dict[str, Any]:
+    """Delete a project. Requires admin+ role in the project's organization
+    (or superuser). Projects without an organization can be deleted by any
+    authenticated user (legacy / dev rows)."""
+
+    projects = ProjectRepository(session)
+    project = await projects.get(project_id)
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    if project.organization_id and not user.is_superuser:
+        memberships = MembershipRepository(session)
+        membership = await memberships.get(
+            user_id=user.id, organization_id=project.organization_id
+        )
+        if membership is None:
+            raise HTTPException(
+                status_code=403,
+                detail="You are not a member of this project's organization",
+            )
+        try:
+            actual = Role(membership.role)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=403, detail=f"Invalid stored role: {membership.role}"
+            ) from exc
+        if not role_at_least(actual, Role.ADMIN):
+            raise HTTPException(
+                status_code=403,
+                detail=f"Role '{actual.value}' is below required 'admin'",
+            )
+
+    audit = AuditLogRepository(session)
+    await audit.record(
+        action="project.deleted",
+        project_id=project_id,
+        actor=user.id,
+        payload={"name": project.name},
+    )
+    await projects.delete(project)
+    await session.commit()
+    return {"status": "deleted", "project_id": project_id}
+
+
+async def _resolve_creation_org_id(
+    *,
+    session: AsyncSession,
+    user: User | None,
+    requested: str | None,
+) -> str | None:
+    """Return the organization id the new project should be bound to.
+
+    * Anonymous caller → ``None`` (legacy / dev path).
+    * Authenticated caller → ``requested`` if they are a member of it,
+      otherwise their first owned/joined organization.
+    """
+
+    if user is None:
+        return requested
+    memberships = MembershipRepository(session)
+    if requested:
+        membership = await memberships.get(
+            user_id=user.id, organization_id=requested
+        )
+        if membership is None and not user.is_superuser:
+            raise HTTPException(
+                status_code=403,
+                detail="You are not a member of the requested organization",
+            )
+        return requested
+    organizations = OrganizationRepository(session)
+    orgs = await organizations.list_for_user(user.id)
+    if orgs:
+        return orgs[0].id
+    return None

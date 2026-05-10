@@ -79,15 +79,25 @@ The intake wizard is mounted at `/` and `/settings/connections` and talks to the
 | Method | Path                                   | Purpose                                       |
 | ------ | -------------------------------------- | --------------------------------------------- |
 | GET    | `/health`                              | Liveness + version                            |
+| POST   | `/api/v1/auth/register`                | Create user + auto-provisioned organization   |
+| POST   | `/api/v1/auth/login`                   | Issue JWT access token                        |
+| GET    | `/api/v1/auth/me`                      | Current user + organizations (auth required)  |
+| POST   | `/api/v1/orgs/`                        | Create organization (caller becomes owner)    |
+| GET    | `/api/v1/orgs/`                        | List the caller's organizations               |
+| GET    | `/api/v1/orgs/{id}`                    | Fetch an organization (viewer+ required)      |
+| GET    | `/api/v1/orgs/{id}/members`            | List members (viewer+ required)               |
+| POST   | `/api/v1/orgs/{id}/members`            | Add a member by email (admin+ required)       |
+| DELETE | `/api/v1/orgs/{id}/members/{user_id}`  | Remove a member (admin+ required)             |
 | GET    | `/api/v1/intake/connectors`            | List recommended connectors per tier          |
 | POST   | `/api/v1/intake/connections`           | Authenticate + persist a connector (encrypted) |
 | GET    | `/api/v1/intake/connections`           | List persisted connections                    |
 | GET    | `/api/v1/intake/oauth/providers`       | List OAuth providers + default scopes         |
 | GET    | `/api/v1/intake/oauth/{provider}/authorize` | Begin OAuth flow (returns authorize URL) |
 | GET    | `/api/v1/intake/oauth/{provider}/callback`  | OAuth redirect target — exchanges code   |
-| POST   | `/api/v1/projects/`                    | Create project, ingest files, plan agents     |
+| POST   | `/api/v1/projects/`                    | Create project, ingest files, plan agents (anon or authed) |
 | GET    | `/api/v1/projects/`                    | List projects                                 |
 | GET    | `/api/v1/projects/{project_id}`        | Fetch single project                          |
+| DELETE | `/api/v1/projects/{project_id}`        | Delete project (admin+ in project's org)      |
 | POST   | `/api/v1/agents/orchestrate`           | Run orchestrator standalone                   |
 | GET    | `/api/v1/agents/specialists`           | List specialist agents                        |
 | GET    | `/api/v1/audit/`                       | Query audit log (filter by project / action)  |

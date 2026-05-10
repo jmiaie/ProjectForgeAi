@@ -52,6 +52,12 @@ class Settings(BaseSettings):
 
     ENCRYPTION_KEY: str = "dev-only-not-secure-change-me"
 
+    # JWT / auth
+    JWT_SECRET: str = "dev-only-jwt-secret-change-me"
+    JWT_ALGORITHM: str = "HS256"
+    JWT_ISSUER: str = "projectforge-ai"
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 12  # 12 hours
+
     # OAuth provider client credentials. Optional — when unset, the legacy
     # stubbed OAuth connector is used instead of a live token exchange.
     OAUTH_REDIRECT_BASE_URL: str = "http://localhost:8000"
