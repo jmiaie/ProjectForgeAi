@@ -79,6 +79,12 @@ class Settings(BaseSettings):
     OMPA_VAULT_ROOT: str = "./vaults"
     GRAPH_DATA_ROOT: str = "./.graph"
 
+    # Storage backends: ``local`` (the production-shaped in-process engines,
+    # default) or ``submodule`` (load the upstream ``locus`` / ``ompa``
+    # packages when they are installed).
+    LOCUS_BACKEND: str = "local"
+    OMPA_BACKEND: str = "local"
+
     # Graph backend: ``memory`` (file-backed JSON, dev/test default) or
     # ``neo4j`` (uses the async driver against ``NEO4J_URI``).
     GRAPH_BACKEND: str = "memory"

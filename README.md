@@ -106,6 +106,12 @@ The intake wizard is mounted at `/` and `/settings/connections` and talks to the
 | GET    | `/api/v1/projects/{id}/graph/react-flow` | React Flow-shaped payload                   |
 | GET    | `/api/v1/projects/{id}/graph/nodes/{node_id}` | Fetch a single node                    |
 | GET    | `/api/v1/projects/{id}/graph/schema`   | Node + edge taxonomy                          |
+| POST   | `/api/v1/projects/{id}/memory/retrieve` | BM25 query against project Locus store       |
+| GET    | `/api/v1/projects/{id}/memory/stats`   | Locus + OMPA stats                            |
+| GET    | `/api/v1/projects/{id}/memory/journal` | List OMPA journal entries (filterable)        |
+| POST   | `/api/v1/projects/{id}/memory/journal` | Append a structured journal entry             |
+| POST   | `/api/v1/projects/{id}/memory/sessions/start` | Start an OMPA session                  |
+| POST   | `/api/v1/projects/{id}/memory/sessions/{session_id}/end` | End an OMPA session         |
 | GET    | `/api/v1/automations/kinds`            | List automation kinds + default intervals     |
 | POST   | `/api/v1/projects/{id}/automations/`   | Schedule a recurring automation               |
 | GET    | `/api/v1/projects/{id}/automations/`   | List automations for a project                |
