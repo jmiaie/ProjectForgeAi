@@ -52,6 +52,19 @@ class Settings(BaseSettings):
 
     ENCRYPTION_KEY: str = "dev-only-not-secure-change-me"
 
+    # OAuth provider client credentials. Optional — when unset, the legacy
+    # stubbed OAuth connector is used instead of a live token exchange.
+    OAUTH_REDIRECT_BASE_URL: str = "http://localhost:8000"
+    GOOGLE_CLIENT_ID: str | None = None
+    GOOGLE_CLIENT_SECRET: str | None = None
+    MICROSOFT_CLIENT_ID: str | None = None
+    MICROSOFT_CLIENT_SECRET: str | None = None
+    GITHUB_CLIENT_ID: str | None = None
+    GITHUB_CLIENT_SECRET: str | None = None
+    SLACK_CLIENT_ID: str | None = None
+    SLACK_CLIENT_SECRET: str | None = None
+    OAUTH_STATE_TTL_SECONDS: int = 600
+
     # Frontend / CORS
     ALLOWED_ORIGINS: list[str] = ["*"]
 
@@ -71,6 +84,18 @@ class Settings(BaseSettings):
             env_file = ".env"
             env_file_encoding = "utf-8"
             extra = "ignore"
+
+
+def get_oauth_client_credentials(
+    settings: Settings, provider: str
+) -> tuple[str | None, str | None]:
+    """Return ``(client_id, client_secret)`` for ``provider`` from settings."""
+
+    key = provider.upper()
+    return (
+        getattr(settings, f"{key}_CLIENT_ID", None),
+        getattr(settings, f"{key}_CLIENT_SECRET", None),
+    )
 
 
 def resolve_database_url(settings: Settings) -> str:

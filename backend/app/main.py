@@ -23,6 +23,7 @@ from app.core.config import get_settings
 from app.core.integrations_manager import IntegrationsManager
 from app.core.llm_router import LLMRouter
 from app.integrations.intake_form import router as intake_router
+from app.integrations.oauth.routes import router as oauth_router
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +62,7 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(intake_router, prefix="/api/v1")
+    app.include_router(oauth_router, prefix="/api/v1")
     app.include_router(projects_router, prefix="/api/v1")
     app.include_router(agents_router, prefix="/api/v1")
     app.include_router(audit_router, prefix="/api/v1")

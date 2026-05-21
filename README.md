@@ -59,7 +59,31 @@ npm run dev
 
 ### Database migrations
 
+<<<<<<< HEAD
 From `backend/`:
+=======
+## Key Endpoints
+
+| Method | Path                                   | Purpose                                       |
+| ------ | -------------------------------------- | --------------------------------------------- |
+| GET    | `/health`                              | Liveness + version                            |
+| GET    | `/api/v1/intake/connectors`            | List recommended connectors per tier          |
+| POST   | `/api/v1/intake/connections`           | Authenticate + persist a connector (encrypted) |
+| GET    | `/api/v1/intake/connections`           | List persisted connections                    |
+| GET    | `/api/v1/intake/oauth/providers`       | List OAuth providers + default scopes         |
+| GET    | `/api/v1/intake/oauth/{provider}/authorize` | Begin OAuth flow (returns authorize URL) |
+| GET    | `/api/v1/intake/oauth/{provider}/callback`  | OAuth redirect target — exchanges code   |
+| POST   | `/api/v1/projects/`                    | Create project, ingest files, plan agents     |
+| GET    | `/api/v1/projects/`                    | List projects                                 |
+| GET    | `/api/v1/projects/{project_id}`        | Fetch single project                          |
+| POST   | `/api/v1/agents/orchestrate`           | Run orchestrator standalone                   |
+| GET    | `/api/v1/agents/specialists`           | List specialist agents                        |
+| GET    | `/api/v1/audit/`                       | Query audit log (filter by project / action)  |
+
+### Migrations
+
+Alembic is configured against the same `DATABASE_URL` your app uses. From `backend/`:
+>>>>>>> origin/cursor/sprint-3-oauth-flow-dc5d
 
 ```bash
 python -m alembic upgrade head
