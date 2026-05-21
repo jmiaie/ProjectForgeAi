@@ -45,9 +45,12 @@ async def create_project(
     if objective:
         state = await orchestrator.run(project_id=project_id, objective=objective)
         plan = {
-            "objective": state.objective,
-            "plan": state.plan,
-            "context_chunks": len(state.context),
+            "objective": state.get("objective"),
+            "compliance_category": state.get("compliance_category"),
+            "plan": state.get("plan", []),
+            "context_chunks": len(state.get("context", [])),
+            "specialists_invoked": list(state.get("outputs", {}).keys()),
+            "final_summary": state.get("final_summary"),
         }
 
     recommended = await integrations_manager.get_recommended_connectors(
