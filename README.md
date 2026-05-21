@@ -10,7 +10,8 @@ Master Build Framework v14 + **Forge CLI** for spec-driven scaffolding.
 - Postgres (SQLAlchemy + Alembic), encrypted connections, audit log
 - OAuth 2.0 / PKCE (Google, GitHub, Microsoft, Slack)
 - Living project graph (Neo4j-ready + React Flow export)
-- **Temporal-style automations** — recurring reports, digests, compliance scans
+- Temporal-style automations — recurring reports, digests, compliance scans
+- **PDF ingestion (Phase 1)** — tables, forms, OCR fallback, sliding-window chunking
 - Forge CLI + REST API for JSON spec validate/plan
 
 ## Quick start
@@ -46,6 +47,18 @@ npm run forge -- run --spec ./examples/specs/api-service.json --output ./api-out
 
 OpenAPI docs: http://localhost:8000/docs
 
+## PDF ingestion (Sprint 6)
+
+`app.ingestion.parsers.common.PDFParser`:
+
+- Per-page text with width / height / rotation metadata
+- Sliding-window chunking (`app.ingestion.chunking`)
+- AcroForm fields → `section: form_fields` chunks
+- Tables via pdfplumber → `section: table` chunks
+- OCR fallback (pypdfium2 + pytesseract) for scanned pages
+
+Optional dependencies degrade gracefully; warnings appear in parser output.
+
 ## Integrated sprints
 
 | Sprint | Status |
@@ -54,8 +67,9 @@ OpenAPI docs: http://localhost:8000/docs
 | 2 Persistence | Done |
 | 3 OAuth | Done |
 | 4 Project graph | Done |
-| 5 Temporal automations | Done |
-| 6–11 | Open branches |
+| 5 Automations | Done |
+| 6 PDF hardening | Done |
+| 7–11 | In progress |
 
 ## License
 
