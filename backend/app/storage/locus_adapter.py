@@ -1,46 +1,38 @@
-"""Locus (vectorless RAG) storage adapter.
+"""Locus (vectorless RAG) adapter.
 
-The adapter falls back to a pure in-process store when the ``locus`` package
-is not installed, so the rest of the pipeline can operate end-to-end during
-the scaffold phase.
+Prefers the upstream ``locus`` submodule when installed; otherwise uses the
+production-shaped :class:`~app.storage.locus_engine.LocusEngine` fallback
+which now offers BM25 ranking, metadata filters, and persistent storage.
 """
 
 from __future__ import annotations
 
-import json
+import logging
 import os
-from dataclasses import dataclass, field
 from typing import Any
 
 from app.core.config import get_settings
+from app.storage.locus_engine import LocusEngine as LocalLocusEngine
+
+logger = logging.getLogger(__name__)
 
 try:  # pragma: no cover - optional dependency at scaffold stage
-    from locus import LocusEngine  # type: ignore[import-not-found]
+    from locus import LocusEngine as _UpstreamLocusEngine  # type: ignore[import-not-found]
 except Exception:  # pragma: no cover
-    LocusEngine = None  # type: ignore[assignment]
+    _UpstreamLocusEngine = None  # type: ignore[assignment]
 
 
-@dataclass
-class _InMemoryLocus:
-    """Tiny stand-in used when the real Locus engine is unavailable."""
-
-    store_path: str
-    chunks: list[dict[str, Any]] = field(default_factory=list)
-
-    def index(self, chunks: list[dict[str, Any]]) -> None:
-        self.chunks.extend(chunks)
-        os.makedirs(self.store_path, exist_ok=True)
-        with open(os.path.join(self.store_path, "chunks.json"), "w", encoding="utf-8") as fh:
-            json.dump(self.chunks, fh, indent=2)
-
-    def retrieve(self, query: str, limit: int = 10) -> list[dict[str, Any]]:
-        q = query.lower()
-        scored = [
-            (chunk, sum(token in chunk.get("text", "").lower() for token in q.split()))
-            for chunk in self.chunks
-        ]
-        scored.sort(key=lambda item: item[1], reverse=True)
-        return [chunk for chunk, score in scored[:limit] if score > 0]
+def _select_engine_class() -> tuple[type[Any], str]:
+    settings = get_settings()
+    backend = settings.LOCUS_BACKEND.lower()
+    if backend == "submodule" and _UpstreamLocusEngine is not None:
+        return _UpstreamLocusEngine, "submodule"
+    if backend == "submodule":
+        logger.warning(
+            "LOCUS_BACKEND=submodule but the locus package is unavailable; "
+            "falling back to the local BM25 engine"
+        )
+    return LocalLocusEngine, "local"
 
 
 class LocusAdapter:
@@ -50,13 +42,37 @@ class LocusAdapter:
         self.store_path = os.path.join(settings.LOCUS_ROOT, f"project_{project_id}")
         os.makedirs(self.store_path, exist_ok=True)
 
-        if LocusEngine is not None:
-            self.engine: Any = LocusEngine(store_path=self.store_path)
-        else:
-            self.engine = _InMemoryLocus(store_path=self.store_path)
+        engine_cls, backend = _select_engine_class()
+        self.backend = backend
+        self.engine: Any = engine_cls(store_path=self.store_path)
 
-    async def index_files(self, chunks: list[dict[str, Any]]) -> None:
-        self.engine.index(chunks)
+    async def index_files(self, chunks: list[dict[str, Any]]) -> dict[str, Any]:
+        result = self.engine.index(chunks)
+        if isinstance(result, dict):
+            return result
+        return {"added": len(chunks)}
 
-    async def retrieve(self, query: str, limit: int = 10) -> list[dict[str, Any]]:
-        return self.engine.retrieve(query, limit=limit)
+    async def retrieve(
+        self,
+        query: str,
+        limit: int = 10,
+        filters: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
+        try:
+            return self.engine.retrieve(query, limit=limit, filters=filters)
+        except TypeError:
+            # Upstream engine doesn't accept filters yet.
+            return self.engine.retrieve(query, limit=limit)
+
+    async def stats(self) -> dict[str, Any]:
+        if hasattr(self.engine, "stats"):
+            stats = self.engine.stats()
+            if isinstance(stats, dict):
+                stats.setdefault("backend", self.backend)
+                stats.setdefault("project_id", self.project_id)
+                return stats
+        return {"backend": self.backend, "project_id": self.project_id}
+
+    async def clear(self) -> None:
+        if hasattr(self.engine, "clear"):
+            self.engine.clear()

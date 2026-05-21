@@ -21,6 +21,7 @@ from app.api.automations import catalogue_router as automations_catalogue_router
 from app.api.automations import router as automations_router
 from app.api.forge import router as forge_router
 from app.api.graph import router as graph_router
+from app.api.memory import router as memory_router
 from app.api.organizations import router as organizations_router
 from app.api.projects import router as projects_router
 from app.db.base import Base
@@ -75,6 +76,7 @@ def create_app() -> FastAPI:
     app.include_router(agents_router, prefix="/api/v1")
     app.include_router(audit_router, prefix="/api/v1")
     app.include_router(graph_router, prefix="/api/v1")
+    app.include_router(memory_router, prefix="/api/v1")
     app.include_router(automations_router, prefix="/api/v1")
     app.include_router(automations_catalogue_router, prefix="/api/v1")
     app.include_router(forge_router, prefix="/api/v1")
