@@ -7,6 +7,7 @@ import {
   planFromSpecFile,
   validateSpec,
 } from "./planner.js";
+import { publishForgeOutput } from "./publish.js";
 
 function printUsage(): void {
   console.log(`ProjectForgeAi — forge CLI
@@ -16,6 +17,7 @@ Usage:
   forge validate --spec <file.json>
   forge run --recipe <name> --output <dir> [--name <project>] [--force]
   forge run --spec <file.json> --output <dir> [--force]
+  forge publish --output <dir> [--remote <url>] [--push]
 
 Options:
   --recipe, -r    Recipe name (e.g. minimal, express-api)
@@ -34,6 +36,10 @@ function parseArgs(argv: string[]): {
   output?: string;
   name?: string;
   force?: boolean;
+  remote?: string;
+  push?: boolean;
+  branch?: string;
+  title?: string;
   help?: boolean;
 } {
   const result: ReturnType<typeof parseArgs> = {};
@@ -51,6 +57,14 @@ function parseArgs(argv: string[]): {
       result.spec = argv[++i];
     } else if (arg === "--output" || arg === "-o") {
       result.output = argv[++i];
+    } else if (arg === "--remote") {
+      result.remote = argv[++i];
+    } else if (arg === "--branch") {
+      result.branch = argv[++i];
+    } else if (arg === "--title") {
+      result.title = argv[++i];
+    } else if (arg === "--push") {
+      result.push = true;
     } else if (arg === "--name" || arg === "-n") {
       result.name = argv[++i];
     } else if (!arg.startsWith("-")) {
@@ -86,6 +100,30 @@ async function main(): Promise<void> {
     const data = await loadSpecFile(args.spec);
     const spec = await validateSpec(data);
     console.log(`Spec OK: ${spec.projectName} → recipe ${spec.recipe}`);
+    return;
+  }
+
+
+  if (args.command === "publish") {
+    if (!args.output) {
+      console.error("Error: --output is required for publish.\n");
+      printUsage();
+      process.exit(1);
+    }
+    const result = await publishForgeOutput({
+      outputDir: path.resolve(args.output),
+      branch: args.branch,
+      remote: args.remote,
+      title: args.title,
+      push: args.push,
+    });
+    console.log(`Publish ready: ${result.outputDir}`);
+    console.log(`  Branch: ${result.branch}`);
+    console.log(`  Committed: ${result.committed}`);
+    if (result.prUrl) console.log(`  PR: ${result.prUrl}`);
+    for (const line of result.instructions) {
+      console.log(`  → ${line}`);
+    }
     return;
   }
 

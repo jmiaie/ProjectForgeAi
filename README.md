@@ -2,19 +2,18 @@
 
 > **Universal Agentic Project Management OS in a Box.**
 
-Master Build Framework v14 + **Forge CLI**.
+Master Build Framework v14 + **Forge CLI** (v0.3).
 
 ## Highlights
 
-- LangGraph orchestrator + specialist agents
-- Postgres + Alembic, OAuth, JWT + RBAC
-- Locus + OMPA memory APIs
-- Project graph, automations
-- **Ingestion** — PDF (tables/OCR), CAD/BIM (DXF/IFC), repo archives (zip/tar)
-- **Deploy** — Helm (SaaS/hybrid/on-prem) + production Docker Compose
-- Forge CLI + REST API
+- LangGraph orchestrator, Postgres, OAuth, JWT + RBAC
+- Locus + OMPA memory, project graph (Neo4j-ready)
+- Automations, PDF/CAD/repo ingestion
+- **Forge CLI** — spec → scaffold → `forge publish` (git + draft PR)
+- **Frontend** — intake wizard, projects list, React Flow graph viewer
+- Helm + production Docker Compose
 
-## Quick start (dev)
+## Quick start
 
 ```bash
 cp .env.example .env && docker-compose up -d
@@ -24,42 +23,26 @@ uvicorn app.main:app --reload
 
 ```bash
 cd frontend && npm install && npm run dev
-npm ci && npm run build && npm test   # Forge CLI (repo root)
+# http://localhost:3000/projects
 ```
-
-## Deployment
-
-See [deploy/README.md](deploy/README.md).
 
 ```bash
-docker compose -f docker-compose.prod.yml up -d --build
-helm upgrade --install projectforge ./deploy/helm/projectforge \
-  -f deploy/helm/projectforge/values-saas.yaml
+npm ci && npm run build && npm test
+npm run forge -- run --spec ./examples/specs/api-service.json --output ./api-out
+npm run forge -- publish --output ./api-out --push --remote git@github.com:you/repo.git
 ```
 
-## Ingestion
+## Forge v0.3
 
-| Type | Parser |
-| ---- | ------ |
-| PDF | `PDFParser` — chunking, tables, AcroForm, OCR |
-| DXF / IFC | `DXFParser`, `IFCParser` |
-| Repo archive | `RepoArchiveParser` — zip/tar/tgz snapshots |
+| Command | Purpose |
+| ------- | ------- |
+| `forge validate --spec` | JSON Schema check |
+| `forge run --spec` | Materialize recipe |
+| `forge publish --output` | Git init, commit, optional push + draft PR (`gh`) |
 
-## Integrated sprints (all merged)
+## Graph / Neo4j
 
-| # | Focus |
-| - | ----- |
-| 1 | LangGraph + specialists |
-| 2 | Postgres + Alembic |
-| 3 | OAuth 2.0 / PKCE |
-| 4 | Project graph |
-| 5 | Automations |
-| 6 | PDF hardening |
-| 7 | Auth + RBAC |
-| 8 | Locus + OMPA |
-| 9 | Deploy manifests (Helm / on-prem) |
-| 10 | CAD / BIM |
-| 11 | Repo ingestion |
+Set `GRAPH_BACKEND=neo4j` and `NEO4J_URI` in `.env`. `GET /health` reports graph backend status and Neo4j connectivity.
 
 ## License
 

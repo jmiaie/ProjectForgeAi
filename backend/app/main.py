@@ -28,6 +28,7 @@ from app.db.base import Base
 from app.db.session import get_engine
 from app.core.config import get_settings
 from app.core.integrations_manager import IntegrationsManager
+from app.graph.status import graph_backend_status
 from app.core.llm_router import LLMRouter
 from app.integrations.intake_form import router as intake_router
 from app.integrations.oauth.routes import router as oauth_router
@@ -82,13 +83,15 @@ def create_app() -> FastAPI:
     app.include_router(forge_router, prefix="/api/v1")
 
     @app.get("/health")
-    async def health() -> dict[str, str]:
+    async def health() -> dict[str, object]:
+        graph = await graph_backend_status()
         return {
             "status": "healthy",
             "project": settings.PROJECT_NAME,
             "version": settings.PROJECT_VERSION,
             "llm_default": settings.DEFAULT_LLM_MODEL,
             "deployment_mode": settings.DEPLOYMENT_MODE,
+            "graph": graph,
         }
 
     @app.get("/")

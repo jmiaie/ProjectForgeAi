@@ -1,6 +1,6 @@
 {
   "name": "projectforgeai",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Spec-driven project generator with versioned forge recipes",
   "type": "module",
   "bin": {
