@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  @apply bg-slate-100 text-slate-900 antialiased;
+}
+
+.react-flow__node {
+  @apply rounded-lg border border-slate-200 bg-white text-xs shadow-sm;
+}
+
+.react-flow__node.selected {
+  @apply border-brand-500 ring-2 ring-brand-100;
+}

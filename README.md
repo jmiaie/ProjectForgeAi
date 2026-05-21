@@ -94,7 +94,17 @@ npm install
 npm run dev
 ```
 
-The intake wizard is mounted at `/` and `/settings/connections` and talks to the FastAPI backend at `NEXT_PUBLIC_API_BASE_URL` (defaults to `http://localhost:8000`).
+Pages:
+
+| Route | Purpose |
+| ----- | ------- |
+| `/` | Landing + links to dashboard |
+| `/projects` | Project list + create/ingest form |
+| `/projects/[id]` | Tabbed dashboard: Overview, Graph (React Flow), Gantt, Chat |
+| `/login` | Register / sign in (JWT stored client-side) |
+| `/settings/connections` | Intake wizard for OAuth/API connectors |
+
+Set `NEXT_PUBLIC_API_BASE_URL` (defaults to `http://localhost:8000`).
 
 ## Key Endpoints
 
@@ -211,7 +221,7 @@ skipped automatically.
 3. ~~CAD / BIM ingestion pipeline (Phase 2).~~
 4. ~~Source-code repo ingestion (Phase 2).~~
 5. ~~Multi-tenant auth + RBAC.~~
-6. Frontend buildout (dashboard, Gantt, chat, React Flow visualization).
+6. ~~Frontend buildout (dashboard, Gantt, chat, React Flow visualization).~~
 
 ## License
 
