@@ -77,6 +77,14 @@ class Settings(BaseSettings):
     # ``neo4j`` (uses the async driver against ``NEO4J_URI``).
     GRAPH_BACKEND: str = "memory"
 
+    # Workflow / automation backend: ``memory`` (in-process polling, dev/test
+    # default) or ``temporal`` (uses the temporalio SDK).
+    WORKFLOW_BACKEND: str = "memory"
+    TEMPORAL_TARGET: str = "localhost:7233"
+    TEMPORAL_NAMESPACE: str = "default"
+    TEMPORAL_TASK_QUEUE: str = "projectforge-automations"
+    AUTOMATION_POLL_SECONDS: float = 5.0
+
     if SettingsConfigDict is not None:  # pragma: no branch
         model_config = SettingsConfigDict(
             env_file=".env",

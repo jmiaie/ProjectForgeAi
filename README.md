@@ -1,43 +1,23 @@
 # ProjectForge AI
 
-> **Universal Agentic Project Management OS in a Box.** Upload all project documents once → instant living project graph → auto-generates every template, contract, schedule, automation, communication loop, and compliance control.
+> **Universal Agentic Project Management OS in a Box.**
 
-This repository implements the **Master Build Framework v14**, plus a **Forge CLI** for spec-driven repository scaffolding.
-
----
+Master Build Framework v14 + **Forge CLI** for spec-driven scaffolding.
 
 ## Highlights
 
-- **Industry-agnostic** PM framework from solopreneur gigs to enterprise programs.
-- **LangGraph orchestrator** with specialist agents (compliance, schedule, contracts, risk, comms).
-- **Postgres persistence** — projects, encrypted connections, audit log (SQLAlchemy + Alembic).
-- **OAuth 2.0 / PKCE** for Google, GitHub, Microsoft, Slack.
-- **Living project graph** — Neo4j-ready adapter + React Flow export API.
-- **LLM-flexible** via LiteLLM (BYOK supported).
-- **Forge CLI** — JSON spec → versioned recipes (`minimal`, `express-api`).
+- LangGraph orchestrator + specialist agents
+- Postgres (SQLAlchemy + Alembic), encrypted connections, audit log
+- OAuth 2.0 / PKCE (Google, GitHub, Microsoft, Slack)
+- Living project graph (Neo4j-ready + React Flow export)
+- **Temporal-style automations** — recurring reports, digests, compliance scans
+- Forge CLI + REST API for JSON spec validate/plan
 
-## Repository layout
-
-```
-├── backend/     # FastAPI, agents, db, oauth, graph
-├── frontend/    # Next.js IntakeWizard
-├── src/         # Forge CLI
-├── templates/   # Forge recipes
-└── docs/        # ADRs
-```
-
-## Quick start — platform
+## Quick start
 
 ```bash
-cp .env.example .env
-docker-compose up -d
-open http://localhost:8000/docs
-```
-
-```bash
-cd backend && python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-python -m alembic upgrade head
+cp .env.example .env && docker-compose up -d
+cd backend && pip install -r requirements.txt && python -m alembic upgrade head
 uvicorn app.main:app --reload
 ```
 
@@ -45,42 +25,37 @@ uvicorn app.main:app --reload
 cd frontend && npm install && npm run dev
 ```
 
-## Quick start — Forge CLI
-
 ```bash
 npm ci && npm run build && npm test
 npm run forge -- run --spec ./examples/specs/api-service.json --output ./api-out
 ```
 
-## API endpoints
+## API endpoints (summary)
 
-| Method | Path | Purpose |
-| ------ | ---- | ------- |
-| GET | `/health` | Liveness |
-| GET | `/api/v1/intake/connectors` | List connectors |
-| POST | `/api/v1/intake/connections` | Persist connection |
-| GET | `/api/v1/intake/oauth/providers` | OAuth providers |
-| GET | `/api/v1/intake/oauth/{provider}/authorize` | Start OAuth |
-| GET | `/api/v1/intake/oauth/{provider}/callback` | OAuth callback |
-| POST | `/api/v1/projects/` | Create project |
-| GET | `/api/v1/projects/` | List projects |
-| GET | `/api/v1/projects/{project_id}` | Get project |
-| GET | `/api/v1/projects/{project_id}/graph` | Project graph (React Flow JSON) |
-| POST | `/api/v1/projects/{project_id}/graph/rebuild` | Rebuild graph from ingested docs |
-| POST | `/api/v1/agents/orchestrate` | Run orchestrator |
-| GET | `/api/v1/agents/specialists` | List specialists |
-| GET | `/api/v1/audit/` | Audit log |
+| Area | Examples |
+| ---- | -------- |
+| Health | `GET /health` |
+| Intake | `GET /api/v1/intake/connectors`, `POST .../connections` |
+| OAuth | `GET /api/v1/intake/oauth/{provider}/authorize` |
+| Projects | `POST /api/v1/projects/`, `GET /api/v1/projects/{id}` |
+| Graph | `GET /api/v1/projects/{id}/graph/react-flow` |
+| Agents | `POST /api/v1/agents/orchestrate` |
+| Automations | `POST /api/v1/projects/{id}/automations/`, `POST .../run-now` |
+| Forge | `POST /api/v1/forge/validate`, `POST /api/v1/forge/plan` |
+| Audit | `GET /api/v1/audit/` |
 
-## Phase roadmap
+OpenAPI docs: http://localhost:8000/docs
 
-| Phase | Status |
-| ----- | ------ |
-| v14 + Forge v0.2 | Done |
-| Sprint 1 — LangGraph | Done |
-| Sprint 2 — Persistence | Done |
-| Sprint 3 — OAuth | Done |
-| Sprint 4 — Project graph | Done |
-| Sprint 5–11 | Open branches |
+## Integrated sprints
+
+| Sprint | Status |
+| ------ | ------ |
+| 1 LangGraph | Done |
+| 2 Persistence | Done |
+| 3 OAuth | Done |
+| 4 Project graph | Done |
+| 5 Temporal automations | Done |
+| 6–11 | Open branches |
 
 ## License
 

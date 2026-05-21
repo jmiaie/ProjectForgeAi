@@ -71,3 +71,26 @@ def _stub_orchestrator_for_api() -> None:
     app.dependency_overrides[projects.get_orchestrator] = lambda: stub
     yield
     app.dependency_overrides.clear()
+
+
+class _StubLLMRouter:
+    """Returns deterministic text for any specialist/automation LLM call."""
+
+    async def call(self, req: object) -> str:
+        return (
+            "Status: On track\n"
+            "Risk: Vendor delay | Likelihood: medium | Impact: high\n"
+            "Milestone: Phase 1 complete\n"
+        )
+
+
+@pytest.fixture(autouse=True)
+def _stub_specialist_llm(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.agents.specialists.base import SpecialistAgent
+
+    original_init = SpecialistAgent.__init__
+
+    def patched_init(self: SpecialistAgent, llm_router: object | None = None) -> None:
+        original_init(self, llm_router=_StubLLMRouter())
+
+    monkeypatch.setattr(SpecialistAgent, "__init__", patched_init)
