@@ -7,14 +7,14 @@ Master Build Framework v14 + **Forge CLI**.
 ## Highlights
 
 - LangGraph orchestrator + specialist agents
-- Postgres + Alembic, encrypted connections, audit log
-- OAuth 2.0 / PKCE, multi-tenant JWT + RBAC
-- **Locus + OMPA memory** — vectorless RAG retrieval + persistent session memory (Sprint 8)
-- Project graph (Neo4j-ready + React Flow export)
-- Automations, PDF ingestion (tables/OCR/chunking)
+- Postgres + Alembic, OAuth, JWT + RBAC
+- Locus + OMPA memory APIs
+- Project graph, automations
+- **Ingestion** — PDF (tables/OCR), CAD/BIM (DXF/IFC), repo archives (zip/tar)
+- **Deploy** — Helm (SaaS/hybrid/on-prem) + production Docker Compose
 - Forge CLI + REST API
 
-## Quick start
+## Quick start (dev)
 
 ```bash
 cp .env.example .env && docker-compose up -d
@@ -26,25 +26,31 @@ uvicorn app.main:app --reload
 npm ci && npm run build && npm test
 ```
 
-## Memory API (Sprint 8)
+## Deployment
 
-| Method | Path | Purpose |
-| ------ | ---- | ------- |
-| POST | `/api/v1/projects/{id}/memory/locus/index` | Index chunks into Locus |
-| POST | `/api/v1/projects/{id}/memory/locus/retrieve` | Retrieve by query |
-| POST | `/api/v1/projects/{id}/memory/ompa/session` | Start OMPA session |
-| POST | `/api/v1/projects/{id}/memory/ompa/decisions` | Record a decision |
-| GET | `/api/v1/projects/{id}/memory/ompa/history` | Session history |
+See [deploy/README.md](deploy/README.md). Profiles: `values-saas.yaml`, `values-hybrid.yaml`, `values-onprem.yaml`.
 
-Set `LOCUS_BACKEND=memory|submodule` and `OMPA_BACKEND=memory|submodule` in `.env`.
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+helm upgrade --install projectforge ./deploy/helm/projectforge -f deploy/helm/projectforge/values-saas.yaml
+```
+
+## Ingestion
+
+| Type | Parser | Notes |
+| ---- | ------ | ----- |
+| PDF | `PDFParser` | Chunking, tables, AcroForm, OCR fallback |
+| DXF / IFC | `DXFParser`, `IFCParser` | Optional `ezdxf`, `ifcopenshell` |
+| Repo zip/tar | `RepoArchiveParser` | Tree summary, manifests, README + source sample |
 
 ## Integrated sprints
 
 | Sprint | Status |
 | ------ | ------ |
-| 1–7 | Done |
-| 8 Locus/Ompa | Done |
-| 9–11 | In progress |
+| 1–8 | Done |
+| 9 Deploy | Done (via sprint 11 branch) |
+| 10 CAD/BIM | Done |
+| 11 Repo ingestion | Done |
 
 ## License
 

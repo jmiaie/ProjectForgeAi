@@ -1,0 +1,34 @@
+# Hybrid profile — managed Postgres/Redis external, in-cluster backend + Neo4j.
+# Usage: helm upgrade --install projectforge ./deploy/helm/projectforge \
+#          -f deploy/helm/projectforge/values.yaml \
+#          -f deploy/helm/projectforge/values-hybrid.yaml \
+#          --set backend.externalDatabaseUrl=postgresql+asyncpg://...
+
+global:
+  deploymentMode: hybrid
+
+backend:
+  replicaCount: 2
+  env:
+    GRAPH_BACKEND: neo4j
+  oauthRedirectBaseUrl: https://projectforge.internal.example.com
+
+postgresql:
+  enabled: false
+
+redis:
+  enabled: false
+
+neo4j:
+  enabled: true
+  persistence:
+    size: 50Gi
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: projectforge.internal.example.com
+      paths:
+        - path: /
+          pathType: Prefix

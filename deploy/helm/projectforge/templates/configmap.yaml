@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "projectforge.fullname" . }}-config
+  labels:
+    {{- include "projectforge.labels" . | nindent 4 }}
+data:
+  DEPLOYMENT_MODE: {{ .Values.global.deploymentMode | quote }}
+  PROJECT_NAME: "ProjectForge AI"
+  AUTO_CREATE_SCHEMA: {{ .Values.backend.env.AUTO_CREATE_SCHEMA | quote }}
+  RUN_MIGRATIONS: {{ .Values.backend.env.RUN_MIGRATIONS | quote }}
+  GRAPH_BACKEND: {{ .Values.backend.env.GRAPH_BACKEND | quote }}
+  WORKFLOW_BACKEND: {{ .Values.backend.env.WORKFLOW_BACKEND | quote }}
+  LOCUS_BACKEND: {{ .Values.backend.env.LOCUS_BACKEND | quote }}
+  OMPA_BACKEND: {{ .Values.backend.env.OMPA_BACKEND | quote }}
+  LOCUS_ROOT: {{ .Values.backend.env.LOCUS_ROOT | quote }}
+  OMPA_VAULT_ROOT: {{ .Values.backend.env.OMPA_VAULT_ROOT | quote }}
+  GRAPH_DATA_ROOT: {{ .Values.backend.env.GRAPH_DATA_ROOT | quote }}
+  {{- if .Values.postgresql.enabled }}
+  DATABASE_URL: {{ include "projectforge.databaseUrl" . | quote }}
+  POSTGRES_URI: {{ printf "postgresql://%s:%s@%s:%d/%s" .Values.postgresql.auth.username .Values.postgresql.auth.password (include "projectforge.postgresql.fullname" .) (.Values.postgresql.service.port | int) .Values.postgresql.auth.database | quote }}
+  {{- else if .Values.backend.externalDatabaseUrl }}
+  DATABASE_URL: {{ .Values.backend.externalDatabaseUrl | quote }}
+  {{- end }}
+  {{- if .Values.redis.enabled }}
+  REDIS_URI: {{ printf "redis://%s:%d/0" (include "projectforge.redis.fullname" .) (.Values.redis.service.port | int) | quote }}
+  {{- end }}
+  {{- if .Values.neo4j.enabled }}
+  NEO4J_URI: {{ printf "bolt://%s:%d" (include "projectforge.neo4j.fullname" .) (.Values.neo4j.service.boltPort | int) | quote }}
+  NEO4J_USER: "neo4j"
+  {{- end }}
+  OAUTH_REDIRECT_BASE_URL: {{ .Values.backend.oauthRedirectBaseUrl | default "http://localhost:8000" | quote }}
+  ALLOWED_ORIGINS: {{ .Values.backend.allowedOrigins | default "*" | quote }}

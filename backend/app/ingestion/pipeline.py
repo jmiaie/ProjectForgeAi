@@ -1,17 +1,18 @@
 """End-to-end ingestion pipeline.
 
-The pipeline routes each uploaded file to the appropriate Phase 1 parser,
-indexes the resulting chunks in Locus, and records a corresponding decision
-trail entry in OMPA. Returning a structured summary makes it easy to surface
-warnings (e.g. missing optional parsers) back to the caller.
+The pipeline routes each uploaded file to the appropriate parser (Phase 1
+common formats + Phase 2 CAD/BIM + source repo archives), indexes the
+resulting chunks in Locus, and records a corresponding decision trail entry
+in OMPA.
 """
 
 from __future__ import annotations
 
-import os
 from dataclasses import asdict
 from typing import Any, Iterable
 
+from app.ingestion.parsers.cad import DXFParser, IFCParser
+from app.ingestion.parsers.code import RepoArchiveParser
 from app.ingestion.parsers.common import (
     EmailParser,
     ImageParser,
@@ -26,12 +27,25 @@ class IngestionPipeline:
     """Coordinates parsing + indexing + memory recording."""
 
     def __init__(self) -> None:
-        self.parsers = [PDFParser(), ImageParser(), EmailParser()]
+        self.parsers = [
+            PDFParser(),
+            ImageParser(),
+            EmailParser(),
+            DXFParser(),
+            IFCParser(),
+            RepoArchiveParser(),
+        ]
+
+    def _matches_extension(self, filename: str, extensions: tuple[str, ...]) -> bool:
+        lower = filename.lower()
+        for ext in sorted(extensions, key=len, reverse=True):
+            if lower.endswith(ext):
+                return True
+        return False
 
     def _select_parser(self, filename: str):
-        ext = os.path.splitext(filename)[1].lower()
         for parser in self.parsers:
-            if ext in parser.extensions:
+            if self._matches_extension(filename, parser.extensions):
                 return parser
         return None
 

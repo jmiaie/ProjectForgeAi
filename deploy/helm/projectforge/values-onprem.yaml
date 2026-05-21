@@ -1,0 +1,46 @@
+# On-prem / air-gapped profile — single-node friendly, local images, no pull.
+# Usage (after loading images — see deploy/onprem/README.md):
+#   helm upgrade --install projectforge ./deploy/helm/projectforge \
+#     -f deploy/helm/projectforge/values.yaml \
+#     -f deploy/helm/projectforge/values-onprem.yaml \
+#     --set global.imageRegistry=registry.local/projectforge \
+#     --set secrets.encryptionKey=... --set secrets.jwtSecret=...
+
+global:
+  deploymentMode: onprem
+  imageRegistry: registry.local/projectforge
+  imagePullSecrets: []
+
+backend:
+  replicaCount: 1
+  image:
+    pullPolicy: IfNotPresent
+  autoscaling:
+    enabled: false
+  persistence:
+    size: 50Gi
+  oauthRedirectBaseUrl: http://projectforge.local
+  allowedOrigins: "*"
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: projectforge.local
+      paths:
+        - path: /
+          pathType: Prefix
+
+postgresql:
+  persistence:
+    size: 50Gi
+
+neo4j:
+  enabled: true
+  persistence:
+    size: 30Gi
+
+redis:
+  persistence:
+    enabled: true
+    size: 5Gi

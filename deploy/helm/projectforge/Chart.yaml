@@ -1,0 +1,14 @@
+apiVersion: v2
+name: projectforge
+description: ProjectForge AI — Universal Agentic Project Management OS
+type: application
+version: 0.9.0
+appVersion: "0.14.0"
+keywords:
+  - projectforge
+  - fastapi
+  - ai
+  - project-management
+maintainers:
+  - name: ProjectForge AI
+    email: ops@projectforge.ai

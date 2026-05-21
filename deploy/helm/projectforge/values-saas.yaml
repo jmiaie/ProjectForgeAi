@@ -1,0 +1,43 @@
+# SaaS profile — multi-replica backend, ingress, autoscaling.
+# Usage: helm upgrade --install projectforge ./deploy/helm/projectforge \
+#          -f deploy/helm/projectforge/values.yaml \
+#          -f deploy/helm/projectforge/values-saas.yaml \
+#          --set secrets.encryptionKey=... --set secrets.jwtSecret=...
+
+global:
+  deploymentMode: saas
+
+backend:
+  replicaCount: 2
+  image:
+    pullPolicy: Always
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 20
+  oauthRedirectBaseUrl: https://app.projectforge.ai
+  allowedOrigins: "https://app.projectforge.ai"
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: api.projectforge.ai
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: projectforge-api-tls
+      hosts:
+        - api.projectforge.ai
+
+postgresql:
+  persistence:
+    size: 100Gi
+
+neo4j:
+  enabled: true
+  persistence:
+    size: 50Gi

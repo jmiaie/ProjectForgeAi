@@ -48,6 +48,11 @@ vaults/
 .cache/
 *.local
 
+# Deployment bundles (air-gapped)
+deploy/onprem/bundles/
+*.tar
+*.tar.sha256
+
 # Editor / OS
 .DS_Store
 Thumbs.db
