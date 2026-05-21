@@ -6,6 +6,18 @@ __pycache__/
 .eggs/
 .venv/
 venv/
+
+# Dependencies
+node_modules/
+
+# Build
+dist/
+.next/
+out/
+build/
+*.tsbuildinfo
+
+# Environment & secrets
 .env
 .env.*
 !.env.example
@@ -15,23 +27,29 @@ venv/
 .coverage
 .coverage.*
 htmlcov/
+coverage/
 
-# Node / Next.js
-node_modules/
-.next/
-out/
-dist/
-build/
-*.tsbuildinfo
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Editor / OS
-.DS_Store
-.idea/
-.vscode/
+# Forge output
+.tmp/
+tmp-forge-output/
 
 # ProjectForge runtime data
 .locus/
 vaults/
 
-# Logs
-*.log
+# AI / local caches
+.cache/
+*.local
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json

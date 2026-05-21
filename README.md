@@ -2,7 +2,7 @@
 
 > **Universal Agentic Project Management OS in a Box.** Upload all project documents once → instant living project graph → auto-generates every template, contract, schedule, automation, communication loop, and compliance control.
 
-This repository implements the **Master Build Framework v14**.
+This repository implements the **Master Build Framework v14**, plus a **Forge CLI** for spec-driven repository scaffolding.
 
 ---
 
@@ -13,49 +13,31 @@ This repository implements the **Master Build Framework v14**.
 - **LLM-flexible** by design: low-cost defaults, flagship upsell, and full Bring-Your-Own-Key via LiteLLM.
 - **Intake / Connections Wizard** with OAuth 2.0 / PKCE, API keys, webhooks, and MCP tool discovery.
 - **Compliance-first**: HIPAA, SOC 2, GDPR, legal modes — with self-improvement gated by category.
+- **Forge CLI** — versioned recipes produce reproducible project trees locally (see below).
 - **Parallel-build ready**: scaffolded so Cursor, Claude, Grok, Lovable and Manus can ship in parallel.
 
-## Repository Layout
+## Repository layout
 
 ```
-projectforge-ai/
-├── backend/
-│   ├── app/
-│   │   ├── core/              # config, llm_router, integrations_manager
-│   │   ├── compliance/        # enforcer, profiles
-│   │   ├── integrations/      # registry, intake_form, connectors (oauth/api_key/mcp)
-│   │   ├── storage/           # locus, ompa, rtk adapters
-│   │   ├── ingestion/         # pipeline + parsers/common (pdf, image, email)
-│   │   ├── agents/            # orchestrator (LangGraph-ready)
-│   │   ├── api/               # FastAPI routers (projects, ...)
-│   │   └── main.py            # FastAPI entry point
-│   ├── Dockerfile
-│   └── requirements.txt
-├── frontend/
-│   ├── app/                   # Next.js 15 app router
-│   ├── components/            # IntakeWizard.tsx + UI
-│   └── package.json
-├── submodules/                # locus / ompa / rtk (added as git submodules)
+├── backend/           # FastAPI — agents, ingestion, integrations, storage adapters
+├── frontend/          # Next.js 15 — IntakeWizard, settings
+├── src/               # Forge CLI + engine (TypeScript)
+├── templates/         # Versioned forge recipes
+├── docs/              # Vision, architecture, ADRs
 ├── docker-compose.yml
-├── .env.example
-└── README.md
+└── .github/workflows  # CI (backend + forge)
 ```
 
-## Quick Start
+## Quick start — platform
 
 ```bash
-# 1. Configure env
 cp .env.example .env
-
-# 2. Bring up Postgres / Neo4j / Redis / backend
 docker-compose up -d
-
-# 3. Open the API
 open http://localhost:8000/health
 open http://localhost:8000/docs
 ```
 
-### Backend (local, without Docker)
+### Backend (local)
 
 ```bash
 cd backend
@@ -72,35 +54,59 @@ npm install
 npm run dev
 ```
 
-The intake wizard is mounted at `/` and `/settings/connections` and talks to the FastAPI backend at `NEXT_PUBLIC_API_BASE_URL` (defaults to `http://localhost:8000`).
+## Quick start — Forge CLI
 
-## Key Endpoints
+**Requirements:** Node.js 20+
 
-| Method | Path                            | Purpose                                   |
-| ------ | ------------------------------- | ----------------------------------------- |
-| GET    | `/health`                       | Liveness + version                        |
-| GET    | `/api/v1/intake/connectors`     | List recommended connectors per tier      |
-| POST   | `/api/v1/intake/connections`    | Authenticate + persist a connector        |
-| POST   | `/api/v1/projects/`             | Create project, ingest files, plan agents |
+```bash
+npm ci
+npm run build
+npm test
+npm run forge -- list
+npm run forge -- run --recipe minimal --output ./my-new-project --name my-app
+```
 
-## Parallel Development
+With a JSON spec:
 
-| Tool        | Focus                                                         |
-| ----------- | ------------------------------------------------------------- |
-| Cursor      | Final integration, local running, git workflow                |
-| Claude Opus | Deep agent logic & full LangGraph orchestrator                |
-| Grok        | Master framework coordination                                 |
-| Lovable     | Rapid full-stack UI + frontend backend bindings               |
-| Manus       | Autonomous testing (OAuth flows, MCP connectors, ingestion)   |
+```bash
+npm run forge -- run --recipe express-api --spec ./examples/specs/api-service.json --output ./api-out
+npm run forge -- validate --spec ./examples/specs/api-service.json
+```
 
-## Phase 1 Roadmap
+| Doc | Description |
+|-----|-------------|
+| [docs/vision.md](docs/vision.md) | Forge vision & v1 scope |
+| [docs/architecture.md](docs/architecture.md) | Forge components |
+| [docs/adr/001-execution-model.md](docs/adr/001-execution-model.md) | Safety defaults |
 
-1. PDF parser hardening (tables, scans, structured forms).
-2. Complete LangGraph orchestrator with specialist agents.
-3. Locus + OMPA submodule wiring (replace in-memory fallbacks).
-4. Temporal-driven recurring comms / reports.
-5. Hybrid + on-prem deployment manifests.
+## Key API endpoints
+
+| Method | Path | Purpose |
+| ------ | ---- | ------- |
+| GET | `/health` | Liveness + version |
+| GET | `/api/v1/intake/connectors` | List connectors per tier |
+| POST | `/api/v1/intake/connections` | Authenticate + persist connector |
+| POST | `/api/v1/projects/` | Create project, ingest files, plan agents |
+
+## Phase roadmap
+
+| Phase | Status | Focus |
+| ----- | ------ | ----- |
+| v14 scaffold | Done | Backend, frontend, docker-compose |
+| Forge v0.1 | Done | `minimal` recipe, manifest, ADR-001 |
+| Forge v0.2 | Done | JSON spec, `express-api` recipe, `validate` |
+| Sprint 1+ | Branches | LangGraph, persistence, OAuth, graph, … (see open PRs) |
+
+## Parallel development
+
+| Tool | Focus |
+| ---- | ----- |
+| Cursor | Integration, forge CLI, git workflow |
+| Claude Opus | LangGraph orchestrator & specialist agents |
+| Grok | Master framework coordination |
+| Lovable | Full-stack UI |
+| Manus | OAuth, MCP, ingestion testing |
 
 ## License
 
-Proprietary — ProjectForge AI. All rights reserved.
+Platform components: proprietary — ProjectForge AI. Forge CLI tooling: MIT — see [LICENSE](LICENSE).
