@@ -69,13 +69,17 @@ helm upgrade --install projectforge ./deploy/helm/projectforge \
 # 1. Configure env
 cp .env.example .env
 
-# 2. Bring up Postgres / Neo4j / Redis / backend
-docker-compose up -d
+# 2. Bring up Postgres / Neo4j / Redis / backend / frontend
+docker compose up -d --build
 
-# 3. Open the API
-open http://localhost:8000/health
+# 3. Open the app
+open http://localhost:3000/projects
 open http://localhost:8000/docs
 ```
+
+For frontend hot reload during development, run `cd frontend && npm run dev` instead of the `frontend` compose service. API calls proxy to `http://localhost:8000` via Next.js rewrites when `NEXT_PUBLIC_API_BASE_URL` is unset.
+
+See **[docs/MERGE.md](docs/MERGE.md)** for stacked PR merge order.
 
 ### Backend (local, without Docker)
 
@@ -104,7 +108,7 @@ Pages:
 | `/login` | Register / sign in (JWT stored client-side) |
 | `/settings/connections` | Intake wizard for OAuth/API connectors |
 
-Set `NEXT_PUBLIC_API_BASE_URL` (defaults to `http://localhost:8000`).
+Set `NEXT_PUBLIC_API_BASE_URL` only when the browser must call a different host (e.g. split-domain SaaS). Otherwise leave it unset and rely on the Next.js `/api` proxy (`API_PROXY_TARGET`, default `http://localhost:8000`).
 
 ## Key Endpoints
 

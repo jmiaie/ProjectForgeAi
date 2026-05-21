@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
+import { apiUrl } from '@/lib/api';
+
 type Connector = {
   name: string;
   type: string;
@@ -12,16 +14,12 @@ type Connector = {
 };
 
 type IntakeWizardProps = {
-  apiBaseUrl?: string;
   compliance?: string;
   projectId?: string;
   onComplete?: () => void;
 };
 
-const DEFAULT_API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000';
-
 export default function IntakeWizard({
-  apiBaseUrl = DEFAULT_API_BASE,
   compliance = 'standard',
   projectId,
   onComplete,
@@ -36,7 +34,7 @@ export default function IntakeWizard({
     let cancelled = false;
     async function loadConnectors() {
       try {
-        const res = await fetch(`${apiBaseUrl}/api/v1/intake/connectors?compliance=${compliance}`);
+        const res = await fetch(apiUrl(`/api/v1/intake/connectors?compliance=${compliance}`));
         if (!res.ok) throw new Error(`Failed to load connectors (${res.status})`);
         const data = await res.json();
         if (!cancelled) setConnectors(data.recommended ?? []);
@@ -50,7 +48,7 @@ export default function IntakeWizard({
     return () => {
       cancelled = true;
     };
-  }, [apiBaseUrl, compliance]);
+  }, [compliance]);
 
   const sortedConnectors = useMemo(
     () => [...connectors].sort((a, b) => a.name.localeCompare(b.name)),
@@ -60,7 +58,7 @@ export default function IntakeWizard({
   async function handleConnect(connector: Connector) {
     setConnecting(connector.name);
     try {
-      const res = await fetch(`${apiBaseUrl}/api/v1/intake/connections`, {
+      const res = await fetch(apiUrl('/api/v1/intake/connections'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

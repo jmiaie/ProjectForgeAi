@@ -18,6 +18,20 @@ services:
       - neo4j
       - redis
 
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    image: projectforge-ai/frontend:dev
+    container_name: projectforge-frontend
+    environment:
+      API_PROXY_TARGET: http://backend:8000
+      NEXT_PUBLIC_API_BASE_URL: ""
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
   postgres:
     image: postgres:16
     container_name: projectforge-postgres

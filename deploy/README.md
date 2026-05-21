@@ -16,6 +16,7 @@ cp .env.example .env
 
 docker compose -f docker-compose.prod.yml up -d --build
 curl http://localhost:8000/health
+curl http://localhost:3000/
 ```
 
 The production compose file runs Alembic migrations automatically via the backend entrypoint before starting Uvicorn.

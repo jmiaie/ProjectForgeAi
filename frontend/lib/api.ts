@@ -1,5 +1,12 @@
-export const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000';
+export const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
+
+export function apiUrl(path: string): string {
+  const normalized = path.startsWith('/') ? path : `/${path}`;
+  if (API_BASE) {
+    return `${API_BASE.replace(/\/$/, '')}${normalized}`;
+  }
+  return normalized;
+}
 
 export type Project = {
   id: string;
@@ -79,7 +86,7 @@ async function parseJson<T>(res: Response): Promise<T> {
 }
 
 export async function login(email: string, password: string) {
-  const res = await fetch(`${API_BASE}/api/v1/auth/login`, {
+  const res = await fetch(apiUrl('/api/v1/auth/login'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
@@ -88,7 +95,7 @@ export async function login(email: string, password: string) {
 }
 
 export async function register(email: string, password: string, fullName?: string) {
-  const res = await fetch(`${API_BASE}/api/v1/auth/register`, {
+  const res = await fetch(apiUrl('/api/v1/auth/register'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password, full_name: fullName }),
@@ -97,21 +104,21 @@ export async function register(email: string, password: string, fullName?: strin
 }
 
 export async function fetchMe(token: string) {
-  const res = await fetch(`${API_BASE}/api/v1/auth/me`, {
+  const res = await fetch(apiUrl('/api/v1/auth/me'), {
     headers: authHeaders(token),
   });
   return parseJson<User>(res);
 }
 
 export async function listProjects(token?: string | null) {
-  const res = await fetch(`${API_BASE}/api/v1/projects/`, {
+  const res = await fetch(apiUrl('/api/v1/projects/'), {
     headers: authHeaders(token),
   });
   return parseJson<{ items: Project[] }>(res);
 }
 
 export async function fetchProject(projectId: string, token?: string | null) {
-  const res = await fetch(`${API_BASE}/api/v1/projects/${projectId}`, {
+  const res = await fetch(apiUrl(`/api/v1/projects/${projectId}`), {
     headers: authHeaders(token),
   });
   return parseJson<Project>(res);
@@ -121,7 +128,7 @@ export async function createProject(
   form: FormData,
   token?: string | null,
 ) {
-  const res = await fetch(`${API_BASE}/api/v1/projects/`, {
+  const res = await fetch(apiUrl('/api/v1/projects/'), {
     method: 'POST',
     headers: token ? authHeaders(token) : {},
     body: form,
@@ -135,22 +142,22 @@ export async function createProject(
 }
 
 export async function fetchGraphStats(projectId: string) {
-  const res = await fetch(`${API_BASE}/api/v1/projects/${projectId}/graph/stats`);
+  const res = await fetch(apiUrl(`/api/v1/projects/${projectId}/graph/stats`));
   return parseJson<GraphStats>(res);
 }
 
 export async function fetchReactFlow(projectId: string) {
-  const res = await fetch(`${API_BASE}/api/v1/projects/${projectId}/graph/react-flow`);
+  const res = await fetch(apiUrl(`/api/v1/projects/${projectId}/graph/react-flow`));
   return parseJson<ReactFlowPayload>(res);
 }
 
 export async function fetchMemoryStats(projectId: string) {
-  const res = await fetch(`${API_BASE}/api/v1/projects/${projectId}/memory/stats`);
+  const res = await fetch(apiUrl(`/api/v1/projects/${projectId}/memory/stats`));
   return parseJson<MemoryStats>(res);
 }
 
 export async function retrieveMemory(projectId: string, query: string, limit = 8) {
-  const res = await fetch(`${API_BASE}/api/v1/projects/${projectId}/memory/retrieve`, {
+  const res = await fetch(apiUrl(`/api/v1/projects/${projectId}/memory/retrieve`), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ query, limit }),
@@ -159,7 +166,7 @@ export async function retrieveMemory(projectId: string, query: string, limit = 8
 }
 
 export async function orchestrate(projectId: string, objective: string) {
-  const res = await fetch(`${API_BASE}/api/v1/agents/orchestrate`, {
+  const res = await fetch(apiUrl('/api/v1/agents/orchestrate'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ project_id: projectId, objective }),
