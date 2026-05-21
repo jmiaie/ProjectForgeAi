@@ -23,34 +23,43 @@ uvicorn app.main:app --reload
 ```
 
 ```bash
-npm ci && npm run build && npm test
+cd frontend && npm install && npm run dev
+npm ci && npm run build && npm test   # Forge CLI (repo root)
 ```
 
 ## Deployment
 
-See [deploy/README.md](deploy/README.md). Profiles: `values-saas.yaml`, `values-hybrid.yaml`, `values-onprem.yaml`.
+See [deploy/README.md](deploy/README.md).
 
 ```bash
 docker compose -f docker-compose.prod.yml up -d --build
-helm upgrade --install projectforge ./deploy/helm/projectforge -f deploy/helm/projectforge/values-saas.yaml
+helm upgrade --install projectforge ./deploy/helm/projectforge \
+  -f deploy/helm/projectforge/values-saas.yaml
 ```
 
 ## Ingestion
 
-| Type | Parser | Notes |
-| ---- | ------ | ----- |
-| PDF | `PDFParser` | Chunking, tables, AcroForm, OCR fallback |
-| DXF / IFC | `DXFParser`, `IFCParser` | Optional `ezdxf`, `ifcopenshell` |
-| Repo zip/tar | `RepoArchiveParser` | Tree summary, manifests, README + source sample |
+| Type | Parser |
+| ---- | ------ |
+| PDF | `PDFParser` — chunking, tables, AcroForm, OCR |
+| DXF / IFC | `DXFParser`, `IFCParser` |
+| Repo archive | `RepoArchiveParser` — zip/tar/tgz snapshots |
 
-## Integrated sprints
+## Integrated sprints (all merged)
 
-| Sprint | Status |
-| ------ | ------ |
-| 1–8 | Done |
-| 9 Deploy | Done (via sprint 11 branch) |
-| 10 CAD/BIM | Done |
-| 11 Repo ingestion | Done |
+| # | Focus |
+| - | ----- |
+| 1 | LangGraph + specialists |
+| 2 | Postgres + Alembic |
+| 3 | OAuth 2.0 / PKCE |
+| 4 | Project graph |
+| 5 | Automations |
+| 6 | PDF hardening |
+| 7 | Auth + RBAC |
+| 8 | Locus + OMPA |
+| 9 | Deploy manifests (Helm / on-prem) |
+| 10 | CAD / BIM |
+| 11 | Repo ingestion |
 
 ## License
 

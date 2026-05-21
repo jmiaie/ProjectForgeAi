@@ -15,7 +15,13 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r backend/requirements.txt
-      - run: pytest backend/tests -q
+      - run: python -m pytest backend/tests -q
+        env:
+          DATABASE_URL: sqlite+aiosqlite:////tmp/projectforge_ci.db
+          ENCRYPTION_KEY: test-only-not-secure-32bytes-min!!
+          JWT_SECRET: test-only-not-secure-jwt-secret-48b!!
+          AUTO_CREATE_SCHEMA: "true"
+          GRAPH_BACKEND: memory
 
   forge:
     runs-on: ubuntu-latest
