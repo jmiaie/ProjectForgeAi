@@ -91,6 +91,8 @@ def _stub_specialist_llm(monkeypatch: pytest.MonkeyPatch) -> None:
     original_init = SpecialistAgent.__init__
 
     def patched_init(self: SpecialistAgent, llm_router: object | None = None) -> None:
-        original_init(self, llm_router=_StubLLMRouter())
+        if llm_router is None:
+            llm_router = _StubLLMRouter()
+        original_init(self, llm_router=llm_router)
 
     monkeypatch.setattr(SpecialistAgent, "__init__", patched_init)
