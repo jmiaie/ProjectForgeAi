@@ -39,6 +39,17 @@ class Settings(BaseSettings):
     POSTGRES_URI: str = "postgresql://postgres:postgres@localhost:5432/projectforge"
     REDIS_URI: str = "redis://localhost:6379/0"
 
+    # Async SQLAlchemy URL. When unset, derived from POSTGRES_URI; for local
+    # development / tests an aiosqlite URL such as
+    # ``sqlite+aiosqlite:///./projectforge.db`` works out of the box.
+    DATABASE_URL: str | None = None
+    DATABASE_ECHO: bool = False
+
+    # When true, ``Base.metadata.create_all`` is run at startup. Convenient for
+    # local dev / sqlite tests; production should rely on Alembic migrations
+    # instead.
+    AUTO_CREATE_SCHEMA: bool = True
+
     ENCRYPTION_KEY: str = "dev-only-not-secure-change-me"
 
     # Frontend / CORS
@@ -60,6 +71,22 @@ class Settings(BaseSettings):
             env_file = ".env"
             env_file_encoding = "utf-8"
             extra = "ignore"
+
+
+def resolve_database_url(settings: Settings) -> str:
+    """Resolve the async SQLAlchemy URL.
+
+    If ``DATABASE_URL`` is set we use it verbatim. Otherwise we upgrade the
+    sync Postgres URI to its asyncpg variant.
+    """
+
+    if settings.DATABASE_URL:
+        return settings.DATABASE_URL
+    if settings.POSTGRES_URI.startswith("postgresql+asyncpg://"):
+        return settings.POSTGRES_URI
+    if settings.POSTGRES_URI.startswith("postgresql://"):
+        return settings.POSTGRES_URI.replace("postgresql://", "postgresql+asyncpg://", 1)
+    return settings.POSTGRES_URI
 
 
 @lru_cache(maxsize=1)

@@ -15,7 +15,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.agents import router as agents_router
+from app.api.audit import router as audit_router
 from app.api.projects import router as projects_router
+from app.db.base import Base
+from app.db.session import get_engine
 from app.core.config import get_settings
 from app.core.integrations_manager import IntegrationsManager
 from app.core.llm_router import LLMRouter
@@ -37,6 +40,10 @@ def create_app() -> FastAPI:
             settings.PROJECT_VERSION,
             settings.DEPLOYMENT_MODE,
         )
+        if settings.AUTO_CREATE_SCHEMA:
+            engine = get_engine()
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
         yield
 
     app = FastAPI(
@@ -56,6 +63,7 @@ def create_app() -> FastAPI:
     app.include_router(intake_router, prefix="/api/v1")
     app.include_router(projects_router, prefix="/api/v1")
     app.include_router(agents_router, prefix="/api/v1")
+    app.include_router(audit_router, prefix="/api/v1")
 
     @app.get("/health")
     async def health() -> dict[str, str]:
