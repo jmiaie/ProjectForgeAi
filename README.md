@@ -195,13 +195,23 @@ When the native libraries are installed, DXF parsing also extracts text
 annotations and IFC parsing emits per-storey element summaries plus property
 set inventories — all chunked and indexed in Locus like PDF content.
 
+### Source-code repositories (Phase 2)
+
+Upload a `.zip`, `.tar`, `.tar.gz`, or `.tgz` snapshot of a repository during
+intake. The `RepoArchiveParser` (`app.ingestion.parsers.code`) builds a file
+tree summary, detects dependency manifests (`package.json`, `pyproject.toml`,
+`requirements.txt`, `go.mod`, …), and chunks README plus a bounded sample of
+source files. Vendor directories (`.git`, `node_modules`, `venv`, …) are
+skipped automatically.
+
 ## Roadmap (post Phase 1)
 
 1. ~~Locus + OMPA submodule wiring (replace in-memory fallbacks).~~
 2. ~~Hybrid + on-prem deployment manifests.~~
 3. ~~CAD / BIM ingestion pipeline (Phase 2).~~
-4. Source-code repo ingestion (Phase 2).
+4. ~~Source-code repo ingestion (Phase 2).~~
 5. ~~Multi-tenant auth + RBAC.~~
+6. Frontend buildout (dashboard, Gantt, chat, React Flow visualization).
 
 ## License
 
