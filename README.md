@@ -25,7 +25,7 @@ projectforge-ai/
 │   │   ├── compliance/        # enforcer, profiles
 │   │   ├── integrations/      # registry, intake_form, connectors (oauth/api_key/mcp)
 │   │   ├── storage/           # locus, ompa, rtk adapters
-│   │   ├── ingestion/         # pipeline + parsers/common (pdf, image, email)
+│   │   ├── ingestion/         # pipeline + parsers (pdf, image, email, dxf, ifc)
 │   │   ├── agents/            # orchestrator (LangGraph-ready)
 │   │   ├── api/               # FastAPI routers (projects, ...)
 │   │   └── main.py            # FastAPI entry point
@@ -181,13 +181,27 @@ Each Phase 1 path degrades gracefully when its optional dependency is
 unavailable; warnings surface in the parser result so operators can see
 why a page was skipped.
 
+### CAD / BIM (Phase 2)
+
+Upload `.dxf` drawings or `.ifc` / `.ifczip` BIM models during project
+intake. Parsers live under `app.ingestion.parsers.cad`:
+
+| Format | Parser | Optional dependency | Fallback |
+| ------ | ------ | ------------------- | -------- |
+| `.dxf` | `DXFParser` | `ezdxf` | ENTITIES-section text scan (layers + entity counts) |
+| `.ifc` | `IFCParser` | `ifcopenshell` | STEP text scan (project name + entity inventory) |
+
+When the native libraries are installed, DXF parsing also extracts text
+annotations and IFC parsing emits per-storey element summaries plus property
+set inventories — all chunked and indexed in Locus like PDF content.
+
 ## Roadmap (post Phase 1)
 
-1. Locus + OMPA submodule wiring (replace in-memory fallbacks).
-2. Hybrid + on-prem deployment manifests.
-3. CAD / BIM ingestion pipeline (Phase 2).
+1. ~~Locus + OMPA submodule wiring (replace in-memory fallbacks).~~
+2. ~~Hybrid + on-prem deployment manifests.~~
+3. ~~CAD / BIM ingestion pipeline (Phase 2).~~
 4. Source-code repo ingestion (Phase 2).
-5. Multi-tenant auth + RBAC.
+5. ~~Multi-tenant auth + RBAC.~~
 
 ## License
 
