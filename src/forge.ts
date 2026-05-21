@@ -7,6 +7,7 @@ export interface ForgeOptions {
   outputDir: string;
   force?: boolean;
   projectName?: string;
+  vars?: Record<string, string>;
 }
 
 export interface ForgeManifest {
@@ -58,8 +59,13 @@ async function collectTemplateFiles(
 }
 
 export async function runForge(options: ForgeOptions): Promise<ForgeManifest> {
-  const { recipe, outputDir, force = false, projectName = "my-project" } =
-    options;
+  const {
+    recipe,
+    outputDir,
+    force = false,
+    projectName = "my-project",
+    vars: extraVars,
+  } = options;
 
   if (!(await pathExists(recipe.templateDir))) {
     throw new Error(`Template directory not found: ${recipe.templateDir}`);
@@ -80,6 +86,7 @@ export async function runForge(options: ForgeOptions): Promise<ForgeManifest> {
   const vars: Record<string, string> = {
     projectName,
     year: String(new Date().getFullYear()),
+    ...extraVars,
   };
 
   const relativeFiles = await collectTemplateFiles(recipe.templateDir);

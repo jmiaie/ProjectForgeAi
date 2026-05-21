@@ -1,0 +1,6 @@
+{
+  "projectName": "orders-api",
+  "recipe": "express-api",
+  "description": "Sample REST API forged from JSON spec",
+  "port": 3000
+}

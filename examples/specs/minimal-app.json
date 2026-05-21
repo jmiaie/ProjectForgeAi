@@ -1,0 +1,5 @@
+{
+  "projectName": "hello-forge",
+  "recipe": "minimal",
+  "description": "Minimal Node starter from spec"
+}

@@ -20,6 +20,12 @@ const recipes: Record<string, RecipeDefinition> = {
     description: "Minimal Node.js project with README and CI stub",
     templateDir: path.join(repoRoot, "templates", "minimal"),
   },
+  "express-api": {
+    id: "express-api",
+    version: "1.0.0",
+    description: "Express HTTP API with health route and CI",
+    templateDir: path.join(repoRoot, "templates", "express-api"),
+  },
 };
 
 export function listRecipes(): RecipeDefinition[] {

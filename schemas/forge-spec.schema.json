@@ -1,0 +1,35 @@
+{
+  "$id": "https://projectforge.ai/schemas/forge-spec.schema.json",
+  "title": "ForgeSpec",
+  "type": "object",
+  "required": [
+    "projectName",
+    "recipe"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "projectName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "recipe": {
+      "type": "string",
+      "enum": [
+        "minimal",
+        "express-api"
+      ]
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 500
+    },
+    "port": {
+      "type": "integer",
+      "minimum": 1024,
+      "maximum": 65535,
+      "default": 3000
+    }
+  }
+}

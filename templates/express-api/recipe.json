@@ -1,0 +1,5 @@
+{
+  "id": "express-api",
+  "version": "1.0.0",
+  "description": "Express HTTP API with health route and CI"
+}

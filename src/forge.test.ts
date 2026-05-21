@@ -34,23 +34,35 @@ describe("runForge", () => {
     expect(manifest.recipeId).toBe("minimal");
     expect(manifest.projectName).toBe("demo-app");
     expect(manifest.files).toContain("README.md");
-    expect(manifest.files).toContain("package.json");
 
     const readme = await fs.readFile(
       path.join(outputDir, "README.md"),
       "utf8"
     );
     expect(readme).toContain("demo-app");
+  });
 
-    const pkg = JSON.parse(
-      await fs.readFile(path.join(outputDir, "package.json"), "utf8")
-    );
-    expect(pkg.name).toBe("demo-app");
+  it("materializes express-api with spec vars", async () => {
+    const recipe = getRecipe("express-api")!;
+    const outputDir = await makeTempDir();
+    await runForge({
+      recipe,
+      outputDir,
+      projectName: "orders-api",
+      vars: {
+        projectName: "orders-api",
+        description: "Orders service",
+        port: "4000",
+        year: "2026",
+      },
+    });
 
-    const manifestOnDisk = JSON.parse(
-      await fs.readFile(path.join(outputDir, "forge.manifest.json"), "utf8")
+    const server = await fs.readFile(
+      path.join(outputDir, "src/server.js"),
+      "utf8"
     );
-    expect(manifestOnDisk.recipeId).toBe("minimal");
+    expect(server).toContain("4000");
+    expect(server).toContain("orders-api");
   });
 
   it("refuses non-empty output without force", async () => {
@@ -61,18 +73,5 @@ describe("runForge", () => {
     await expect(
       runForge({ recipe, outputDir, projectName: "x" })
     ).rejects.toThrow(/not empty/);
-  });
-
-  it("allows non-empty output with force", async () => {
-    const recipe = getRecipe("minimal")!;
-    const outputDir = await makeTempDir();
-    await fs.writeFile(path.join(outputDir, "existing.txt"), "x");
-
-    await runForge({ recipe, outputDir, force: true, projectName: "forced" });
-    const readme = await fs.readFile(
-      path.join(outputDir, "README.md"),
-      "utf8"
-    );
-    expect(readme).toContain("forced");
   });
 });

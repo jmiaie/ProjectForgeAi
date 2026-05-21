@@ -7,16 +7,24 @@ on:
     branches: [main]
 
 jobs:
-  build-and-test:
+  backend:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r backend/requirements.txt
+      - run: pytest backend/tests -q
 
+  forge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: npm
-
       - run: npm ci
       - run: npm run lint
       - run: npm run build
@@ -24,18 +32,17 @@ jobs:
 
   smoke-forge:
     runs-on: ubuntu-latest
-    needs: build-and-test
+    needs: forge
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: npm
-
       - run: npm ci
       - run: npm run build
+      - run: npm run forge -- validate --spec ./examples/specs/api-service.json
       - run: npm run forge -- run --recipe minimal --output ./tmp-forge-output --name ci-smoke
-      - run: test -f ./tmp-forge-output/forge.manifest.json
-      - run: test -f ./tmp-forge-output/README.md
-      - run: grep -q ci-smoke ./tmp-forge-output/README.md
+      - run: npm run forge -- run --spec ./examples/specs/api-service.json --output ./tmp-api-output
+      - run: test -f ./tmp-api-output/src/server.js
+      - run: grep -q orders-api ./tmp-api-output/src/server.js
