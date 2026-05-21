@@ -42,6 +42,7 @@ tmp-forge-output/
 # ProjectForge runtime data
 .locus/
 vaults/
+.graph/
 
 # AI / local caches
 .cache/

@@ -12,6 +12,7 @@ from app.agents.orchestrator import OrchestratorAgent
 from app.core.integrations_manager import IntegrationsManager
 from app.db.repositories import AuditLogRepository, ProjectRepository
 from app.db.session import fastapi_get_session
+from app.graph.builder import GraphBuilder
 from app.ingestion.pipeline import IngestionPipeline
 
 router = APIRouter(prefix="/projects", tags=["projects"])
@@ -59,13 +60,21 @@ async def create_project(
         payload={"name": project.name, "compliance": compliance},
     )
 
+    graph = GraphBuilder(project_id)
+    await graph.add_project(
+        name=project.name, compliance=compliance, objective=objective
+    )
+
     ingestion_summary = await pipeline.process_files(project_id, files)
+    graph_counts = await graph.add_documents_from_ingestion(ingestion_summary)
     await audit.record(
         action="project.ingested",
         project_id=project_id,
         payload={
             "total_files": ingestion_summary["total_files"],
             "total_chunks": ingestion_summary["total_chunks"],
+            "graph_documents": graph_counts.get("documents", 0),
+            "graph_chunks": graph_counts.get("chunks", 0),
         },
     )
 
@@ -73,6 +82,9 @@ async def create_project(
     if objective:
         await projects.update_status(project_id, "orchestrating")
         state = await orchestrator.run(project_id=project_id, objective=objective)
+        graph_artefact_counts = await graph.add_orchestrator_outputs(
+            state.get("outputs", {})
+        )
         plan = {
             "objective": state.get("objective"),
             "compliance_category": state.get("compliance_category"),
@@ -80,6 +92,7 @@ async def create_project(
             "context_chunks": len(state.get("context", [])),
             "specialists_invoked": list(state.get("outputs", {}).keys()),
             "final_summary": state.get("final_summary"),
+            "graph_artefacts": graph_artefact_counts,
         }
         await audit.record(
             action="project.orchestrated",
@@ -87,6 +100,7 @@ async def create_project(
             payload={
                 "specialists_invoked": plan["specialists_invoked"],
                 "warnings": state.get("warnings", []),
+                "graph_artefacts": graph_artefact_counts,
             },
         )
 

@@ -71,6 +71,11 @@ class Settings(BaseSettings):
     # Storage roots
     LOCUS_ROOT: str = "./.locus"
     OMPA_VAULT_ROOT: str = "./vaults"
+    GRAPH_DATA_ROOT: str = "./.graph"
+
+    # Graph backend: ``memory`` (file-backed JSON, dev/test default) or
+    # ``neo4j`` (uses the async driver against ``NEO4J_URI``).
+    GRAPH_BACKEND: str = "memory"
 
     if SettingsConfigDict is not None:  # pragma: no branch
         model_config = SettingsConfigDict(
