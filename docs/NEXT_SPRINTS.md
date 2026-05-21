@@ -95,8 +95,8 @@ Parallel owners:
 Expose the living project graph and agent workflows.
 
 - Project dashboard shell. **Done.**
-- React Flow graph viewer.
-- Chat/workbench tied to Locus + graph context.
+- React Flow graph viewer. **Starter done.**
+- Chat/workbench tied to Locus + graph context. **Starter done.**
 - Document ingestion status panel. **Starter done.**
 - Template and report generation UI. **Orchestrator artifact view starter done.**
 - Gantt/timeline placeholder fed by graph milestones.
@@ -125,11 +125,9 @@ Parallel owners:
 
 ## Recommended Immediate Next Move
 
-Proceed with the rest of **Sprint 1**:
+Proceed with **Sprint 2 graph enrichment**:
 
-1. Add multipart upload support to `/api/v1/projects/`.
-2. Add image/email/Office parser interfaces.
-3. Add ingestion manifest persistence.
-4. Feed successful chunks into Locus and parser warnings/decisions into OMPA.
-
-That gives every downstream phase a reliable, provenance-rich source of truth.
+1. Add LLM fact extraction into stakeholder/task/risk/milestone nodes.
+2. Preserve source-hash provenance on every extracted edge.
+3. Expose graph query filters in the dashboard.
+4. Add React Flow node detail drawer and Gantt/timeline placeholder.

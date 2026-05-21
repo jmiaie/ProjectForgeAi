@@ -15,6 +15,7 @@ from graph.builder import ProjectGraphBuilder
 from ingestion.pipeline import IngestionPipeline
 from integrations.intake_form import router as intake_router
 from storage.status import get_storage_status
+from workbench.service import WorkbenchService
 
 
 app = FastAPI(title=settings.PROJECT_NAME)
@@ -52,6 +53,11 @@ class CreateAutomationRequest(BaseModel):
     requires_approval: bool = False
 
 
+class WorkbenchQueryRequest(BaseModel):
+    query: str
+    limit: int = 5
+
+
 def get_llm_router() -> LLMRouter:
     return LLMRouter()
 
@@ -78,6 +84,10 @@ def get_orchestrator_agent() -> OrchestratorAgent:
 
 def get_automation_service() -> AutomationService:
     return AutomationService()
+
+
+def get_workbench_service() -> WorkbenchService:
+    return WorkbenchService()
 
 
 @app.post("/api/v1/projects/")
@@ -188,6 +198,15 @@ async def project_graph_status(
     graph_builder: ProjectGraphBuilder = Depends(get_graph_builder),
 ):
     return graph_builder.status(project_id)
+
+
+@app.post("/api/v1/projects/{project_id}/workbench/query")
+async def workbench_query(
+    project_id: str,
+    request: WorkbenchQueryRequest,
+    workbench: WorkbenchService = Depends(get_workbench_service),
+):
+    return await workbench.query(project_id, request.query, limit=request.limit)
 
 
 @app.post("/api/v1/orchestrator/run")

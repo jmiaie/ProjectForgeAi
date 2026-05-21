@@ -5,6 +5,7 @@ import { GraphPanel } from '@/components/GraphPanel';
 import { IngestionPanel } from '@/components/IngestionPanel';
 import { OrchestratorPanel } from '@/components/OrchestratorPanel';
 import { ProjectSummaryCards } from '@/components/ProjectSummaryCards';
+import { WorkbenchPanel } from '@/components/WorkbenchPanel';
 import {
   apiGet,
   defaultProjectId,
@@ -69,6 +70,7 @@ export default async function Home({
             <OrchestratorPanel projectId={projectId} />
             <CompliancePanel projectId={projectId} initialProfile={compliance} />
           </div>
+          <WorkbenchPanel projectId={projectId} />
           <ConnectionsPanel projectId={projectId} initialConnections={connections?.connections ?? []} />
           <AutomationsPanel projectId={projectId} initialAutomations={automations?.automations ?? []} />
         </div>

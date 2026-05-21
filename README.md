@@ -121,6 +121,8 @@ Ingestion manifests now build starter project graphs with provenance:
   - `POST /api/v1/projects/{project_id}/graph/build`
   - `GET /api/v1/projects/{project_id}/graph`
   - `GET /api/v1/projects/{project_id}/graph/status`
+- Workbench endpoint:
+  - `POST /api/v1/projects/{project_id}/workbench/query`
 
 ### Orchestrator Agent
 
