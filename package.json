@@ -1,0 +1,31 @@
+{
+  "name": "projectforgeai",
+  "version": "0.1.0",
+  "description": "Spec-driven project generator with versioned forge recipes",
+  "type": "module",
+  "bin": {
+    "forge": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "forge": "node dist/cli.js",
+    "preforge": "npm run build",
+    "lint": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT",
+  "keywords": [
+    "scaffold",
+    "generator",
+    "forge",
+    "cli"
+  ],
+  "devDependencies": {
+    "@types/node": "^22.15.21",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.4"
+  }
+}
