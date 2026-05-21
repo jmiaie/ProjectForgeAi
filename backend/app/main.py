@@ -16,10 +16,12 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.agents import router as agents_router
 from app.api.audit import router as audit_router
+from app.api.auth import router as auth_router
 from app.api.automations import catalogue_router as automations_catalogue_router
 from app.api.automations import router as automations_router
 from app.api.forge import router as forge_router
 from app.api.graph import router as graph_router
+from app.api.organizations import router as organizations_router
 from app.api.projects import router as projects_router
 from app.db.base import Base
 from app.db.session import get_engine
@@ -65,6 +67,8 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    app.include_router(auth_router, prefix="/api/v1")
+    app.include_router(organizations_router, prefix="/api/v1")
     app.include_router(intake_router, prefix="/api/v1")
     app.include_router(oauth_router, prefix="/api/v1")
     app.include_router(projects_router, prefix="/api/v1")

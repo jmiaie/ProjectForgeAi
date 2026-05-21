@@ -23,6 +23,8 @@ class ProjectRepository:
         objective: str | None = None,
         status: str = "created",
         metadata: dict[str, Any] | None = None,
+        organization_id: str | None = None,
+        created_by_user_id: str | None = None,
     ) -> Project:
         project = Project(
             id=project_id,
@@ -31,6 +33,8 @@ class ProjectRepository:
             objective=objective,
             status=status,
             project_metadata=metadata or {},
+            organization_id=organization_id,
+            created_by_user_id=created_by_user_id,
         )
         self.session.add(project)
         await self.session.flush()
@@ -67,3 +71,7 @@ class ProjectRepository:
         project.project_metadata = merged
         await self.session.flush()
         return project
+
+    async def delete(self, project: Project) -> None:
+        await self.session.delete(project)
+        await self.session.flush()
