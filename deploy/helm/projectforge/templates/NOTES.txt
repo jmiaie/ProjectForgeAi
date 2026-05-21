@@ -1,0 +1,19 @@
+Thank you for installing {{ .Chart.Name }}!
+
+Release:   {{ .Release.Name }}
+Namespace: {{ .Release.Namespace }}
+Mode:      {{ .Values.global.deploymentMode }}
+
+Backend API:
+  kubectl port-forward svc/{{ include "projectforge.fullname" . }}-backend 8000:{{ .Values.backend.service.port }} -n {{ .Release.Namespace }}
+  curl http://localhost:8000/health
+
+{{- if .Values.ingress.enabled }}
+
+Ingress:
+{{- range .Values.ingress.hosts }}
+  https://{{ .host }}
+{{- end }}
+{{- end }}
+
+Docs: https://github.com/jmiaie/ProjectForgeAi/tree/main/deploy

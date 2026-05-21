@@ -41,6 +41,28 @@ projectforge-ai/
 └── README.md
 ```
 
+## Deployment
+
+See **[deploy/README.md](deploy/README.md)** for full instructions. Three profiles ship with the repo:
+
+| Profile | Target |
+| ------- | ------ |
+| **SaaS** (`values-saas.yaml`) | Cloud multi-tenant: ingress, HPA, TLS |
+| **Hybrid** (`values-hybrid.yaml`) | External managed DB + in-cluster API/Neo4j |
+| **On-prem** (`values-onprem.yaml`) | Air-gapped single-tenant with bundled images |
+
+```bash
+# Production Docker Compose (migrations run automatically)
+cp .env.example .env
+docker compose -f docker-compose.prod.yml up -d --build
+
+# Kubernetes (Helm)
+helm upgrade --install projectforge ./deploy/helm/projectforge \
+  --namespace projectforge --create-namespace \
+  --set secrets.encryptionKey="$(openssl rand -hex 32)" \
+  --set secrets.jwtSecret="$(openssl rand -hex 48)"
+```
+
 ## Quick Start
 
 ```bash

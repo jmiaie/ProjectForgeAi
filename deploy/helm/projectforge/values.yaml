@@ -1,0 +1,148 @@
+# Default values — suitable for a single-namespace dev/staging install.
+# See values-saas.yaml, values-hybrid.yaml, values-onprem.yaml for profiles.
+
+global:
+  deploymentMode: saas
+  imageRegistry: ""
+  imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+backend:
+  replicaCount: 1
+  image:
+    repository: projectforge-ai/backend
+    tag: "0.14.0"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8000
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: ""
+    accessModes:
+      - ReadWriteOnce
+  env:
+    DEPLOYMENT_MODE: saas
+    AUTO_CREATE_SCHEMA: "false"
+    RUN_MIGRATIONS: "true"
+    GRAPH_BACKEND: memory
+    WORKFLOW_BACKEND: memory
+    LOCUS_BACKEND: local
+    OMPA_BACKEND: local
+    LOCUS_ROOT: /data/locus
+    OMPA_VAULT_ROOT: /data/vaults
+    GRAPH_DATA_ROOT: /data/graph
+  extraEnv: []
+  externalDatabaseUrl: ""
+  oauthRedirectBaseUrl: ""
+  allowedOrigins: "*"
+  # Secret keys injected from the release secret (see templates/secret.yaml).
+  secretKeys:
+    - ENCRYPTION_KEY
+    - JWT_SECRET
+    - GROQ_API_KEY
+    - ANTHROPIC_API_KEY
+    - OPENAI_API_KEY
+  livenessProbe:
+    path: /health
+    initialDelaySeconds: 15
+    periodSeconds: 20
+  readinessProbe:
+    path: /health
+    initialDelaySeconds: 10
+    periodSeconds: 10
+
+ingress:
+  enabled: false
+  className: nginx
+  annotations: {}
+  hosts:
+    - host: projectforge.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+migration:
+  enabled: true
+  backoffLimit: 3
+
+postgresql:
+  enabled: true
+  image:
+    repository: postgres
+    tag: "16"
+  auth:
+    username: postgres
+    password: changeme
+    database: projectforge
+  persistence:
+    enabled: true
+    size: 20Gi
+    storageClass: ""
+  service:
+    port: 5432
+
+redis:
+  enabled: true
+  image:
+    repository: redis
+    tag: "7"
+  persistence:
+    enabled: false
+    size: 5Gi
+  service:
+    port: 6379
+
+neo4j:
+  enabled: true
+  image:
+    repository: neo4j
+    tag: "5"
+  auth:
+    password: changeme
+  persistence:
+    enabled: true
+    size: 20Gi
+    storageClass: ""
+  service:
+    httpPort: 7474
+    boltPort: 7687
+
+serviceAccount:
+  create: true
+  name: ""
+
+podSecurityContext:
+  fsGroup: 1000
+
+secrets:
+  encryptionKey: ""
+  jwtSecret: ""
+  groqApiKey: ""
+  anthropicApiKey: ""
+  openaiApiKey: ""
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  allowPrivilegeEscalation: false
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

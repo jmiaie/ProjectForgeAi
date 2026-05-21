@@ -1,0 +1,74 @@
+# Production Docker Compose — no dev bind-mounts, healthchecks, named volumes.
+# Usage: cp .env.example .env && docker compose -f docker-compose.prod.yml up -d
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: projectforge-ai/backend:0.14.0
+    container_name: projectforge-backend
+    env_file:
+      - .env
+    environment:
+      DEPLOYMENT_MODE: ${DEPLOYMENT_MODE:-onprem}
+      DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/projectforge
+      AUTO_CREATE_SCHEMA: "false"
+      RUN_MIGRATIONS: "true"
+      LOCUS_ROOT: /data/locus
+      OMPA_VAULT_ROOT: /data/vaults
+      GRAPH_DATA_ROOT: /data/graph
+    ports:
+      - "8000:8000"
+    volumes:
+      - backend_data:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16
+    container_name: projectforge-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: projectforge
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d projectforge"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  neo4j:
+    image: neo4j:5
+    container_name: projectforge-neo4j
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-projectforge}
+    volumes:
+      - neo4j_data:/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:7
+    container_name: projectforge-redis
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  neo4j_data:
+  redis_data:
+  backend_data:

@@ -17,7 +17,11 @@ COPY backend/requirements.txt /app/requirements.txt
 RUN pip install --upgrade pip && pip install -r /app/requirements.txt
 
 COPY backend /app
+COPY backend/scripts/entrypoint.sh /app/scripts/entrypoint.sh
+RUN chmod +x /app/scripts/entrypoint.sh \
+    && mkdir -p /data/locus /data/vaults /data/graph
 
 EXPOSE 8000
 
+ENTRYPOINT ["/app/scripts/entrypoint.sh"]
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

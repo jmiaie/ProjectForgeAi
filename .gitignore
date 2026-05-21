@@ -36,3 +36,8 @@ vaults/
 
 # Logs
 *.log
+
+# Deployment bundles (air-gapped image tarballs)
+deploy/onprem/bundles/
+*.tar
+*.tar.sha256
