@@ -12,15 +12,17 @@ from storage.native_loader import (
 
 
 class InMemoryLocusEngine:
+    _stores: dict[str, list[Any]] = {}
+
     def __init__(self, store_path: str):
         self.store_path = store_path
-        self._chunks: list[Any] = []
+        self._stores.setdefault(store_path, [])
 
     def index(self, chunks: list[Any]) -> None:
-        self._chunks.extend(chunks)
+        self._stores[self.store_path].extend(chunks)
 
     def retrieve(self, query: str, limit: int = 10) -> list[Any]:
-        return self._chunks[:limit]
+        return self._stores[self.store_path][:limit]
 
 
 class LocusAdapter:
