@@ -55,3 +55,19 @@ def _initialise_database() -> None:
         await engine.dispose()
 
     asyncio.run(_drop())
+
+from fastapi.testclient import TestClient
+
+from app.api import agents, projects
+from app.main import app
+from tests.stub_orchestrator import StubOrchestrator
+
+
+@pytest.fixture(autouse=True)
+def _stub_orchestrator_for_api() -> None:
+    """Avoid live LLM calls during HTTP integration tests."""
+    stub = StubOrchestrator()
+    app.dependency_overrides[agents.get_orchestrator] = lambda: stub
+    app.dependency_overrides[projects.get_orchestrator] = lambda: stub
+    yield
+    app.dependency_overrides.clear()
