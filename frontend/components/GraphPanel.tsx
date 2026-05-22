@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { GraphFlowViewer } from '@/components/GraphFlowViewer';
+import { TimelinePanel } from '@/components/TimelinePanel';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { apiGet, apiPost, type GraphStatus } from '@/lib/api';
@@ -16,16 +17,33 @@ export function GraphPanel({ projectId, initialStatus }: GraphPanelProps) {
   const [message, setMessage] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
 
+  const refreshStatus = async () => {
+    const nextStatus = await apiGet<GraphStatus>(`/api/v1/projects/${projectId}/graph/status`);
+    setStatus(nextStatus);
+    setRefreshKey((value) => value + 1);
+    return nextStatus;
+  };
+
   const buildGraph = async () => {
     setMessage('Building graph from latest manifest...');
     const result = await apiPost<{ node_count: number; edge_count: number }>(
       `/api/v1/projects/${projectId}/graph/build`,
       {},
     );
-    const nextStatus = await apiGet<GraphStatus>(`/api/v1/projects/${projectId}/graph/status`);
-    setStatus(nextStatus);
-    setRefreshKey((value) => value + 1);
+    await refreshStatus();
     setMessage(`Graph built with ${result.node_count} nodes and ${result.edge_count} edges.`);
+  };
+
+  const enrichGraph = async () => {
+    setMessage('Enriching graph from indexed chunks...');
+    const result = await apiPost<{ added_nodes: number; facts_extracted: number }>(
+      `/api/v1/projects/${projectId}/graph/enrich`,
+      { use_llm: false },
+    );
+    await refreshStatus();
+    setMessage(
+      `Graph enriched with ${result.added_nodes} new nodes from ${result.facts_extracted} extracted facts.`,
+    );
   };
 
   return (
@@ -35,9 +53,14 @@ export function GraphPanel({ projectId, initialStatus }: GraphPanelProps) {
           <div>
             <div className="eyebrow">Living Graph</div>
             <h2>Project graph</h2>
-            <p className="muted">Manifest provenance becomes document and chunk graph nodes.</p>
+            <p className="muted">Manifest provenance plus extracted stakeholder/task/risk/milestone facts.</p>
           </div>
-          <Button onClick={buildGraph}>Build graph</Button>
+          <div className="button-row">
+            <Button variant="outline" onClick={buildGraph}>
+              Build graph
+            </Button>
+            <Button onClick={enrichGraph}>Enrich graph</Button>
+          </div>
         </div>
         <div className="grid grid-2">
           <div className="stat">
@@ -52,6 +75,7 @@ export function GraphPanel({ projectId, initialStatus }: GraphPanelProps) {
         {message ? <p className="muted">{message}</p> : null}
       </Card>
       <GraphFlowViewer projectId={projectId} refreshKey={refreshKey} />
+      <TimelinePanel projectId={projectId} refreshKey={refreshKey} />
     </div>
   );
 }

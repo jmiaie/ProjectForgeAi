@@ -61,6 +61,7 @@ function layoutNodes(nodes: GraphNodeRecord[]): Node[] {
     const layerNodes = grouped[label] || [];
     layerNodes.forEach((node, index) => {
       const title =
+        (node.properties.name as string | undefined) ||
         (node.properties.source as string | undefined) ||
         (node.properties.project_id as string | undefined) ||
         node.label;
@@ -101,6 +102,8 @@ function layoutEdges(edges: GraphEdgeRecord[]): Edge[] {
 export function GraphFlowViewer({ projectId, refreshKey = 0 }: GraphFlowViewerProps) {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
+  const [rawNodes, setRawNodes] = useState<GraphNodeRecord[]>([]);
+  const [selectedNode, setSelectedNode] = useState<GraphNodeRecord | null>(null);
   const [message, setMessage] = useState('Loading graph...');
 
   useEffect(() => {
@@ -110,9 +113,11 @@ export function GraphFlowViewer({ projectId, refreshKey = 0 }: GraphFlowViewerPr
       .then((response) => {
         if (!active) return;
         const graphNodes = response.graph?.nodes ?? [];
+        setRawNodes(graphNodes);
         if (!graphNodes.length) {
           setNodes([]);
           setEdges([]);
+          setSelectedNode(null);
           setMessage('No graph nodes yet. Upload documents and build the graph.');
           return;
         }
@@ -124,6 +129,8 @@ export function GraphFlowViewer({ projectId, refreshKey = 0 }: GraphFlowViewerPr
         if (!active) return;
         setNodes([]);
         setEdges([]);
+        setRawNodes([]);
+        setSelectedNode(null);
         setMessage('Graph viewer unavailable until backend is reachable.');
       });
     return () => {
@@ -143,12 +150,32 @@ export function GraphFlowViewer({ projectId, refreshKey = 0 }: GraphFlowViewerPr
         </div>
       </div>
       <div className="flow-shell">
-        <ReactFlow nodes={nodes} edges={edges} fitView proOptions={proOptions}>
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          fitView
+          proOptions={proOptions}
+          onNodeClick={(_, node) => {
+            const match = rawNodes.find((item) => item.id === node.id) ?? null;
+            setSelectedNode(match);
+          }}
+        >
           <MiniMap />
           <Controls />
           <Background gap={16} size={1} />
         </ReactFlow>
       </div>
+      {selectedNode ? (
+        <div className="drawer">
+          <div className="drawer-header">
+            <strong>{selectedNode.label}</strong>
+            <button className="link-button" type="button" onClick={() => setSelectedNode(null)}>
+              Close
+            </button>
+          </div>
+          <pre className="code">{JSON.stringify(selectedNode.properties, null, 2)}</pre>
+        </div>
+      ) : null}
     </Card>
   );
 }

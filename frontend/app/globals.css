@@ -306,6 +306,65 @@ textarea {
   padding: 0.25rem 0.65rem;
 }
 
+.button-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.drawer {
+  margin-top: 1rem;
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+}
+
+.drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.link-button {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 0;
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.timeline-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) 2fr;
+  gap: 1rem;
+  align-items: center;
+}
+
+.timeline-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.timeline-bar-shell {
+  background: #e2e8f0;
+  border-radius: 999px;
+  height: 0.75rem;
+  overflow: hidden;
+}
+
+.timeline-bar {
+  background: linear-gradient(90deg, var(--accent), #60a5fa);
+  height: 100%;
+  border-radius: 999px;
+}
+
 @media (max-width: 820px) {
   .grid-2,
   .grid-3 {

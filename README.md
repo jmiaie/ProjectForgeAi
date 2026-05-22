@@ -119,6 +119,7 @@ Ingestion manifests now build starter project graphs with provenance:
 - Neo4j adapter with in-memory fallback for local development
 - Graph endpoints:
   - `POST /api/v1/projects/{project_id}/graph/build`
+  - `POST /api/v1/projects/{project_id}/graph/enrich`
   - `GET /api/v1/projects/{project_id}/graph`
   - `GET /api/v1/projects/{project_id}/graph/status`
 - Workbench endpoint:

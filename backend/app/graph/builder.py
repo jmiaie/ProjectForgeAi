@@ -1,7 +1,7 @@
-import hashlib
 from typing import Any
 
 from graph.adapter import Neo4jGraphAdapter
+from graph.ids import make_node_id as _node_id
 from graph.models import EdgeType, GraphEdge, GraphNode, NodeLabel, ProjectGraph
 from ingestion.manifest import IngestionManifestStore
 
@@ -154,6 +154,3 @@ class ProjectGraphBuilder:
         }
 
 
-def _node_id(project_id: str, *parts: str) -> str:
-    raw = "::".join([project_id, *parts])
-    return hashlib.sha256(raw.encode()).hexdigest()

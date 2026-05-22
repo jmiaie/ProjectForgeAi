@@ -12,6 +12,7 @@ from core.config import settings
 from core.integrations_manager import IntegrationsManager
 from core.llm_router import LLMRouter
 from graph.builder import ProjectGraphBuilder
+from graph.enricher import GraphEnrichmentService
 from ingestion.pipeline import IngestionPipeline
 from integrations.intake_form import router as intake_router
 from storage.status import get_storage_status
@@ -58,6 +59,10 @@ class WorkbenchQueryRequest(BaseModel):
     limit: int = 5
 
 
+class EnrichGraphRequest(BaseModel):
+    use_llm: bool = False
+
+
 def get_llm_router() -> LLMRouter:
     return LLMRouter()
 
@@ -88,6 +93,10 @@ def get_automation_service() -> AutomationService:
 
 def get_workbench_service() -> WorkbenchService:
     return WorkbenchService()
+
+
+def get_graph_enrichment_service() -> GraphEnrichmentService:
+    return GraphEnrichmentService()
 
 
 @app.post("/api/v1/projects/")
@@ -198,6 +207,15 @@ async def project_graph_status(
     graph_builder: ProjectGraphBuilder = Depends(get_graph_builder),
 ):
     return graph_builder.status(project_id)
+
+
+@app.post("/api/v1/projects/{project_id}/graph/enrich")
+async def enrich_project_graph(
+    project_id: str,
+    request: EnrichGraphRequest,
+    enrichment: GraphEnrichmentService = Depends(get_graph_enrichment_service),
+):
+    return await enrichment.enrich(project_id, use_llm=request.use_llm)
 
 
 @app.post("/api/v1/projects/{project_id}/workbench/query")

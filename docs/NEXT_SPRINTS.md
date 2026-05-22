@@ -28,9 +28,9 @@ Convert extracted document facts into the living project graph.
 
 - Define graph schema: project, stakeholder, company, task, milestone, document, decision, risk, dependency. **Starter labels added.**
 - Add Neo4j adapter and migrations/bootstrap. **Adapter/fallback added; migrations pending.**
-- Build document-to-graph extraction service through LLMRouter.
-- Store graph provenance: every node/edge links back to source chunks. **Manifest provenance starter added.**
-- Add graph status endpoint and minimal query endpoint. **Starter endpoints added.**
+- Build document-to-graph extraction service through LLMRouter. **Heuristic + optional LLM enrichment starter done.**
+- Store graph provenance: every node/edge links back to source chunks. **Manifest + DERIVED_FROM enrichment provenance added.**
+- Add graph status endpoint and minimal query endpoint. **Starter endpoints added; enrich endpoint added.**
 
 Parallel owners:
 - Graph schema agent.
@@ -95,11 +95,11 @@ Parallel owners:
 Expose the living project graph and agent workflows.
 
 - Project dashboard shell. **Done.**
-- React Flow graph viewer. **Starter done.**
+- React Flow graph viewer. **Starter done with node detail drawer.**
 - Chat/workbench tied to Locus + graph context. **Starter done.**
 - Document ingestion status panel. **Starter done.**
 - Template and report generation UI. **Orchestrator artifact view starter done.**
-- Gantt/timeline placeholder fed by graph milestones.
+- Gantt/timeline placeholder fed by graph milestones. **Starter done.**
 
 Parallel owners:
 - Dashboard/UI agent.
@@ -125,9 +125,9 @@ Parallel owners:
 
 ## Recommended Immediate Next Move
 
-Proceed with **Sprint 2 graph enrichment**:
+Proceed with **Sprint 7 hardening + Sprint 2 deep extraction**:
 
-1. Add LLM fact extraction into stakeholder/task/risk/milestone nodes.
-2. Preserve source-hash provenance on every extracted edge.
-3. Expose graph query filters in the dashboard.
-4. Add React Flow node detail drawer and Gantt/timeline placeholder.
+1. Add retry/dead-letter handling for automations.
+2. Improve LLM extraction prompts and structured JSON validation.
+3. Add graph node detail filters and stakeholder/task editing in the UI.
+4. Wire Temporal worker execution against the automation store.
