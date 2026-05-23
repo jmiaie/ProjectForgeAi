@@ -8,6 +8,7 @@ services:
       - .env.example
     environment:
       PYTHONPATH: /workspace/backend/app
+      TEMPORAL_ADDRESS: temporal:7233
     command: >
       sh -c "pip install --no-cache-dir -r /workspace/requirements.txt &&
              uvicorn main:app --host 0.0.0.0 --port 8000"
@@ -16,6 +17,24 @@ services:
     depends_on:
       - postgres
       - neo4j
+      - temporal
+
+  automation-worker:
+    image: python:3.12-slim
+    working_dir: /workspace/backend/app
+    volumes:
+      - .:/workspace
+    env_file:
+      - .env.example
+    environment:
+      PYTHONPATH: /workspace/backend/app
+      TEMPORAL_ADDRESS: temporal:7233
+    command: >
+      sh -c "pip install --no-cache-dir -r /workspace/requirements.txt &&
+             python -m automations.worker_main"
+    depends_on:
+      - temporal
+      - backend
 
   frontend:
     image: node:22-slim
@@ -53,6 +72,20 @@ services:
       - "7687:7687"
     volumes:
       - neo4j-data:/data
+
+  temporal:
+    image: temporalio/auto-setup:1.25.2
+    ports:
+      - "7233:7233"
+    environment:
+      DB: postgresql
+      DB_PORT: 5432
+      POSTGRES_USER: projectforge
+      POSTGRES_PWD: projectforge
+      POSTGRES_SEEDS: postgres
+      DYNAMIC_CONFIG_FILE_PATH: config/dynamicconfig/development-sql.yaml
+    depends_on:
+      - postgres
 
 volumes:
   postgres-data:

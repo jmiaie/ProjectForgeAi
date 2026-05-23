@@ -35,6 +35,10 @@ class Settings(BaseSettings):
     TEMPORAL_ADDRESS: str = "localhost:7233"
     TEMPORAL_NAMESPACE: str = "default"
     TEMPORAL_TASK_QUEUE: str = "projectforge-automations"
+    TEMPORAL_USE_WORKER_DISPATCH: bool = False
+    IMAGE_OCR_ENABLED: bool = True
+    IMAGE_OCR_TIMEOUT_SECONDS: int = 30
+    TESSERACT_CMD: str | None = None
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

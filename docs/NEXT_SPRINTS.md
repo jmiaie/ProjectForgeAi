@@ -9,8 +9,8 @@ This roadmap is ordered by dependency and integration value. Multiple agents can
 Build the file ingestion foundation that feeds Locus and OMPA with high-confidence source chunks.
 
 - PDF parser: text, page metadata, source hashes, warnings. **Starter done.**
-- Image parser: OCR-ready interface, EXIF metadata, confidence warnings. **Metadata starter done; OCR pending.**
-- Email parser: `.eml` headers, body, attachment metadata. **Starter done; mailbox exports pending.**
+- Image parser: OCR-ready interface, EXIF metadata, confidence warnings. **OCR + metadata done (Tesseract optional).**
+- Email parser: `.eml` headers, body, attachment metadata. **Starter done; `.mbox` mailbox exports done.**
 - Office parser: DOCX, XLSX, PPTX text extraction. **Starter done; table fidelity pending.**
 - Ingestion manifest: per-file status, parser warnings, chunk counts, source hashes. **Starter done.**
 - Upload endpoint: multipart `UploadFile` support. **Starter done at `POST /api/v1/projects/upload`.**
@@ -108,7 +108,7 @@ Parallel owners:
 
 ## Sprint 7: Temporal Automations
 
-**Status:** Active. Local workflow persistence, reminders, recurring reports, integration sync jobs, approval gates, run history, and Temporal configuration boundaries are in place.
+**Status:** Active. Local workflow persistence, reminders, recurring reports, integration sync jobs, approval gates, run history, Temporal worker process, and dispatch boundaries are in place.
 
 Add durable project workflows.
 
@@ -117,6 +117,7 @@ Add durable project workflows.
 - Integration sync jobs. **Health/sync starter done.**
 - Human approval gates. **Done.**
 - Retry/dead-letter strategy. **Retry scheduling + dead-letter queue starter done.**
+- Real Temporal worker + docker services. **Worker, workflows, activities, and compose services added.**
 
 Parallel owners:
 - Temporal worker agent.
@@ -127,7 +128,7 @@ Parallel owners:
 
 Proceed with **production hardening**:
 
-1. Wire a real Temporal worker process against `TEMPORAL_TASK_QUEUE`.
-2. Improve LLM extraction prompts and structured JSON validation.
-3. Add graph node editing and stakeholder/task updates in the UI.
-4. Add OCR and mailbox export parsers for Phase 1 ingestion.
+1. Improve LLM extraction prompts and structured JSON validation.
+2. Add graph node editing and stakeholder/task updates in the UI.
+3. Add table fidelity for Office parser exports.
+4. Add Temporal schedule/cron wiring for recurring automations.

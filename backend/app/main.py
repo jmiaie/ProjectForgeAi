@@ -251,7 +251,7 @@ async def create_automation(
     request: CreateAutomationRequest,
     service: AutomationService = Depends(get_automation_service),
 ):
-    automation = AutomationDefinition(project_id=project_id, **request.model_dump())
+    automation = AutomationDefinition(project_id=project_id, **request.model_dump(exclude_none=True))
     return service.create(automation)
 
 
@@ -319,6 +319,13 @@ async def temporal_run_due(
     service: AutomationService = Depends(get_automation_service),
 ):
     return await run_due_automations(service)
+
+
+@app.post("/api/v1/automations/temporal/start-due")
+async def temporal_start_due():
+    from automations.temporal_worker import start_due_automations_workflow
+
+    return await start_due_automations_workflow()
 
 
 def _graph_summary(graph_result: dict) -> dict:

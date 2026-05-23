@@ -7,6 +7,7 @@ from ingestion.manifest import IngestionManifestStore
 from ingestion.parsers.base import ParsedChunk, ParsedDocument
 from ingestion.parsers.common.email import parse_email
 from ingestion.parsers.common.image import parse_image
+from ingestion.parsers.common.mbox import parse_mbox
 from ingestion.parsers.common.office import parse_office
 from ingestion.parsers.common.pdf import parse_pdf
 from storage.locus_adapter import LocusAdapter
@@ -88,6 +89,9 @@ class IngestionPipeline:
 
         if suffix in {".eml"}:
             return await self._parse_payload_or_path(file, filename, parse_email)
+
+        if suffix in {".mbox"}:
+            return await self._parse_payload_or_path(file, filename, parse_mbox)
 
         if suffix in {".docx", ".xlsx", ".pptx"}:
             return await self._parse_payload_or_path(file, filename, parse_office)

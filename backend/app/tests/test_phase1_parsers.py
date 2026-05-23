@@ -54,7 +54,18 @@ class Phase1ParserTests(unittest.TestCase):
         self.assertEqual(parsed.metadata["parser"], "image")
         self.assertEqual(parsed.metadata["source"], "site-photo.png")
         self.assertEqual(parsed.metadata["chunk_count"], 0)
-        self.assertTrue(any("OCR is not configured yet" in warning for warning in parsed.warnings))
+        self.assertFalse(parsed.metadata["ocr_used"])
+        self.assertTrue(
+            any(
+                phrase in warning
+                for warning in parsed.warnings
+                for phrase in (
+                    "OCR is not configured",
+                    "Tesseract OCR binary is not available",
+                    "image parsing failed",
+                )
+            )
+        )
 
 
 if __name__ == "__main__":

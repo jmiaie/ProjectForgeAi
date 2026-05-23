@@ -10,3 +10,5 @@ neo4j>=6.2.0
 langgraph>=1.1.10
 cryptography>=48.0.0
 temporalio>=1.27.0
+Pillow>=11.0.0
+pytesseract>=0.3.13

@@ -524,14 +524,15 @@ npm run dev
 
 ### Temporal-Ready Automations
 
-Automation workflows are persisted locally now and shaped for Temporal worker execution:
+Automation workflows are persisted locally and executed through a real Temporal worker process:
 
 - Timed reminders
 - Recurring reports backed by orchestrator runs
 - Integration sync jobs with compliance checks
 - Human approval gates
-- Run history
-- Temporal worker configuration endpoint
+- Run history, retry scheduling, and dead-letter queue
+- Temporal worker, workflows, activities, and docker-compose services
+- Local fallback dispatch when Temporal is unavailable
 
 Endpoints:
 
@@ -540,7 +541,17 @@ Endpoints:
 - `POST /api/v1/projects/{project_id}/automations/{automation_id}/run`
 - `POST /api/v1/projects/{project_id}/automations/{automation_id}/approve`
 - `GET /api/v1/projects/{project_id}/automations/runs`
+- `GET /api/v1/projects/{project_id}/automations/dead-letters`
+- `POST /api/v1/projects/{project_id}/automations/{automation_id}/retry`
 - `GET /api/v1/automations/temporal/status`
+- `POST /api/v1/automations/temporal/run-due`
+- `POST /api/v1/automations/temporal/start-due`
+
+Run the worker locally:
+
+```bash
+PYTHONPATH=backend/app python -m automations.worker_main
+```
 
 Direct Python:
 
@@ -561,12 +572,12 @@ PYTHONPATH=backend/app uvicorn main:app --reload
 
 ## 8. Next File to Generate
 
-Continue Sprint 1 by deepening ingestion:
+Continue production hardening:
 
 ```text
-backend/app/ingestion/parsers/common/image.py
-backend/app/ingestion/parsers/common/email.py
-backend/app/ingestion/parsers/common/office.py
+backend/app/graph/enricher.py
+frontend/components/GraphFlowViewer.tsx
+backend/app/automations/worker_main.py
 ```
 
-Next targets: OCR integration, richer Office table extraction, attachment ingestion, LLM-based fact extraction into stakeholder/task/risk/milestone nodes, and Neo4j migrations.
+Next targets: richer Office table extraction, attachment ingestion, graph node editing in the UI, Temporal schedule/cron wiring, and Neo4j migrations.
