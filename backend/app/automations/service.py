@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from agents.orchestrator import OrchestratorAgent
@@ -11,6 +11,7 @@ from automations.models import (
 )
 from automations.store import AutomationStore
 from compliance.enforcer import ComplianceEnforcer
+from core.config import settings
 from core.integrations_manager import IntegrationsManager
 
 
@@ -28,6 +29,8 @@ class AutomationService:
         self.compliance = compliance or ComplianceEnforcer()
 
     def create(self, automation: AutomationDefinition) -> dict:
+        if automation.max_retries <= 0:
+            automation.max_retries = settings.AUTOMATION_MAX_RETRIES
         if automation.requires_approval or automation.type == AutomationType.APPROVAL_GATE:
             automation.status = AutomationStatus.WAITING_APPROVAL
             automation.requires_approval = True
@@ -39,6 +42,9 @@ class AutomationService:
     def runs(self, project_id: str, limit: int = 100) -> dict:
         return {"project_id": project_id, "runs": self.store.list_runs(project_id, limit)}
 
+    def dead_letters(self, project_id: str, limit: int = 100) -> dict:
+        return {"project_id": project_id, "dead_letters": self.store.list_dead_letters(project_id, limit)}
+
     def approve(self, project_id: str, automation_id: str, approved_by: str) -> dict:
         automation = self._get_required(project_id, automation_id)
         automation.approved_by = approved_by
@@ -47,19 +53,32 @@ class AutomationService:
         automation.touch()
         return self.store.upsert(automation)
 
-    async def run(self, project_id: str, automation_id: str) -> dict:
+    async def retry(self, project_id: str, automation_id: str) -> dict:
         automation = self._get_required(project_id, automation_id)
+        automation.retry_count = 0
+        automation.next_retry_at = None
+        automation.status = AutomationStatus.SCHEDULED
+        automation.touch()
+        self.store.upsert(automation)
+        return await self.run(project_id, automation_id, attempt=1)
+
+    async def run(self, project_id: str, automation_id: str, attempt: int = 1) -> dict:
+        automation = self._get_required(project_id, automation_id)
+        max_retries = automation.max_retries or settings.AUTOMATION_MAX_RETRIES
+
         if automation.requires_approval:
             result = AutomationRunResult(
                 automation_id=automation.id,
                 project_id=project_id,
                 status=AutomationStatus.WAITING_APPROVAL,
                 action="approval_required",
+                attempt=attempt,
                 warnings=[f"{automation.name} requires approval before execution"],
             )
             return self.store.append_run(result)
 
         automation.status = AutomationStatus.RUNNING
+        automation.retry_count = attempt
         automation.touch()
         self.store.upsert(automation)
 
@@ -68,6 +87,8 @@ class AutomationService:
             automation.status = AutomationStatus.COMPLETED
             automation.last_run_at = datetime.now(UTC).isoformat()
             automation.run_count += 1
+            automation.retry_count = 0
+            automation.next_retry_at = None
             automation.touch()
             self.store.upsert(automation)
             result = AutomationRunResult(
@@ -75,22 +96,72 @@ class AutomationService:
                 project_id=project_id,
                 status=AutomationStatus.COMPLETED,
                 action=automation.type.value,
+                attempt=attempt,
                 output=output,
             )
+            return self.store.append_run(result)
         except Exception as exc:
-            automation.status = AutomationStatus.FAILED
+            return self._handle_failure(automation, attempt=attempt, max_retries=max_retries, error=str(exc))
+
+    async def run_due(self) -> dict[str, Any]:
+        due = self.store.list_due()
+        results = []
+        for automation in due:
+            result = await self.run(
+                automation.project_id,
+                automation.id,
+                attempt=automation.retry_count + 1,
+            )
+            results.append(result)
+        return {"processed": len(results), "results": results}
+
+    def _handle_failure(
+        self,
+        automation: AutomationDefinition,
+        *,
+        attempt: int,
+        max_retries: int,
+        error: str,
+    ) -> dict:
+        if attempt < max_retries:
+            backoff = settings.AUTOMATION_RETRY_BACKOFF_SECONDS * attempt
+            automation.status = AutomationStatus.SCHEDULED
+            automation.next_retry_at = (datetime.now(UTC) + timedelta(seconds=backoff)).isoformat()
             automation.touch()
             self.store.upsert(automation)
             result = AutomationRunResult(
                 automation_id=automation.id,
-                project_id=project_id,
+                project_id=automation.project_id,
                 status=AutomationStatus.FAILED,
                 action=automation.type.value,
-                warnings=[str(exc)],
+                attempt=attempt,
+                retriable=True,
+                error=error,
+                warnings=[error, f"Retry scheduled at {automation.next_retry_at}"],
             )
+            return self.store.append_run(result)
+
+        automation.status = AutomationStatus.DEAD_LETTER
+        automation.next_retry_at = None
+        automation.touch()
+        self.store.upsert(automation)
+        result = AutomationRunResult(
+            automation_id=automation.id,
+            project_id=automation.project_id,
+            status=AutomationStatus.DEAD_LETTER,
+            action=automation.type.value,
+            attempt=attempt,
+            retriable=False,
+            error=error,
+            warnings=[error, "Automation moved to dead letter queue"],
+        )
+        self.store.append_dead_letter(result)
         return self.store.append_run(result)
 
     async def _execute(self, automation: AutomationDefinition) -> dict[str, Any]:
+        if automation.payload.get("force_fail"):
+            raise RuntimeError(automation.payload.get("error_message", "Forced automation failure"))
+
         if automation.type == AutomationType.TIMED_REMINDER:
             return {
                 "message": automation.payload.get("message", "Project reminder"),

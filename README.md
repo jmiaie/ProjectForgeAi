@@ -211,9 +211,12 @@ Endpoints:
 - `POST /api/v1/projects/{project_id}/automations`
 - `GET /api/v1/projects/{project_id}/automations`
 - `POST /api/v1/projects/{project_id}/automations/{automation_id}/run`
+- `POST /api/v1/projects/{project_id}/automations/{automation_id}/retry`
 - `POST /api/v1/projects/{project_id}/automations/{automation_id}/approve`
 - `GET /api/v1/projects/{project_id}/automations/runs`
+- `GET /api/v1/projects/{project_id}/automations/dead-letters`
 - `GET /api/v1/automations/temporal/status`
+- `POST /api/v1/automations/temporal/run-due`
 
 For direct Python execution:
 

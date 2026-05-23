@@ -19,6 +19,7 @@ class AutomationStatus(StrEnum):
     RUNNING = "running"
     COMPLETED = "completed"
     FAILED = "failed"
+    DEAD_LETTER = "dead_letter"
     CANCELLED = "cancelled"
 
 
@@ -38,6 +39,9 @@ class AutomationDefinition(BaseModel):
     status: AutomationStatus = AutomationStatus.SCHEDULED
     requires_approval: bool = False
     approved_by: str | None = None
+    max_retries: int = 3
+    retry_count: int = 0
+    next_retry_at: str | None = None
     created_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
     last_run_at: str | None = None
@@ -52,6 +56,9 @@ class AutomationRunResult(BaseModel):
     project_id: str
     status: AutomationStatus
     action: str
+    attempt: int = 1
+    retriable: bool = False
+    error: str | None = None
     output: dict[str, Any] = Field(default_factory=dict)
     warnings: list[str] = Field(default_factory=list)
     created_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())

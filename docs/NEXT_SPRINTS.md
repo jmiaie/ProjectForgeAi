@@ -116,7 +116,7 @@ Add durable project workflows.
 - Recurring project status reports. **Orchestrator-backed starter done.**
 - Integration sync jobs. **Health/sync starter done.**
 - Human approval gates. **Done.**
-- Retry/dead-letter strategy. **Pending.**
+- Retry/dead-letter strategy. **Retry scheduling + dead-letter queue starter done.**
 
 Parallel owners:
 - Temporal worker agent.
@@ -125,9 +125,9 @@ Parallel owners:
 
 ## Recommended Immediate Next Move
 
-Proceed with **Sprint 7 hardening + Sprint 2 deep extraction**:
+Proceed with **production hardening**:
 
-1. Add retry/dead-letter handling for automations.
+1. Wire a real Temporal worker process against `TEMPORAL_TASK_QUEUE`.
 2. Improve LLM extraction prompts and structured JSON validation.
-3. Add graph node detail filters and stakeholder/task editing in the UI.
-4. Wire Temporal worker execution against the automation store.
+3. Add graph node editing and stakeholder/task updates in the UI.
+4. Add OCR and mailbox export parsers for Phase 1 ingestion.

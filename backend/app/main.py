@@ -6,7 +6,7 @@ from agents.orchestrator import OrchestratorAgent
 from agents.state import OrchestratorRequest
 from automations.models import AutomationDefinition, AutomationSchedule, AutomationStatus, AutomationType
 from automations.service import AutomationService
-from automations.temporal_worker import temporal_worker_settings
+from automations.temporal_worker import run_due_automations, temporal_worker_settings
 from compliance.enforcer import ComplianceEnforcer
 from core.config import settings
 from core.integrations_manager import IntegrationsManager
@@ -52,6 +52,7 @@ class CreateAutomationRequest(BaseModel):
     schedule: AutomationSchedule = Field(default_factory=AutomationSchedule)
     status: AutomationStatus = AutomationStatus.SCHEDULED
     requires_approval: bool = False
+    max_retries: int | None = None
 
 
 class WorkbenchQueryRequest(BaseModel):
@@ -290,9 +291,34 @@ async def automation_runs(
     return service.runs(project_id, limit)
 
 
+@app.get("/api/v1/projects/{project_id}/automations/dead-letters")
+async def automation_dead_letters(
+    project_id: str,
+    limit: int = 100,
+    service: AutomationService = Depends(get_automation_service),
+):
+    return service.dead_letters(project_id, limit)
+
+
+@app.post("/api/v1/projects/{project_id}/automations/{automation_id}/retry")
+async def retry_automation(
+    project_id: str,
+    automation_id: str,
+    service: AutomationService = Depends(get_automation_service),
+):
+    return await service.retry(project_id, automation_id)
+
+
 @app.get("/api/v1/automations/temporal/status")
 async def temporal_status():
     return temporal_worker_settings()
+
+
+@app.post("/api/v1/automations/temporal/run-due")
+async def temporal_run_due(
+    service: AutomationService = Depends(get_automation_service),
+):
+    return await run_due_automations(service)
 
 
 def _graph_summary(graph_result: dict) -> dict:

@@ -1,3 +1,6 @@
+from typing import Any
+
+from automations.service import AutomationService
 from core.config import settings
 
 
@@ -16,4 +19,13 @@ def temporal_worker_settings() -> dict:
         "namespace": settings.TEMPORAL_NAMESPACE,
         "task_queue": settings.TEMPORAL_TASK_QUEUE,
         "status": "configured",
+    }
+
+
+async def run_due_automations(service: AutomationService | None = None) -> dict[str, Any]:
+    runner = service or AutomationService()
+    result = await runner.run_due()
+    return {
+        **temporal_worker_settings(),
+        **result,
     }

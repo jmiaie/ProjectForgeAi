@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import json
 import os
+from datetime import UTC, datetime
 from pathlib import Path
 
-from automations.models import AutomationDefinition, AutomationRunResult
+from automations.models import AutomationDefinition, AutomationRunResult, AutomationStatus
 from core.config import settings
 
 
@@ -55,3 +56,39 @@ class AutomationStore:
             return []
         records = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
         return records[-limit:]
+
+    def append_dead_letter(self, result: AutomationRunResult) -> dict:
+        project_dir = self.root / result.project_id
+        os.makedirs(project_dir, exist_ok=True)
+        path = project_dir / "dead_letters.jsonl"
+        payload = result.model_dump(mode="json")
+        with path.open("a") as handle:
+            handle.write(json.dumps(payload, sort_keys=True) + "\n")
+        return payload
+
+    def list_dead_letters(self, project_id: str, limit: int = 100) -> list[dict]:
+        path = self.root / project_id / "dead_letters.jsonl"
+        if not path.exists():
+            return []
+        records = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+        return records[-limit:]
+
+    def list_projects(self) -> list[str]:
+        if not self.root.exists():
+            return []
+        return sorted(path.name for path in self.root.iterdir() if path.is_dir())
+
+    def list_due(self) -> list[AutomationDefinition]:
+        due: list[AutomationDefinition] = []
+        now = datetime.now(UTC)
+        for project_id in self.list_projects():
+            for record in self.list(project_id):
+                automation = AutomationDefinition(**{key: value for key, value in record.items() if key != "path"})
+                if automation.status not in {AutomationStatus.SCHEDULED, AutomationStatus.FAILED}:
+                    continue
+                if automation.next_retry_at is None:
+                    continue
+                retry_at = datetime.fromisoformat(automation.next_retry_at)
+                if retry_at <= now:
+                    due.append(automation)
+        return due

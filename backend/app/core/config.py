@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     FRONTEND_BASE_URL: str = "http://localhost:3000"
     BACKEND_BASE_URL: str = "http://localhost:8000"
     AUTOMATION_WORKFLOW_ROOT: str = "./.automations"
+    AUTOMATION_MAX_RETRIES: int = 3
+    AUTOMATION_RETRY_BACKOFF_SECONDS: int = 60
     TEMPORAL_ADDRESS: str = "localhost:7233"
     TEMPORAL_NAMESPACE: str = "default"
     TEMPORAL_TASK_QUEUE: str = "projectforge-automations"
