@@ -14,11 +14,18 @@ from ingestion.parsers.base import (
     source_name_for,
 )
 
+NS = {
+    "main": "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
+    "rel": "http://schemas.openxmlformats.org/package/2006/relationships",
+    "office": "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
+    "word": "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
+    "drawing": "http://schemas.openxmlformats.org/drawingml/2006/main",
+}
 
 TEXT_TAGS = {
-    "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}t",
-    "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}t",
-    "{http://schemas.openxmlformats.org/drawingml/2006/main}t",
+    f"{{{NS['word']}}}t",
+    f"{{{NS['main']}}}t",
+    f"{{{NS['drawing']}}}t",
 }
 
 
@@ -35,16 +42,26 @@ def parse_office(
     suffix = Path(source_name).suffix.lower()
     warnings: list[str] = []
     text_sections: list[str] = []
+    table_count = 0
 
     try:
         from io import BytesIO
 
         with zipfile.ZipFile(BytesIO(raw)) as archive:
-            members = _candidate_members(archive.namelist(), suffix)
-            for member in members:
-                extracted = _extract_xml_text(archive.read(member))
-                if extracted:
-                    text_sections.append(extracted)
+            if suffix == ".xlsx":
+                shared_strings = _load_shared_strings(archive)
+                sheet_names = _sheet_names(archive)
+                for sheet_name, member in sheet_names:
+                    rows = _extract_xlsx_rows(archive.read(member), shared_strings)
+                    if rows:
+                        table_count += 1
+                        text_sections.append(_format_table(sheet_name, rows))
+            else:
+                members = _candidate_members(archive.namelist(), suffix)
+                for member in members:
+                    extracted = _extract_xml_text(archive.read(member))
+                    if extracted:
+                        text_sections.append(extracted)
     except zipfile.BadZipFile:
         warnings.append(f"{source_name}: not a valid Office Open XML archive")
 
@@ -59,6 +76,7 @@ def parse_office(
                 "file_type": suffix.removeprefix("."),
                 "chunk_index": index,
                 "chunk_size": len(text),
+                "table_count": table_count if suffix == ".xlsx" else None,
             },
         )
         for index, text in enumerate(
@@ -76,6 +94,7 @@ def parse_office(
         "source_hash": digest,
         "file_type": suffix.removeprefix("."),
         "chunk_count": len(chunks),
+        "table_count": table_count if suffix == ".xlsx" else 0,
     }
     return ParsedDocument(source=source_name, chunks=chunks, metadata=metadata, warnings=warnings)
 
@@ -102,3 +121,76 @@ def _extract_xml_text(raw_xml: bytes) -> str:
 
     values = [element.text for element in root.iter() if element.tag in TEXT_TAGS and element.text]
     return " ".join(values)
+
+
+def _load_shared_strings(archive: zipfile.ZipFile) -> list[str]:
+    if "xl/sharedStrings.xml" not in archive.namelist():
+        return []
+    root = ElementTree.fromstring(archive.read("xl/sharedStrings.xml"))
+    strings: list[str] = []
+    for item in root.findall("main:si", NS):
+        parts = [node.text or "" for node in item.findall(".//main:t", NS)]
+        strings.append("".join(parts))
+    return strings
+
+
+def _sheet_names(archive: zipfile.ZipFile) -> list[tuple[str, str]]:
+    workbook = ElementTree.fromstring(archive.read("xl/workbook.xml"))
+    rels = ElementTree.fromstring(archive.read("xl/_rels/workbook.xml.rels"))
+    rel_map = {
+        rel.attrib["Id"]: rel.attrib["Target"]
+        for rel in rels.findall("rel:Relationship", NS)
+    }
+    sheets: list[tuple[str, str]] = []
+    for sheet in workbook.findall("main:sheets/main:sheet", NS):
+        name = sheet.attrib.get("name", "Sheet")
+        rel_id = sheet.attrib.get("{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id")
+        target = rel_map.get(rel_id or "")
+        if not target:
+            continue
+        member = target if target.startswith("xl/") else f"xl/{target.lstrip('/')}"
+        if member in archive.namelist():
+            sheets.append((name, member))
+    return sheets
+
+
+def _extract_xlsx_rows(raw_xml: bytes, shared_strings: list[str]) -> list[list[str]]:
+    try:
+        root = ElementTree.fromstring(raw_xml)
+    except ElementTree.ParseError:
+        return []
+
+    rows: list[list[str]] = []
+    for row in root.findall("main:sheetData/main:row", NS):
+        values: list[str] = []
+        for cell in row.findall("main:c", NS):
+            values.append(_cell_value(cell, shared_strings))
+        if any(value.strip() for value in values):
+            rows.append(values)
+    return rows
+
+
+def _cell_value(cell: ElementTree.Element, shared_strings: list[str]) -> str:
+    cell_type = cell.attrib.get("t")
+    inline = cell.find("main:is", NS)
+    if inline is not None:
+        parts = [node.text or "" for node in inline.findall(".//main:t", NS)]
+        return "".join(parts)
+
+    value_node = cell.find("main:v", NS)
+    if value_node is None or value_node.text is None:
+        return ""
+
+    if cell_type == "s":
+        try:
+            return shared_strings[int(value_node.text)]
+        except (IndexError, ValueError):
+            return value_node.text
+    return value_node.text
+
+
+def _format_table(sheet_name: str, rows: list[list[str]]) -> str:
+    lines = [f"Sheet: {sheet_name}"]
+    for row in rows:
+        lines.append("\t".join(row))
+    return "\n".join(lines)

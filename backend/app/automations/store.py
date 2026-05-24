@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import UTC, datetime
 from pathlib import Path
 
 from automations.models import AutomationDefinition, AutomationRunResult, AutomationStatus
+from automations.scheduling import is_automation_due
 from core.config import settings
 
 
@@ -80,15 +80,11 @@ class AutomationStore:
 
     def list_due(self) -> list[AutomationDefinition]:
         due: list[AutomationDefinition] = []
-        now = datetime.now(UTC)
         for project_id in self.list_projects():
             for record in self.list(project_id):
                 automation = AutomationDefinition(**{key: value for key, value in record.items() if key != "path"})
                 if automation.status not in {AutomationStatus.SCHEDULED, AutomationStatus.FAILED}:
                     continue
-                if automation.next_retry_at is None:
-                    continue
-                retry_at = datetime.fromisoformat(automation.next_retry_at)
-                if retry_at <= now:
+                if is_automation_due(automation):
                     due.append(automation)
         return due

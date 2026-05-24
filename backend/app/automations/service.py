@@ -9,6 +9,7 @@ from automations.models import (
     AutomationStatus,
     AutomationType,
 )
+from automations.scheduling import apply_initial_schedule, reschedule_after_success
 from automations.store import AutomationStore
 from compliance.enforcer import ComplianceEnforcer
 from core.config import settings
@@ -34,6 +35,8 @@ class AutomationService:
         if automation.requires_approval or automation.type == AutomationType.APPROVAL_GATE:
             automation.status = AutomationStatus.WAITING_APPROVAL
             automation.requires_approval = True
+        else:
+            apply_initial_schedule(automation)
         return self.store.upsert(automation)
 
     def list(self, project_id: str) -> dict:
@@ -84,17 +87,17 @@ class AutomationService:
 
         try:
             output = await self._execute(automation)
-            automation.status = AutomationStatus.COMPLETED
             automation.last_run_at = datetime.now(UTC).isoformat()
             automation.run_count += 1
             automation.retry_count = 0
             automation.next_retry_at = None
+            reschedule_after_success(automation)
             automation.touch()
             self.store.upsert(automation)
             result = AutomationRunResult(
                 automation_id=automation.id,
                 project_id=project_id,
-                status=AutomationStatus.COMPLETED,
+                status=automation.status,
                 action=automation.type.value,
                 attempt=attempt,
                 output=output,
@@ -107,10 +110,11 @@ class AutomationService:
         due = self.store.list_due()
         results = []
         for automation in due:
+            attempt = automation.retry_count + 1 if automation.next_retry_at else 1
             result = await self.run(
                 automation.project_id,
                 automation.id,
-                attempt=automation.retry_count + 1,
+                attempt=attempt,
             )
             results.append(result)
         return {"processed": len(results), "results": results}

@@ -3,7 +3,38 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
+from pydantic import BaseModel, Field, ValidationError
+
 from core.llm_router import LLMRequest, LLMRouter
+
+EXTRACTION_PROMPT = """Extract project facts from the document text.
+Return ONLY valid JSON matching this schema:
+{
+  "stakeholders": [{"name": "string", "excerpt": "string"}],
+  "tasks": [{"name": "string", "excerpt": "string", "sequence": 1}],
+  "risks": [{"name": "string", "excerpt": "string", "severity": "low|medium|high"}],
+  "milestones": [{"name": "string", "excerpt": "string", "sequence": 1}]
+}
+Rules:
+- Include at most 5 items per category.
+- Use concise names under 120 characters.
+- excerpt must quote or paraphrase supporting text from the source.
+- Omit empty categories as [].
+"""
+
+
+class LLMFactItem(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+    excerpt: str = Field(min_length=1, max_length=500)
+    severity: str | None = None
+    sequence: int | None = Field(default=None, ge=1, le=999)
+
+
+class LLMExtractionPayload(BaseModel):
+    stakeholders: list[LLMFactItem] = Field(default_factory=list, max_length=5)
+    tasks: list[LLMFactItem] = Field(default_factory=list, max_length=5)
+    risks: list[LLMFactItem] = Field(default_factory=list, max_length=5)
+    milestones: list[LLMFactItem] = Field(default_factory=list, max_length=5)
 
 
 @dataclass(frozen=True)
@@ -20,6 +51,7 @@ class ExtractedFact:
 
 
 EMAIL_PATTERN = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+JSON_BLOCK_PATTERN = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL | re.IGNORECASE)
 
 
 def extract_facts_heuristic(chunk: dict[str, Any]) -> list[ExtractedFact]:
@@ -104,9 +136,7 @@ async def extract_facts(
     metadata = chunk.get("metadata") or {}
     source = str(chunk.get("source") or metadata.get("source") or "unknown")
     prompt = (
-        "Extract project facts as JSON with keys stakeholders, tasks, risks, milestones. "
-        "Each item must include name and excerpt fields. "
-        f"Source document: {source}. Text:\n{chunk.get('text', '')[:4000]}"
+        f"{EXTRACTION_PROMPT}\nSource document: {source}\nText:\n{chunk.get('text', '')[:4000]}"
     )
     try:
         response = await router.call(
@@ -116,10 +146,25 @@ async def extract_facts(
                 messages=[{"role": "user", "content": prompt}],
             )
         )
-        payload = json.loads(response)
+        payload = parse_llm_extraction_payload(response)
         return _facts_from_llm_payload(payload, chunk, source)
     except Exception:
         return extract_facts_heuristic(chunk)
+
+
+def parse_llm_extraction_payload(response: str) -> dict[str, Any]:
+    candidate = response.strip()
+    block = JSON_BLOCK_PATTERN.search(candidate)
+    if block:
+        candidate = block.group(1).strip()
+    if not candidate.startswith("{"):
+        start = candidate.find("{")
+        end = candidate.rfind("}")
+        if start >= 0 and end > start:
+            candidate = candidate[start : end + 1]
+    data = json.loads(candidate)
+    validated = LLMExtractionPayload.model_validate(data)
+    return validated.model_dump(mode="python")
 
 
 def _facts_from_llm_payload(payload: dict[str, Any], chunk: dict[str, Any], source: str) -> list[ExtractedFact]:
@@ -138,11 +183,12 @@ def _facts_from_llm_payload(payload: dict[str, Any], chunk: dict[str, Any], sour
     for key, label in mapping.items():
         for index, item in enumerate(payload.get(key, []), start=1):
             if isinstance(item, str):
-                name = item
-                excerpt = item
-            else:
-                name = str(item.get("name") or item.get("title") or f"{label} {index}")
-                excerpt = str(item.get("excerpt") or name)
+                try:
+                    item = LLMFactItem(name=item, excerpt=item).model_dump()
+                except ValidationError:
+                    continue
+            name = str(item.get("name") or item.get("title") or f"{label} {index}")
+            excerpt = str(item.get("excerpt") or name)
             _add_fact(
                 facts,
                 seen,
@@ -153,8 +199,8 @@ def _facts_from_llm_payload(payload: dict[str, Any], chunk: dict[str, Any], sour
                 chunk_index,
                 excerpt,
                 "llm",
-                sequence=index if label in {"Task", "Milestone"} else None,
-                severity=str(item.get("severity")) if isinstance(item, dict) and item.get("severity") else None,
+                sequence=item.get("sequence") if label in {"Task", "Milestone"} else None,
+                severity=str(item.get("severity")) if item.get("severity") else None,
             )
     return facts
 

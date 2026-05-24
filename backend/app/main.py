@@ -13,6 +13,8 @@ from core.integrations_manager import IntegrationsManager
 from core.llm_router import LLMRouter
 from graph.builder import ProjectGraphBuilder
 from graph.enricher import GraphEnrichmentService
+from graph.models import NodeLabel
+from graph.mutations import GraphMutationError, GraphMutationService
 from ingestion.pipeline import IngestionPipeline
 from integrations.intake_form import router as intake_router
 from storage.status import get_storage_status
@@ -64,6 +66,15 @@ class EnrichGraphRequest(BaseModel):
     use_llm: bool = False
 
 
+class CreateGraphNodeRequest(BaseModel):
+    label: NodeLabel
+    properties: dict = Field(default_factory=dict)
+
+
+class UpdateGraphNodeRequest(BaseModel):
+    properties: dict = Field(default_factory=dict)
+
+
 def get_llm_router() -> LLMRouter:
     return LLMRouter()
 
@@ -98,6 +109,10 @@ def get_workbench_service() -> WorkbenchService:
 
 def get_graph_enrichment_service() -> GraphEnrichmentService:
     return GraphEnrichmentService()
+
+
+def get_graph_mutation_service() -> GraphMutationService:
+    return GraphMutationService()
 
 
 @app.post("/api/v1/projects/")
@@ -217,6 +232,49 @@ async def enrich_project_graph(
     enrichment: GraphEnrichmentService = Depends(get_graph_enrichment_service),
 ):
     return await enrichment.enrich(project_id, use_llm=request.use_llm)
+
+
+@app.post("/api/v1/projects/{project_id}/graph/nodes")
+async def create_graph_node(
+    project_id: str,
+    request: CreateGraphNodeRequest,
+    mutations: GraphMutationService = Depends(get_graph_mutation_service),
+):
+    try:
+        return mutations.create_node(project_id, label=request.label, properties=request.properties)
+    except GraphMutationError as exc:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.patch("/api/v1/projects/{project_id}/graph/nodes/{node_id}")
+async def update_graph_node(
+    project_id: str,
+    node_id: str,
+    request: UpdateGraphNodeRequest,
+    mutations: GraphMutationService = Depends(get_graph_mutation_service),
+):
+    try:
+        return mutations.update_node(project_id, node_id, properties=request.properties)
+    except GraphMutationError as exc:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.delete("/api/v1/projects/{project_id}/graph/nodes/{node_id}")
+async def delete_graph_node(
+    project_id: str,
+    node_id: str,
+    mutations: GraphMutationService = Depends(get_graph_mutation_service),
+):
+    try:
+        return mutations.delete_node(project_id, node_id)
+    except GraphMutationError as exc:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.post("/api/v1/projects/{project_id}/workbench/query")

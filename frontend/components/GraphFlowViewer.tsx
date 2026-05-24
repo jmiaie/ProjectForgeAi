@@ -10,8 +10,9 @@ import {
   type Node,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { apiGet } from '@/lib/api';
+import { apiDelete, apiGet, apiPatch } from '@/lib/api';
 
 type GraphNodeRecord = {
   id: string;
@@ -35,7 +36,10 @@ type GraphResponse = {
 type GraphFlowViewerProps = {
   projectId: string;
   refreshKey?: number;
+  onGraphChanged?: () => void;
 };
+
+const EDITABLE_LABELS = new Set(['Stakeholder', 'Task', 'Milestone', 'Risk', 'Decision', 'Dependency']);
 
 const labelColors: Record<string, string> = {
   Project: '#2563eb',
@@ -99,19 +103,21 @@ function layoutEdges(edges: GraphEdgeRecord[]): Edge[] {
   }));
 }
 
-export function GraphFlowViewer({ projectId, refreshKey = 0 }: GraphFlowViewerProps) {
+export function GraphFlowViewer({ projectId, refreshKey = 0, onGraphChanged }: GraphFlowViewerProps) {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [rawNodes, setRawNodes] = useState<GraphNodeRecord[]>([]);
   const [selectedNode, setSelectedNode] = useState<GraphNodeRecord | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editSequence, setEditSequence] = useState('');
+  const [editSeverity, setEditSeverity] = useState('');
   const [message, setMessage] = useState('Loading graph...');
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    let active = true;
+  const loadGraph = () => {
     setMessage('Loading graph...');
-    apiGet<GraphResponse>(`/api/v1/projects/${projectId}/graph`)
+    return apiGet<GraphResponse>(`/api/v1/projects/${projectId}/graph`)
       .then((response) => {
-        if (!active) return;
         const graphNodes = response.graph?.nodes ?? [];
         setRawNodes(graphNodes);
         if (!graphNodes.length) {
@@ -126,19 +132,78 @@ export function GraphFlowViewer({ projectId, refreshKey = 0 }: GraphFlowViewerPr
         setMessage(`${graphNodes.length} nodes visualized`);
       })
       .catch(() => {
-        if (!active) return;
         setNodes([]);
         setEdges([]);
         setRawNodes([]);
         setSelectedNode(null);
         setMessage('Graph viewer unavailable until backend is reachable.');
       });
+  };
+
+  useEffect(() => {
+    let active = true;
+    loadGraph().then(() => {
+      if (!active) return;
+    });
     return () => {
       active = false;
     };
   }, [projectId, refreshKey]);
 
+  useEffect(() => {
+    if (!selectedNode) {
+      setEditName('');
+      setEditSequence('');
+      setEditSeverity('');
+      return;
+    }
+    setEditName(String(selectedNode.properties.name ?? ''));
+    setEditSequence(String(selectedNode.properties.sequence ?? ''));
+    setEditSeverity(String(selectedNode.properties.severity ?? ''));
+  }, [selectedNode]);
+
   const proOptions = useMemo(() => ({ hideAttribution: true }), []);
+  const editable = selectedNode ? EDITABLE_LABELS.has(selectedNode.label) : false;
+
+  const saveNode = async () => {
+    if (!selectedNode) return;
+    setSaving(true);
+    try {
+      const properties: Record<string, unknown> = {
+        name: editName.trim(),
+      };
+      if (editSequence.trim()) {
+        properties.sequence = Number(editSequence);
+      }
+      if (editSeverity.trim()) {
+        properties.severity = editSeverity.trim();
+      }
+      await apiPatch(`/api/v1/projects/${projectId}/graph/nodes/${selectedNode.id}`, { properties });
+      setMessage(`Updated ${selectedNode.label} node.`);
+      onGraphChanged?.();
+      await loadGraph();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Failed to update node.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteNode = async () => {
+    if (!selectedNode) return;
+    setSaving(true);
+    try {
+      await apiDelete(`/api/v1/projects/${projectId}/graph/nodes/${selectedNode.id}`);
+      setSelectedNode(null);
+      setMessage(`Deleted ${selectedNode.label} node.`);
+      onGraphChanged?.();
+      await loadGraph();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Failed to delete node.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <Card className="panel">
@@ -173,7 +238,32 @@ export function GraphFlowViewer({ projectId, refreshKey = 0 }: GraphFlowViewerPr
               Close
             </button>
           </div>
-          <pre className="code">{JSON.stringify(selectedNode.properties, null, 2)}</pre>
+          {editable ? (
+            <div className="stack">
+              <label className="field">
+                <span>Name</span>
+                <input value={editName} onChange={(event) => setEditName(event.target.value)} />
+              </label>
+              {(selectedNode.label === 'Task' || selectedNode.label === 'Milestone') ? (
+                <label className="field">
+                  <span>Sequence</span>
+                  <input value={editSequence} onChange={(event) => setEditSequence(event.target.value)} />
+                </label>
+              ) : null}
+              {selectedNode.label === 'Risk' ? (
+                <label className="field">
+                  <span>Severity</span>
+                  <input value={editSeverity} onChange={(event) => setEditSeverity(event.target.value)} />
+                </label>
+              ) : null}
+              <div className="button-row">
+                <Button disabled={saving || !editName.trim()} onClick={saveNode}>Save</Button>
+                <Button variant="outline" disabled={saving} onClick={deleteNode}>Delete</Button>
+              </div>
+            </div>
+          ) : (
+            <pre className="code">{JSON.stringify(selectedNode.properties, null, 2)}</pre>
+          )}
         </div>
       ) : null}
     </Card>

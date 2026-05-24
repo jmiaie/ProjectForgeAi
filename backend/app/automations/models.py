@@ -26,6 +26,7 @@ class AutomationStatus(StrEnum):
 class AutomationSchedule(BaseModel):
     run_at: str | None = None
     interval_seconds: int | None = None
+    cron: str | None = None
     timezone: str = "UTC"
 
 
@@ -42,6 +43,7 @@ class AutomationDefinition(BaseModel):
     max_retries: int = 3
     retry_count: int = 0
     next_retry_at: str | None = None
+    next_run_at: str | None = None
     created_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
     last_run_at: str | None = None

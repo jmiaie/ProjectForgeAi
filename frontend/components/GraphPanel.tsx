@@ -46,6 +46,19 @@ export function GraphPanel({ projectId, initialStatus }: GraphPanelProps) {
     );
   };
 
+  const addTask = async () => {
+    setMessage('Adding manual task node...');
+    await apiPost(`/api/v1/projects/${projectId}/graph/nodes`, {
+      label: 'Task',
+      properties: {
+        name: 'New project task',
+        sequence: (status?.node_count ?? 0) + 1,
+      },
+    });
+    await refreshStatus();
+    setMessage('Manual task node added to the graph.');
+  };
+
   return (
     <div className="stack">
       <Card className="panel">
@@ -59,7 +72,8 @@ export function GraphPanel({ projectId, initialStatus }: GraphPanelProps) {
             <Button variant="outline" onClick={buildGraph}>
               Build graph
             </Button>
-            <Button onClick={enrichGraph}>Enrich graph</Button>
+            <Button variant="outline" onClick={enrichGraph}>Enrich graph</Button>
+            <Button onClick={addTask}>Add task</Button>
           </div>
         </div>
         <div className="grid grid-2">
@@ -74,7 +88,7 @@ export function GraphPanel({ projectId, initialStatus }: GraphPanelProps) {
         </div>
         {message ? <p className="muted">{message}</p> : null}
       </Card>
-      <GraphFlowViewer projectId={projectId} refreshKey={refreshKey} />
+      <GraphFlowViewer projectId={projectId} refreshKey={refreshKey} onGraphChanged={refreshStatus} />
       <TimelinePanel projectId={projectId} refreshKey={refreshKey} />
     </div>
   );

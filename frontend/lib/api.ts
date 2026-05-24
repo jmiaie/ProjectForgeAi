@@ -43,6 +43,12 @@ export type AutomationRecord = {
   name: string;
   status: string;
   run_count: number;
+  next_run_at?: string | null;
+  schedule?: {
+    interval_seconds?: number | null;
+    run_at?: string | null;
+    cron?: string | null;
+  };
 };
 
 export async function apiGet<T>(path: string): Promise<T> {
@@ -59,6 +65,26 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
+  if (!response.ok) {
+    throw new Error(`${path} failed with ${response.status}`);
+  }
+  return response.json() as Promise<T>;
+}
+
+export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
+  const response = await fetch(path, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw new Error(`${path} failed with ${response.status}`);
+  }
+  return response.json() as Promise<T>;
+}
+
+export async function apiDelete<T>(path: string): Promise<T> {
+  const response = await fetch(path, { method: 'DELETE' });
   if (!response.ok) {
     throw new Error(`${path} failed with ${response.status}`);
   }

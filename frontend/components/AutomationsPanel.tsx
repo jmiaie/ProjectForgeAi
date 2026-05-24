@@ -37,8 +37,9 @@ export function AutomationsPanel({ projectId, initialAutomations }: AutomationsP
       type: 'timed_reminder',
       name: 'Review project plan',
       payload: { message: 'Review the latest ProjectForge operating plan', recipient: 'project_owner' },
+      schedule: { interval_seconds: 3600 },
     });
-    setMessage(`Created ${result.name}.`);
+    setMessage(`Created ${result.name} (next run ${result.next_run_at ?? 'unscheduled'}).`);
     await refresh();
   };
 
@@ -91,7 +92,10 @@ export function AutomationsPanel({ projectId, initialAutomations }: AutomationsP
               <div className="row">
                 <div>
                   <strong>{automation.name}</strong>
-                  <p className="muted">{automation.type} · {automation.run_count} run(s)</p>
+                  <p className="muted">
+                    {automation.type} · {automation.run_count} run(s)
+                    {automation.next_run_at ? ` · next ${automation.next_run_at}` : ''}
+                  </p>
                 </div>
                 <div className="button-row">
                   <StatusBadge status={automation.status} />

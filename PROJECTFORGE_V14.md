@@ -434,8 +434,9 @@ The starter now supports:
 
 - PDF text extraction via `pypdf`
 - Email `.eml` body/header extraction
+- Mailbox `.mbox` archive extraction with per-message provenance
 - Office Open XML starters for DOCX, XLSX, and PPTX
-- Image metadata stubs with OCR-not-configured warnings
+- Image metadata plus optional Tesseract OCR text chunks
 - Multipart upload endpoint: `POST /api/v1/projects/upload`
 - Per-project manifests at `INGESTION_MANIFEST_ROOT/{project_id}/latest.json`
 
@@ -575,9 +576,9 @@ PYTHONPATH=backend/app uvicorn main:app --reload
 Continue production hardening:
 
 ```text
-backend/app/graph/enricher.py
+backend/app/graph/mutations.py
+backend/app/automations/scheduling.py
 frontend/components/GraphFlowViewer.tsx
-backend/app/automations/worker_main.py
 ```
 
-Next targets: richer Office table extraction, attachment ingestion, graph node editing in the UI, Temporal schedule/cron wiring, and Neo4j migrations.
+Next targets: Neo4j migrations, Temporal Schedule API sync, attachment ingestion, and graph edge editing in the UI.
