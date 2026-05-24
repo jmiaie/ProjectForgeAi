@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     NEO4J_USER: str = "neo4j"
     NEO4J_PASSWORD: str = "projectforge-password"
     NEO4J_CONNECTION_TIMEOUT: float = 1.0
+    NEO4J_BOOTSTRAP_ON_CONNECT: bool = True
     REQUIRE_NATIVE_NEO4J: bool = False
     POSTGRES_URI: str = "postgresql://projectforge:projectforge@postgres:5432/projectforge"
     ENCRYPTION_KEY: str = "dev-only-change-me"
@@ -36,6 +37,7 @@ class Settings(BaseSettings):
     TEMPORAL_NAMESPACE: str = "default"
     TEMPORAL_TASK_QUEUE: str = "projectforge-automations"
     TEMPORAL_USE_WORKER_DISPATCH: bool = False
+    TEMPORAL_SYNC_SCHEDULES: bool = False
     IMAGE_OCR_ENABLED: bool = True
     IMAGE_OCR_TIMEOUT_SECONDS: int = 30
     TESSERACT_CMD: str | None = None

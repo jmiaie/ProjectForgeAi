@@ -14,6 +14,18 @@ EDITABLE_LABELS = {
     NodeLabel.DEPENDENCY,
 }
 
+LINKABLE_LABELS = {
+    NodeLabel.TASK,
+    NodeLabel.MILESTONE,
+    NodeLabel.DEPENDENCY,
+    NodeLabel.RISK,
+}
+
+MANUAL_EDGE_TYPES = {
+    EdgeType.RELATES_TO,
+    EdgeType.DEPENDS_ON,
+}
+
 
 class GraphMutationError(ValueError):
     pass
@@ -63,12 +75,13 @@ class GraphMutationService:
         )
         graph.nodes.append(node)
         graph.edges.append(edge)
-        self.adapter.upsert_graph(graph)
+        self.adapter.upsert_node(project_id, node)
+        self.adapter.upsert_edge(project_id, edge)
         return {
             "project_id": project_id,
             "node": node.model_dump(mode="json"),
-            "node_count": graph.node_count,
-            "edge_count": graph.edge_count,
+            "node_count": len(graph.nodes),
+            "edge_count": len(graph.edges),
         }
 
     def update_node(
@@ -89,12 +102,12 @@ class GraphMutationService:
 
         updated = GraphNode(id=node.id, label=node.label, properties=merged)
         graph.nodes = [updated if item.id == node_id else item for item in graph.nodes]
-        self.adapter.upsert_graph(graph)
+        self.adapter.upsert_node(project_id, updated)
         return {
             "project_id": project_id,
             "node": updated.model_dump(mode="json"),
-            "node_count": graph.node_count,
-            "edge_count": graph.edge_count,
+            "node_count": len(graph.nodes),
+            "edge_count": len(graph.edges),
         }
 
     def delete_node(self, project_id: str, node_id: str) -> dict[str, Any]:
@@ -109,12 +122,89 @@ class GraphMutationService:
             for edge in graph.edges
             if edge.source_id != node_id and edge.target_id != node_id
         ]
-        self.adapter.upsert_graph(graph)
+        self.adapter.delete_node(project_id, node_id)
         return {
             "project_id": project_id,
             "deleted_node_id": node_id,
-            "node_count": graph.node_count,
-            "edge_count": graph.edge_count,
+            "node_count": len(graph.nodes),
+            "edge_count": len(graph.edges),
+        }
+
+    def create_edge(
+        self,
+        project_id: str,
+        *,
+        source_id: str,
+        target_id: str,
+        edge_type: EdgeType = EdgeType.DEPENDS_ON,
+        properties: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        if edge_type not in MANUAL_EDGE_TYPES:
+            raise GraphMutationError(f"Edge type {edge_type.value} cannot be created manually")
+
+        graph = self._require_graph(project_id)
+        source = self._get_node(graph, source_id)
+        target = self._get_node(graph, target_id)
+
+        if source.label not in LINKABLE_LABELS or target.label not in LINKABLE_LABELS:
+            raise GraphMutationError("Manual links require task, milestone, dependency, or risk nodes")
+
+        if source_id == target_id:
+            raise GraphMutationError("Cannot link a node to itself")
+
+        edge = GraphEdge(
+            source_id=source_id,
+            target_id=target_id,
+            type=edge_type,
+            properties={"provenance": "manual_edit", **(properties or {})},
+        )
+        graph.edges = [
+            item
+            for item in graph.edges
+            if not (
+                item.source_id == source_id and item.target_id == target_id and item.type == edge_type
+            )
+        ]
+        graph.edges.append(edge)
+        self.adapter.upsert_edge(project_id, edge)
+        return {
+            "project_id": project_id,
+            "edge": edge.model_dump(mode="json"),
+            "edge_count": len(graph.edges),
+        }
+
+    def delete_edge(
+        self,
+        project_id: str,
+        *,
+        source_id: str,
+        target_id: str,
+        edge_type: EdgeType,
+    ) -> dict[str, Any]:
+        if edge_type not in MANUAL_EDGE_TYPES:
+            raise GraphMutationError(f"Edge type {edge_type.value} cannot be deleted manually")
+
+        graph = self._require_graph(project_id)
+        before = len(graph.edges)
+        graph.edges = [
+            edge
+            for edge in graph.edges
+            if not (
+                edge.source_id == source_id and edge.target_id == target_id and edge.type == edge_type
+            )
+        ]
+        if len(graph.edges) == before:
+            raise GraphMutationError("Edge not found")
+
+        self.adapter.delete_edge(project_id, source_id, target_id, edge_type)
+        return {
+            "project_id": project_id,
+            "deleted_edge": {
+                "source_id": source_id,
+                "target_id": target_id,
+                "type": edge_type.value,
+            },
+            "edge_count": len(graph.edges),
         }
 
     def _require_graph(self, project_id: str) -> ProjectGraph:

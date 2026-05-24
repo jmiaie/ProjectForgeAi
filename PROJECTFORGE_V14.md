@@ -447,11 +447,18 @@ Ingestion manifests project into a starter graph:
 - Project, document, and chunk nodes
 - `HAS_DOCUMENT` and `HAS_CHUNK` provenance edges
 - Source hashes and parser metadata carried onto graph nodes
-- Neo4j adapter with local in-memory fallback
+- Neo4j adapter with local in-memory fallback, bootstrap constraints/indexes, and partial node/edge mutations
 - Endpoints:
   - `POST /api/v1/projects/{project_id}/graph/build`
   - `GET /api/v1/projects/{project_id}/graph`
   - `GET /api/v1/projects/{project_id}/graph/status`
+  - `POST /api/v1/projects/{project_id}/graph/enrich`
+  - `POST /api/v1/projects/{project_id}/graph/nodes`
+  - `PATCH /api/v1/projects/{project_id}/graph/nodes/{node_id}`
+  - `DELETE /api/v1/projects/{project_id}/graph/nodes/{node_id}`
+  - `POST /api/v1/projects/{project_id}/graph/edges`
+  - `DELETE /api/v1/projects/{project_id}/graph/edges`
+  - `POST /api/v1/graph/bootstrap`
 
 ### Orchestrator Agent
 
@@ -576,9 +583,9 @@ PYTHONPATH=backend/app uvicorn main:app --reload
 Continue production hardening:
 
 ```text
-backend/app/graph/mutations.py
-backend/app/automations/scheduling.py
-frontend/components/GraphFlowViewer.tsx
+backend/app/graph/bootstrap.py
+backend/app/automations/temporal_schedules.py
+backend/app/ingestion/attachments.py
 ```
 
-Next targets: Neo4j migrations, Temporal Schedule API sync, attachment ingestion, and graph edge editing in the UI.
+Next targets: Neo4j migration versioning, Temporal schedule health UI, and attachment ingestion for nested `.eml` chains.

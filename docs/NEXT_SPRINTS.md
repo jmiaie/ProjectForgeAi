@@ -10,8 +10,8 @@ Build the file ingestion foundation that feeds Locus and OMPA with high-confiden
 
 - PDF parser: text, page metadata, source hashes, warnings. **Starter done.**
 - Image parser: OCR-ready interface, EXIF metadata, confidence warnings. **OCR + metadata done (Tesseract optional).**
-- Email parser: `.eml` headers, body, attachment metadata. **Starter done; `.mbox` mailbox exports done.**
-- Office parser: DOCX, XLSX, PPTX text extraction. **Table-aware XLSX extraction done; legacy formats pending.**
+- Email parser: `.eml` headers, body, attachment metadata. **Starter done; `.mbox` mailbox exports + attachment chunk ingestion done.**
+- Office parser: DOCX, XLSX, PPTX text extraction. **Table-aware XLSX + heading/table DOCX + slide-labeled PPTX done.**
 - Ingestion manifest: per-file status, parser warnings, chunk counts, source hashes. **Starter done.**
 - Upload endpoint: multipart `UploadFile` support. **Starter done at `POST /api/v1/projects/upload`.**
 
@@ -27,7 +27,7 @@ Parallel owners:
 Convert extracted document facts into the living project graph.
 
 - Define graph schema: project, stakeholder, company, task, milestone, document, decision, risk, dependency. **Starter labels added.**
-- Add Neo4j adapter and migrations/bootstrap. **Adapter/fallback added; migrations pending.**
+- Add Neo4j adapter and migrations/bootstrap. **Constraints/index bootstrap + partial node/edge upsert/delete added.**
 - Build document-to-graph extraction service through LLMRouter. **Heuristic + optional LLM enrichment with JSON validation done.**
 - Store graph provenance: every node/edge links back to source chunks. **Manifest + DERIVED_FROM enrichment provenance added.**
 - Add graph status endpoint and minimal query endpoint. **Starter endpoints added; enrich + node mutation endpoints added.**
@@ -119,6 +119,7 @@ Add durable project workflows.
 - Retry/dead-letter strategy. **Retry scheduling + dead-letter queue starter done.**
 - Real Temporal worker + docker services. **Worker, workflows, activities, and compose services added.**
 - Schedule evaluation for `run_at`, `interval_seconds`, and `cron`. **Done with recurring reschedule.**
+- Temporal Schedule API sync for recurring automations. **Optional sync via `TEMPORAL_SYNC_SCHEDULES`.**
 
 Parallel owners:
 - Temporal worker agent.
@@ -129,7 +130,7 @@ Parallel owners:
 
 Proceed with **production hardening**:
 
-1. Add Neo4j migrations/bootstrap and graph partial upsert/delete semantics.
-2. Add Temporal Schedule API sync for recurring automations.
-3. Add graph edge editing and manual dependency linking in the UI.
-4. Add attachment ingestion and richer Office DOCX/PPTX structure extraction.
+1. Add attachment ingestion for nested email/office/pdf/image files.
+2. Expand Temporal Schedule sync into worker health monitoring and UI controls.
+3. Add Neo4j graph migration versioning and orphan-node cleanup on full rebuild.
+4. Add graph edge editing for non-dependency relationships in the UI.

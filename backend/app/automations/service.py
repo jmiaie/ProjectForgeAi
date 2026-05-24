@@ -37,7 +37,17 @@ class AutomationService:
             automation.requires_approval = True
         else:
             apply_initial_schedule(automation)
-        return self.store.upsert(automation)
+        payload = self.store.upsert(automation)
+        return payload
+
+    async def sync_temporal_schedule(self, project_id: str, automation_id: str) -> dict:
+        from automations.temporal_schedules import sync_automation_schedule
+
+        automation = self._get_required(project_id, automation_id)
+        try:
+            return await sync_automation_schedule(automation)
+        except Exception as exc:
+            return {"status": "error", "error": str(exc)}
 
     def list(self, project_id: str) -> dict:
         return {"project_id": project_id, "automations": self.store.list(project_id)}
@@ -94,6 +104,13 @@ class AutomationService:
             reschedule_after_success(automation)
             automation.touch()
             self.store.upsert(automation)
+            if settings.TEMPORAL_SYNC_SCHEDULES and automation.next_run_at:
+                try:
+                    from automations.temporal_schedules import sync_automation_schedule
+
+                    await sync_automation_schedule(automation)
+                except Exception:
+                    pass
             result = AutomationRunResult(
                 automation_id=automation.id,
                 project_id=project_id,

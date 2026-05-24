@@ -56,6 +56,21 @@ def parse_office(
                     if rows:
                         table_count += 1
                         text_sections.append(_format_table(sheet_name, rows))
+            elif suffix == ".docx":
+                if "word/document.xml" in archive.namelist():
+                    text_sections.append(_extract_docx_text(archive.read("word/document.xml")))
+                for member in [name for name in archive.namelist() if name.startswith("word/header")]:
+                    extracted = _extract_docx_text(archive.read(member))
+                    if extracted:
+                        text_sections.append(extracted)
+            elif suffix == ".pptx":
+                slide_members = sorted(
+                    name for name in archive.namelist() if re.match(r"ppt/slides/slide\d+\.xml", name)
+                )
+                for index, member in enumerate(slide_members, start=1):
+                    extracted = _extract_xml_text(archive.read(member))
+                    if extracted:
+                        text_sections.append(f"Slide {index}: {extracted}")
             else:
                 members = _candidate_members(archive.namelist(), suffix)
                 for member in members:
@@ -121,6 +136,64 @@ def _extract_xml_text(raw_xml: bytes) -> str:
 
     values = [element.text for element in root.iter() if element.tag in TEXT_TAGS and element.text]
     return " ".join(values)
+
+
+def _extract_docx_text(raw_xml: bytes) -> str:
+    try:
+        root = ElementTree.fromstring(raw_xml)
+    except ElementTree.ParseError:
+        return ""
+
+    lines: list[str] = []
+    body = root.find("word:body", NS)
+    if body is None:
+        return _extract_xml_text(raw_xml)
+
+    for child in body:
+        tag = child.tag.split("}")[-1]
+        if tag == "p":
+            style = _docx_paragraph_style(child)
+            text = _docx_paragraph_text(child)
+            if not text:
+                continue
+            if style and "heading" in style.lower():
+                lines.append(f"Heading: {text}")
+            else:
+                lines.append(text)
+        elif tag == "tbl":
+            table_lines = _docx_table_text(child)
+            if table_lines:
+                lines.append("Table:")
+                lines.extend(table_lines)
+
+    return "\n".join(lines)
+
+
+def _docx_paragraph_style(paragraph: ElementTree.Element) -> str | None:
+    props = paragraph.find("word:pPr", NS)
+    if props is None:
+        return None
+    style = props.find("word:pStyle", NS)
+    if style is None:
+        return None
+    return style.attrib.get(f"{{{NS['word']}}}val")
+
+
+def _docx_paragraph_text(paragraph: ElementTree.Element) -> str:
+    parts = [node.text for node in paragraph.findall(".//word:t", NS) if node.text]
+    return " ".join(parts).strip()
+
+
+def _docx_table_text(table: ElementTree.Element) -> list[str]:
+    rows: list[str] = []
+    for row in table.findall(".//word:tr", NS):
+        cells = []
+        for cell in row.findall("word:tc", NS):
+            cell_text = " ".join(node.text for node in cell.findall(".//word:t", NS) if node.text).strip()
+            cells.append(cell_text)
+        if any(cells):
+            rows.append("\t".join(cells))
+    return rows
 
 
 def _load_shared_strings(archive: zipfile.ZipFile) -> list[str]:

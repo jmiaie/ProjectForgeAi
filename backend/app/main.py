@@ -13,7 +13,7 @@ from core.integrations_manager import IntegrationsManager
 from core.llm_router import LLMRouter
 from graph.builder import ProjectGraphBuilder
 from graph.enricher import GraphEnrichmentService
-from graph.models import NodeLabel
+from graph.models import EdgeType, NodeLabel
 from graph.mutations import GraphMutationError, GraphMutationService
 from ingestion.pipeline import IngestionPipeline
 from integrations.intake_form import router as intake_router
@@ -72,6 +72,13 @@ class CreateGraphNodeRequest(BaseModel):
 
 
 class UpdateGraphNodeRequest(BaseModel):
+    properties: dict = Field(default_factory=dict)
+
+
+class CreateGraphEdgeRequest(BaseModel):
+    source_id: str
+    target_id: str
+    type: EdgeType = EdgeType.DEPENDS_ON
     properties: dict = Field(default_factory=dict)
 
 
@@ -225,6 +232,13 @@ async def project_graph_status(
     return graph_builder.status(project_id)
 
 
+@app.post("/api/v1/graph/bootstrap")
+async def bootstrap_graph_storage(
+    graph_builder: ProjectGraphBuilder = Depends(get_graph_builder),
+):
+    return graph_builder.adapter.bootstrap()
+
+
 @app.post("/api/v1/projects/{project_id}/graph/enrich")
 async def enrich_project_graph(
     project_id: str,
@@ -277,6 +291,47 @@ async def delete_graph_node(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
+@app.post("/api/v1/projects/{project_id}/graph/edges")
+async def create_graph_edge(
+    project_id: str,
+    request: CreateGraphEdgeRequest,
+    mutations: GraphMutationService = Depends(get_graph_mutation_service),
+):
+    try:
+        return mutations.create_edge(
+            project_id,
+            source_id=request.source_id,
+            target_id=request.target_id,
+            edge_type=request.type,
+            properties=request.properties,
+        )
+    except GraphMutationError as exc:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.delete("/api/v1/projects/{project_id}/graph/edges")
+async def delete_graph_edge(
+    project_id: str,
+    source_id: str,
+    target_id: str,
+    edge_type: EdgeType = EdgeType.DEPENDS_ON,
+    mutations: GraphMutationService = Depends(get_graph_mutation_service),
+):
+    try:
+        return mutations.delete_edge(
+            project_id,
+            source_id=source_id,
+            target_id=target_id,
+            edge_type=edge_type,
+        )
+    except GraphMutationError as exc:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @app.post("/api/v1/projects/{project_id}/workbench/query")
 async def workbench_query(
     project_id: str,
@@ -310,7 +365,11 @@ async def create_automation(
     service: AutomationService = Depends(get_automation_service),
 ):
     automation = AutomationDefinition(project_id=project_id, **request.model_dump(exclude_none=True))
-    return service.create(automation)
+    created = service.create(automation)
+    if settings.TEMPORAL_SYNC_SCHEDULES:
+        schedule_result = await service.sync_temporal_schedule(project_id, created["id"])
+        created["temporal_schedule"] = schedule_result
+    return created
 
 
 @app.get("/api/v1/projects/{project_id}/automations")

@@ -21,6 +21,7 @@ class EdgeType(StrEnum):
     HAS_CHUNK = "HAS_CHUNK"
     DERIVED_FROM = "DERIVED_FROM"
     RELATES_TO = "RELATES_TO"
+    DEPENDS_ON = "DEPENDS_ON"
 
 
 class GraphNode(BaseModel):

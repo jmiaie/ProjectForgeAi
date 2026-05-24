@@ -3,6 +3,7 @@ from email.parser import BytesParser
 from pathlib import Path
 from typing import BinaryIO
 
+from ingestion.attachments import parse_attachment
 from ingestion.parsers.base import (
     ParsedChunk,
     ParsedDocument,
@@ -29,19 +30,26 @@ def parse_email(
 
     text_parts: list[str] = []
     attachments: list[dict] = []
+    attachment_chunks: list[ParsedChunk] = []
     for part in message.walk():
         content_disposition = part.get_content_disposition()
         content_type = part.get_content_type()
         part_filename = part.get_filename()
+        payload = part.get_payload(decode=True) or b""
 
         if content_disposition == "attachment" or part_filename:
             attachments.append(
                 {
                     "filename": part_filename,
                     "content_type": content_type,
-                    "size": len(part.get_payload(decode=True) or b""),
+                    "size": len(payload),
                 }
             )
+            if payload:
+                parsed_attachment = parse_attachment(part_filename, payload, parent_source=source_name)
+                if parsed_attachment is not None:
+                    attachment_chunks.extend(parsed_attachment.chunks)
+                    warnings.extend(parsed_attachment.warnings)
             continue
 
         if content_type == "text/plain":
@@ -50,7 +58,7 @@ def parse_email(
             text_parts.append(str(part.get_content()))
 
     normalized = normalize_text("\n\n".join(text_parts))
-    chunks = [
+    body_chunks = [
         ParsedChunk(
             source=source_name,
             text=text,
@@ -72,8 +80,9 @@ def parse_email(
             start=1,
         )
     ]
+    chunks = body_chunks + attachment_chunks
 
-    if not normalized:
+    if not normalized and not attachment_chunks:
         warnings.append(f"{source_name}: no text body found")
 
     metadata = {
@@ -87,6 +96,7 @@ def parse_email(
         "message_id": message.get("Message-ID"),
         "attachment_count": len(attachments),
         "attachments": attachments,
+        "attachment_chunks_indexed": len(attachment_chunks),
         "chunk_count": len(chunks),
     }
     return ParsedDocument(source=source_name, chunks=chunks, metadata=metadata, warnings=warnings)

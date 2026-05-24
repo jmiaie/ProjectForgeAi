@@ -12,7 +12,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { apiDelete, apiGet, apiPatch } from '@/lib/api';
+import { apiDelete, apiGet, apiPatch, apiPost } from '@/lib/api';
 
 type GraphNodeRecord = {
   id: string;
@@ -40,6 +40,7 @@ type GraphFlowViewerProps = {
 };
 
 const EDITABLE_LABELS = new Set(['Stakeholder', 'Task', 'Milestone', 'Risk', 'Decision', 'Dependency']);
+const LINKABLE_LABELS = new Set(['Task', 'Milestone', 'Dependency', 'Risk']);
 
 const labelColors: Record<string, string> = {
   Project: '#2563eb',
@@ -111,6 +112,7 @@ export function GraphFlowViewer({ projectId, refreshKey = 0, onGraphChanged }: G
   const [editName, setEditName] = useState('');
   const [editSequence, setEditSequence] = useState('');
   const [editSeverity, setEditSeverity] = useState('');
+  const [linkTargetId, setLinkTargetId] = useState('');
   const [message, setMessage] = useState('Loading graph...');
   const [saving, setSaving] = useState(false);
 
@@ -155,6 +157,7 @@ export function GraphFlowViewer({ projectId, refreshKey = 0, onGraphChanged }: G
       setEditName('');
       setEditSequence('');
       setEditSeverity('');
+      setLinkTargetId('');
       return;
     }
     setEditName(String(selectedNode.properties.name ?? ''));
@@ -164,6 +167,10 @@ export function GraphFlowViewer({ projectId, refreshKey = 0, onGraphChanged }: G
 
   const proOptions = useMemo(() => ({ hideAttribution: true }), []);
   const editable = selectedNode ? EDITABLE_LABELS.has(selectedNode.label) : false;
+  const linkable = selectedNode ? LINKABLE_LABELS.has(selectedNode.label) : false;
+  const linkTargets = rawNodes.filter(
+    (node) => node.id !== selectedNode?.id && LINKABLE_LABELS.has(node.label),
+  );
 
   const saveNode = async () => {
     if (!selectedNode) return;
@@ -200,6 +207,25 @@ export function GraphFlowViewer({ projectId, refreshKey = 0, onGraphChanged }: G
       await loadGraph();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Failed to delete node.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const createDependency = async () => {
+    if (!selectedNode || !linkTargetId) return;
+    setSaving(true);
+    try {
+      await apiPost(`/api/v1/projects/${projectId}/graph/edges`, {
+        source_id: selectedNode.id,
+        target_id: linkTargetId,
+        type: 'DEPENDS_ON',
+      });
+      setMessage(`Linked ${selectedNode.label} to dependency target.`);
+      onGraphChanged?.();
+      await loadGraph();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Failed to create dependency link.');
     } finally {
       setSaving(false);
     }
@@ -256,8 +282,26 @@ export function GraphFlowViewer({ projectId, refreshKey = 0, onGraphChanged }: G
                   <input value={editSeverity} onChange={(event) => setEditSeverity(event.target.value)} />
                 </label>
               ) : null}
+              {linkable ? (
+                <label className="field">
+                  <span>Depends on</span>
+                  <select value={linkTargetId} onChange={(event) => setLinkTargetId(event.target.value)}>
+                    <option value="">Select target node</option>
+                    {linkTargets.map((node) => (
+                      <option key={node.id} value={node.id}>
+                        {node.label}: {String(node.properties.name ?? node.id)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
               <div className="button-row">
                 <Button disabled={saving || !editName.trim()} onClick={saveNode}>Save</Button>
+                {linkable ? (
+                  <Button variant="outline" disabled={saving || !linkTargetId} onClick={createDependency}>
+                    Link
+                  </Button>
+                ) : null}
                 <Button variant="outline" disabled={saving} onClick={deleteNode}>Delete</Button>
               </div>
             </div>
