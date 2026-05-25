@@ -38,6 +38,16 @@ Base URL: `http://localhost:8000` (or `BACKEND_BASE_URL`).
 | DELETE | `/api/v1/projects/{project_id}/llm/keys/{provider}` | Remove BYO key |
 | GET | `/api/v1/projects/{project_id}/llm/usage` | Per-project LLM call and token usage summary |
 
+## Spatial / RTK
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/v1/projects/{project_id}/spatial/assets` | List geo-tagged assets |
+| POST | `/api/v1/projects/{project_id}/spatial/assets` | Register spatial asset |
+| POST | `/api/v1/projects/{project_id}/spatial/sync-graph` | Index graph nodes with lat/lon properties |
+| GET | `/api/v1/projects/{project_id}/spatial/map` | Map bounds and markers |
+| GET | `/api/v1/projects/{project_id}/spatial/status` | RTK adapter status |
+
 Supported upload types include PDF, email, mbox, Office, images, **IFC**, **DWG**, and **codebase archives** (zip/tar).
 
 ## Graph
@@ -82,6 +92,20 @@ Supported upload types include PDF, email, mbox, Office, images, **IFC**, **DWG*
 | GET | `/api/v1/projects/{project_id}/compliance/profile` | Current profile |
 | POST | `/api/v1/projects/{project_id}/compliance/profile` | Set profile category |
 | GET | `/api/v1/projects/{project_id}/compliance/audit` | Audit event stream |
+| GET | `/api/v1/projects/{project_id}/compliance/export/soc2` | SOC 2 control mapping export (requires `compliance.export`) |
+
+## Auth / SSO
+
+Prefix: `/api/v1/auth`
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/status` | OIDC configuration and active session count |
+| GET | `/login` | Start OIDC flow (returns authorization URL) |
+| GET | `/callback` | OIDC authorization callback |
+| POST | `/mock-login` | Development mock SSO (when `OIDC_MOCK=true`) |
+| GET | `/me` | Current session (Bearer token) |
+| POST | `/logout` | Revoke session token |
 
 ## Integrations (Intake)
 

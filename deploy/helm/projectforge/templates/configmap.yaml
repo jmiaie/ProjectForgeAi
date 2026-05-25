@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "projectforge.fullname" . }}-secrets
+  labels:
+    {{- include "projectforge.labels" . | nindent 4 }}
+type: Opaque
+stringData:
+  ENCRYPTION_KEY: {{ .Values.env.encryptionKey | quote }}
+  NEO4J_PASSWORD: {{ .Values.neo4j.password | quote }}
+  POSTGRES_PASSWORD: {{ .Values.postgres.password | quote }}
+  OIDC_CLIENT_SECRET: {{ .Values.env.oidcClientSecret | quote }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "projectforge.fullname" . }}-config
+  labels:
+    {{- include "projectforge.labels" . | nindent 4 }}
+data:
+  DEPLOYMENT_MODE: {{ .Values.deploymentMode | quote }}
+  PROJECT_TIER: {{ .Values.projectTier | quote }}
+  RBAC_ENFORCE: {{ .Values.rbacEnforce | quote }}
+  OIDC_ENABLED: {{ .Values.oidcEnabled | quote }}
+  OIDC_MOCK: {{ .Values.oidcMock | quote }}
+  OAUTH_MOCK_TOKEN_EXCHANGE: {{ .Values.env.oauthMockTokenExchange | quote }}
+  REQUIRE_NATIVE_LOCUS_OMPA: {{ .Values.env.requireNativeLocusOmpa | quote }}
+  TEMPORAL_SYNC_SCHEDULES: {{ .Values.env.temporalSyncSchedules | quote }}
+  BACKEND_BASE_URL: {{ .Values.env.backendBaseUrl | quote }}
+  FRONTEND_BASE_URL: {{ .Values.env.frontendBaseUrl | quote }}
+  NEXT_PUBLIC_API_BASE_URL: {{ .Values.env.nextPublicApiBaseUrl | quote }}
+  NEO4J_URI: {{ printf "bolt://%s-neo4j:7687" (include "projectforge.fullname" .) | quote }}
+  NEO4J_USER: neo4j
+  POSTGRES_URI: {{ printf "postgresql://%s:%s@%s-postgres:5432/%s" .Values.postgres.user .Values.postgres.password (include "projectforge.fullname" .) .Values.postgres.database | quote }}
+  TEMPORAL_ADDRESS: {{ printf "%s-temporal:7233" (include "projectforge.fullname" .) | quote }}
+  OIDC_ISSUER: {{ .Values.env.oidcIssuer | quote }}
+  OIDC_CLIENT_ID: {{ .Values.env.oidcClientId | quote }}

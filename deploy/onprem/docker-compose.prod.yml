@@ -14,6 +14,8 @@ services:
       PROJECT_TIER: enterprise
       RBAC_ENFORCE: "true"
       OAUTH_MOCK_TOKEN_EXCHANGE: "false"
+      OIDC_ENABLED: "true"
+      OIDC_MOCK: "false"
       REQUIRE_NATIVE_NEO4J: "false"
       NEO4J_BOOTSTRAP_ON_CONNECT: "true"
     command: >

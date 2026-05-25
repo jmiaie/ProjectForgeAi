@@ -25,7 +25,7 @@ PYTHONPATH=backend/app uvicorn main:app --reload --host 0.0.0.0 --port 8000
 cd frontend && npm install && npm run dev
 ```
 
-Tests: `PYTHONPATH=backend/app python3 -m unittest discover -s backend/app/tests` (107 tests)
+Tests: `PYTHONPATH=backend/app python3 -m unittest discover -s backend/app/tests` (118 tests)
 
 ## What ships today
 
@@ -34,10 +34,11 @@ Tests: `PYTHONPATH=backend/app python3 -m unittest discover -s backend/app/tests
 - **Orchestrator** — five specialist agents, checkpoints, run history, resume; optional LangGraph with conditional branching; orchestrator audit trail
 - **Compliance** — standard/HIPAA/legal/SOC2/GDPR profiles, redaction, audit trail
 - **Integrations** — OAuth PKCE (production credential gate), encrypted API keys, MCP HTTP/SSE/stdio discovery, webhook connector, connection health UI
-- **Enterprise** — RBAC scaffolding, upgrade manager, on-prem Compose overlay, self-improvement gate
+- **Enterprise** — RBAC scaffolding, upgrade manager, on-prem Compose overlay, Helm chart, SSO/OIDC, SOC 2 export
 - **Portfolio** — multi-project registry, cross-project summaries, project switcher UI
 - **Ingestion expansion** — IFC/DWG CAD stubs, codebase archives, PostgreSQL schema snapshots
 - **LLM billing** — flagship upsell routing, BYO keys, per-project usage metering
+- **RTK spatial** — geo-tagged assets, graph coordinate sync, map view UI
 - **Automations** — scheduling, Temporal worker, approvals, dead letters, optional Schedule sync
 - **Frontend** — editable React Flow graph, timeline/Gantt, workbench, orchestrator artifacts, automation controls
 
@@ -92,5 +93,6 @@ main
                                     └── cursor/sprint12-portfolio-ebb0
                                          └── cursor/sprint13-ingestion-ebb0
                                               └── cursor/sprint14-llm-billing-ebb0
-                                                   └── cursor/sprint15-rtk-spatial-ebb0   ← active
+                                                   └── cursor/sprint15-rtk-spatial-ebb0
+                                                        └── cursor/sprint16-identity-deploy-ebb0   ← active
 ```

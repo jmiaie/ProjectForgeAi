@@ -58,6 +58,17 @@ class Settings(BaseSettings):
     RBAC_DEFAULT_ACTOR: str = "dev-user"
     RBAC_DEFAULT_ROLE: str = "owner"
     RBAC_MEMBERSHIP_ROOT: str = "./.rbac"
+    OIDC_ENABLED: bool = False
+    OIDC_MOCK: bool = True
+    OIDC_ISSUER: str | None = None
+    OIDC_CLIENT_ID: str | None = None
+    OIDC_CLIENT_SECRET: str | None = None
+    OIDC_REDIRECT_URI: str | None = None
+    OIDC_SCOPES: str = "openid profile email"
+    OIDC_GROUP_ROLE_MAP: str = "{}"
+    OIDC_DEFAULT_ROLE: str = "viewer"
+    AUTH_SESSION_ROOT: str = "./.auth-sessions"
+    AUTH_SESSION_TTL_SECONDS: int = 86400
     PROJECT_TIER: str = "starter"
     PROJECT_REGISTRY_ROOT: str = "./.projects"
     DEFAULT_PROJECT_ID: str = "proj_123"

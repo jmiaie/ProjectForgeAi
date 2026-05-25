@@ -1,0 +1,63 @@
+{{- if .Values.neo4j.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "projectforge.fullname" . }}-neo4j
+  labels:
+    {{- include "projectforge.labels" . | nindent 4 }}
+    app.kubernetes.io/component: neo4j
+spec:
+  serviceName: {{ include "projectforge.fullname" . }}-neo4j
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "projectforge.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: neo4j
+  template:
+    metadata:
+      labels:
+        {{- include "projectforge.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: neo4j
+    spec:
+      containers:
+        - name: neo4j
+          image: {{ .Values.neo4j.image }}
+          ports:
+            - containerPort: 7474
+            - containerPort: 7687
+          env:
+            - name: NEO4J_AUTH
+              value: {{ printf "neo4j/%s" .Values.neo4j.password | quote }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        {{- if .Values.persistence.storageClass }}
+        storageClassName: {{ .Values.persistence.storageClass | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.neo4j.storage }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "projectforge.fullname" . }}-neo4j
+  labels:
+    {{- include "projectforge.labels" . | nindent 4 }}
+spec:
+  selector:
+    {{- include "projectforge.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: neo4j
+  ports:
+    - port: 7474
+      targetPort: 7474
+      name: browser
+    - port: 7687
+      targetPort: 7687
+      name: bolt
+{{- end }}

@@ -78,6 +78,12 @@ function actorHeaders(extra: HeadersInit = {}): HeadersInit {
   const headers = new Headers(extra);
   const actor = process.env.NEXT_PUBLIC_RBAC_ACTOR;
   const role = process.env.NEXT_PUBLIC_RBAC_ROLE;
+  if (typeof window !== 'undefined') {
+    const token = window.localStorage.getItem('projectforge_auth_token');
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+  }
   if (actor) {
     headers.set('X-ProjectForge-Actor', actor);
   }
@@ -86,6 +92,51 @@ function actorHeaders(extra: HeadersInit = {}): HeadersInit {
   }
   return headers;
 }
+
+export function setAuthToken(token: string | null) {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  if (token) {
+    window.localStorage.setItem('projectforge_auth_token', token);
+  } else {
+    window.localStorage.removeItem('projectforge_auth_token');
+  }
+}
+
+export type AuthStatus = {
+  enabled: boolean;
+  mock_mode: boolean;
+  issuer?: string | null;
+  configured: boolean;
+  active_sessions: number;
+};
+
+export type AuthSession = {
+  token: string;
+  actor_id: string;
+  email?: string | null;
+  role: string;
+  groups: string[];
+  provider?: string;
+  expires_at?: string;
+};
+
+export type SOC2Export = {
+  project_id: string;
+  framework: string;
+  generated_at: string;
+  summary: {
+    control_count: number;
+    implemented: number;
+    partial: number;
+  };
+  controls: Array<{
+    control_id: string;
+    title: string;
+    status: string;
+  }>;
+};
 
 export async function apiGet<T>(path: string): Promise<T> {
   const response = await fetch(path, { cache: 'no-store', headers: actorHeaders() });

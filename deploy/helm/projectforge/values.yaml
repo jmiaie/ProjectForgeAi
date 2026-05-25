@@ -1,0 +1,70 @@
+# Default values for ProjectForge AI on-prem Helm chart.
+# Mirrors deploy/onprem/docker-compose.prod.yml defaults.
+
+global:
+  imagePullPolicy: IfNotPresent
+
+deploymentMode: onprem
+projectTier: enterprise
+rbacEnforce: true
+oidcEnabled: false
+oidcMock: false
+
+ingress:
+  enabled: true
+  className: nginx
+  host: projectforge.internal
+  tlsSecretName: projectforge-tls
+
+backend:
+  replicaCount: 2
+  image: python:3.12-slim
+  port: 8000
+  resources: {}
+
+frontend:
+  replicaCount: 1
+  image: node:22-slim
+  port: 3000
+  resources: {}
+
+automationWorker:
+  enabled: true
+  replicaCount: 1
+  image: python:3.12-slim
+  resources: {}
+
+postgres:
+  enabled: true
+  image: postgres:16-alpine
+  user: projectforge
+  password: replace-postgres-password
+  database: projectforge
+  storage: 10Gi
+
+neo4j:
+  enabled: true
+  image: neo4j:5-community
+  password: replace-neo4j-password
+  storage: 10Gi
+
+temporal:
+  enabled: true
+  image: temporalio/auto-setup:1.25.2
+  storage: 5Gi
+
+env:
+  encryptionKey: replace-with-a-secure-production-key
+  oauthMockTokenExchange: "false"
+  requireNativeLocusOmpa: "true"
+  temporalSyncSchedules: "true"
+  backendBaseUrl: https://projectforge.internal
+  frontendBaseUrl: https://projectforge.internal
+  nextPublicApiBaseUrl: https://projectforge.internal
+  oidcIssuer: ""
+  oidcClientId: ""
+  oidcClientSecret: ""
+
+persistence:
+  enabled: true
+  storageClass: ""

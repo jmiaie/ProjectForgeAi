@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { apiGet, apiPost, type ComplianceProfile } from '@/lib/api';
+import { apiGet, apiPost, type ComplianceProfile, type SOC2Export } from '@/lib/api';
 import { StatusBadge } from '@/components/StatusBadge';
 
 type AuditEvent = {
@@ -22,6 +22,21 @@ export function CompliancePanel({ projectId, initialProfile }: CompliancePanelPr
   const [profile, setProfile] = useState<ComplianceProfile | undefined>(initialProfile);
   const [category, setCategory] = useState(initialProfile?.category || 'standard');
   const [events, setEvents] = useState<AuditEvent[]>([]);
+  const [exportSummary, setExportSummary] = useState<string>('');
+
+  const exportSoc2 = async () => {
+    setExportSummary('');
+    try {
+      const result = await apiGet<SOC2Export>(
+        `/api/v1/projects/${projectId}/compliance/export/soc2`,
+      );
+      setExportSummary(
+        `${result.framework}: ${result.summary.implemented}/${result.summary.control_count} controls implemented`,
+      );
+    } catch (err) {
+      setExportSummary(err instanceof Error ? err.message : 'SOC 2 export failed');
+    }
+  };
 
   const saveProfile = async () => {
     const result = await apiPost<ComplianceProfile>(
@@ -60,7 +75,9 @@ export function CompliancePanel({ projectId, initialProfile }: CompliancePanelPr
         <div className="row">
           <Button onClick={saveProfile}>Save profile</Button>
           <Button variant="outline" onClick={loadAudit}>Load audit</Button>
+          <Button variant="outline" onClick={exportSoc2}>Export SOC 2</Button>
         </div>
+        {exportSummary ? <p className="muted">{exportSummary}</p> : null}
         <div className="grid grid-2">
           <div className="stat">
             <strong>Memory writes</strong>

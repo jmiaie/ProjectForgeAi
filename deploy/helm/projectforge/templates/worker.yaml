@@ -1,0 +1,40 @@
+{{- if .Values.automationWorker.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "projectforge.fullname" . }}-worker
+  labels:
+    {{- include "projectforge.labels" . | nindent 4 }}
+    app.kubernetes.io/component: automation-worker
+spec:
+  replicas: {{ .Values.automationWorker.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "projectforge.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: automation-worker
+  template:
+    metadata:
+      labels:
+        {{- include "projectforge.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: automation-worker
+    spec:
+      containers:
+        - name: worker
+          image: {{ .Values.automationWorker.image }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          workingDir: /workspace/backend/app
+          command:
+            - sh
+            - -c
+            - pip install --no-cache-dir -r /workspace/requirements.txt && python -m automations.worker_main
+          envFrom:
+            - configMapRef:
+                name: {{ include "projectforge.fullname" . }}-config
+            - secretRef:
+                name: {{ include "projectforge.fullname" . }}-secrets
+          env:
+            - name: PYTHONPATH
+              value: /workspace/backend/app
+          resources:
+            {{- toYaml .Values.automationWorker.resources | nindent 12 }}
+{{- end }}

@@ -1,0 +1,69 @@
+{{- if .Values.temporal.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "projectforge.fullname" . }}-temporal
+  labels:
+    {{- include "projectforge.labels" . | nindent 4 }}
+    app.kubernetes.io/component: temporal
+spec:
+  serviceName: {{ include "projectforge.fullname" . }}-temporal
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "projectforge.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: temporal
+  template:
+    metadata:
+      labels:
+        {{- include "projectforge.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: temporal
+    spec:
+      containers:
+        - name: temporal
+          image: {{ .Values.temporal.image }}
+          ports:
+            - containerPort: 7233
+          env:
+            - name: DB
+              value: postgresql
+            - name: DB_PORT
+              value: "5432"
+            - name: POSTGRES_USER
+              value: {{ .Values.postgres.user | quote }}
+            - name: POSTGRES_PWD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "projectforge.fullname" . }}-secrets
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_SEEDS
+              value: {{ include "projectforge.fullname" . }}-postgres
+          volumeMounts:
+            - name: data
+              mountPath: /var/temporal
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        {{- if .Values.persistence.storageClass }}
+        storageClassName: {{ .Values.persistence.storageClass | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.temporal.storage }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "projectforge.fullname" . }}-temporal
+  labels:
+    {{- include "projectforge.labels" . | nindent 4 }}
+spec:
+  selector:
+    {{- include "projectforge.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: temporal
+  ports:
+    - port: 7233
+      targetPort: 7233
+{{- end }}

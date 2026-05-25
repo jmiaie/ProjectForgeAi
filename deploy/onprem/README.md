@@ -19,6 +19,8 @@ docker compose -f docker-compose.yml -f deploy/onprem/docker-compose.prod.yml up
 | `PROJECT_TIER` | `enterprise` (unlocks all feature gates) |
 | `RBAC_ENFORCE` | `true` |
 | `OAUTH_MOCK_TOKEN_EXCHANGE` | `false` |
+| `OIDC_ENABLED` | `true` |
+| `OIDC_MOCK` | `false` |
 | Backend | 2 uvicorn workers |
 | Frontend | production build + `next start` |
 | All services | `restart: unless-stopped` |
@@ -32,15 +34,17 @@ X-ProjectForge-Actor: jane@company.com
 X-ProjectForge-Role: editor
 ```
 
-Assign project members:
+Or authenticate via OIDC SSO and pass the session token:
 
-```bash
-curl -X POST http://localhost:8000/api/v1/projects/proj_123/access/members \
-  -H "Content-Type: application/json" \
-  -H "X-ProjectForge-Actor: admin" \
-  -H "X-ProjectForge-Role: owner" \
-  -d '{"actor_id":"jane@company.com","role":"editor"}'
+```http
+Authorization: Bearer <session-token>
 ```
+
+Configure OIDC in `.env` (`OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_REDIRECT_URI`).
+
+## Kubernetes (Helm)
+
+For Kubernetes deployments, use the Helm chart at `deploy/helm/projectforge/`. See [../helm/projectforge/README.md](../helm/projectforge/README.md).
 
 ## Native Locus + OMPA
 

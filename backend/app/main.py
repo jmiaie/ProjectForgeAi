@@ -4,10 +4,12 @@ from pydantic import BaseModel, Field
 
 from agents.orchestrator import OrchestratorAgent
 from agents.state import OrchestratorRequest
+from auth.router import router as auth_router
 from automations.models import AutomationDefinition, AutomationSchedule, AutomationStatus, AutomationType
 from automations.service import AutomationService
 from automations.temporal_worker import run_due_automations, temporal_worker_settings
 from compliance.enforcer import ComplianceEnforcer
+from compliance.soc2_export import SOC2ExportService
 from core.access_deps import get_actor_context, get_rbac_service, require_permission
 from core.config import settings
 from core.integrations_manager import IntegrationsManager
@@ -41,6 +43,7 @@ app.add_middleware(
 )
 
 app.include_router(intake_router, prefix="/api/v1")
+app.include_router(auth_router, prefix="/api/v1")
 
 
 class CreateProjectRequest(BaseModel):
@@ -138,6 +141,10 @@ def get_integrations_manager() -> IntegrationsManager:
 
 def get_compliance_enforcer() -> ComplianceEnforcer:
     return ComplianceEnforcer()
+
+
+def get_soc2_export_service() -> SOC2ExportService:
+    return SOC2ExportService(compliance=get_compliance_enforcer())
 
 
 def get_ingestion_pipeline() -> IngestionPipeline:
@@ -565,6 +572,8 @@ async def health():
         "deployment_mode": settings.DEPLOYMENT_MODE,
         "project_tier": settings.PROJECT_TIER,
         "rbac_enforce": settings.RBAC_ENFORCE,
+        "oidc_enabled": settings.OIDC_ENABLED,
+        "oidc_mock": settings.OIDC_MOCK,
         "storage": storage,
     }
 
@@ -599,6 +608,16 @@ async def compliance_audit(
     compliance: ComplianceEnforcer = Depends(get_compliance_enforcer),
 ):
     return {"project_id": project_id, "events": compliance.audit_events(project_id, limit)}
+
+
+@app.get("/api/v1/projects/{project_id}/compliance/export/soc2")
+async def compliance_export_soc2(
+    project_id: str,
+    limit: int = 500,
+    _: ActorContext = Depends(require_permission("compliance.export")),
+    exporter: SOC2ExportService = Depends(get_soc2_export_service),
+):
+    return exporter.export_project(project_id, limit=limit)
 
 
 @app.post("/api/v1/projects/{project_id}/graph/build")

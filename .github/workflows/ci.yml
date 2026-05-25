@@ -63,6 +63,18 @@ jobs:
       - name: Verify graph schema version docs
         run: python3 scripts/check_graph_schema_version.py
 
+  helm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Helm
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+      - name: Render Helm chart
+        run: helm template projectforge ./deploy/helm/projectforge > /tmp/projectforge.yaml
+
   frontend:
     runs-on: ubuntu-latest
 

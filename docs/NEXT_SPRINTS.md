@@ -1,6 +1,6 @@
 # ProjectForge AI — Roadmap
 
-Phases are ordered by dependency. Sprints 1–14 are **complete**. Phase 4 Sprint 15 is **complete**.
+Phases are ordered by dependency. Sprints 1–15 are **complete**. Phase 5 Sprint 16 is **complete**.
 
 ## Phase 4 — Domain expansion (complete)
 
@@ -15,7 +15,7 @@ Phases are ordered by dependency. Sprints 1–14 are **complete**. Phase 4 Sprin
 
 ## Phase 5 — Enterprise GA (active)
 
-### Sprint 16: Identity & deploy
+### Sprint 16: Identity & deploy (complete)
 
 - SSO/OIDC identity provider scaffolding
 - Kubernetes Helm chart (alongside Compose overlay)
@@ -31,9 +31,9 @@ Phases are ordered by dependency. Sprints 1–14 are **complete**. Phase 4 Sprin
 
 ## Immediate next actions
 
-1. SSO/OIDC scaffolding (Phase 5)
-2. Helm chart from on-prem Compose manifest
-3. Cross-project compliance rollup API
+1. Cross-project compliance rollup API
+2. Portfolio-level orchestrator runs
+3. Executive dashboard widgets
 4. Air-gapped update bundle workflow
 
 See [STATUS.md](STATUS.md) and [API.md](API.md).
