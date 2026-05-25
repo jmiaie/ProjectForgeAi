@@ -1,6 +1,6 @@
 # ProjectForge AI — Roadmap
 
-Phases are ordered by dependency. Sprints 1–15 are **complete**. Phase 5 Sprint 16 is **complete**.
+Phases are ordered by dependency. Sprints 1–16 are **complete**. Phase 5 Sprint 17 is **complete**.
 
 ## Phase 4 — Domain expansion (complete)
 
@@ -13,7 +13,7 @@ Phases are ordered by dependency. Sprints 1–15 are **complete**. Phase 5 Sprin
 
 ---
 
-## Phase 5 — Enterprise GA (active)
+## Phase 5 — Enterprise GA (complete)
 
 ### Sprint 16: Identity & deploy (complete)
 
@@ -21,7 +21,7 @@ Phases are ordered by dependency. Sprints 1–15 are **complete**. Phase 5 Sprin
 - Kubernetes Helm chart (alongside Compose overlay)
 - SOC 2 control mapping export starter
 
-### Sprint 17: Portfolio intelligence
+### Sprint 17: Portfolio intelligence (complete)
 
 - Cross-project risk/compliance rollups
 - Portfolio-level orchestrator runs
@@ -31,9 +31,8 @@ Phases are ordered by dependency. Sprints 1–15 are **complete**. Phase 5 Sprin
 
 ## Immediate next actions
 
-1. Cross-project compliance rollup API
-2. Portfolio-level orchestrator runs
-3. Executive dashboard widgets
-4. Air-gapped update bundle workflow
+1. Air-gapped update bundle workflow
+2. Production hardening pass (auth enforcement, ingress TLS defaults)
+3. End-to-end portfolio intelligence smoke in CI
 
 See [STATUS.md](STATUS.md) and [API.md](API.md).

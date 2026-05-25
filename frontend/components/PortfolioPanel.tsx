@@ -75,7 +75,7 @@ export function PortfolioPanel({ activeProjectId }: PortfolioPanelProps) {
         <div>
           <div className="eyebrow">Portfolio</div>
           <h2>Multi-project workspace</h2>
-          <p className="muted">Cross-project graph totals and quick project switching.</p>
+          <p className="muted">Cross-project graph totals, compliance rollups, and quick project switching.</p>
         </div>
         <Button variant="outline" onClick={refresh}>Refresh</Button>
       </div>

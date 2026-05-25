@@ -138,6 +138,38 @@ export type SOC2Export = {
   }>;
 };
 
+export type ExecutiveDashboard = {
+  generated_at: string;
+  widgets: {
+    portfolio_health: {
+      active_projects: number;
+      graphs_built: number;
+      total_nodes: number;
+      total_edges: number;
+    };
+    compliance_posture: {
+      by_category: Record<string, number>;
+      restricted_profiles: number;
+      denied_actions: number;
+      projects_with_gaps: number;
+    };
+    risk_summary: {
+      total_risks: number;
+      by_severity: Record<string, number>;
+      high_risk_projects: number;
+      top_projects: Array<{ project_id: string; name: string; risk_count: number }>;
+    };
+  };
+};
+
+export type PortfolioOrchestratorRun = {
+  portfolio_run_id: string;
+  goal: string;
+  status: string;
+  project_runs: Array<{ project_id: string; run_id: string; status: string; summary: string }>;
+  artifacts: Record<string, unknown>;
+};
+
 export async function apiGet<T>(path: string): Promise<T> {
   const response = await fetch(path, { cache: 'no-store', headers: actorHeaders() });
   if (!response.ok) {

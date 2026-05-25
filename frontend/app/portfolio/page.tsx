@@ -1,3 +1,4 @@
+import { ExecutiveDashboardPanel } from '@/components/ExecutiveDashboardPanel';
 import { PortfolioPanel } from '@/components/PortfolioPanel';
 import { ProjectSwitcher } from '@/components/ProjectSwitcher';
 import { apiGet, defaultProjectId } from '@/lib/api';
@@ -31,6 +32,7 @@ export default async function PortfolioPage({
               {summary.totals.edges} edges
             </p>
           ) : null}
+          <ExecutiveDashboardPanel />
           <PortfolioPanel activeProjectId={projectId} />
         </div>
       </div>

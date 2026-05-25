@@ -26,7 +26,9 @@ from graph.mutations import GraphMutationError, GraphMutationService
 from ingestion.intake_sources import snapshot_postgres_schema
 from ingestion.pipeline import IngestionPipeline
 from integrations.intake_form import router as intake_router
+from projects.portfolio_orchestrator import PortfolioOrchestratorService
 from projects.service import PortfolioService
+from projects.intelligence import PortfolioIntelligenceService
 from spatial.service import SpatialService
 from storage.status import get_storage_status
 from workbench.service import WorkbenchService
@@ -115,6 +117,12 @@ class SpatialAssetRequest(BaseModel):
     properties: dict = Field(default_factory=dict)
 
 
+class PortfolioOrchestratorRunRequest(BaseModel):
+    goal: str = "Review portfolio risk and compliance posture"
+    project_ids: list[str] = Field(default_factory=list)
+    requested_agents: list[str] = Field(default_factory=list)
+
+
 class CreateGraphNodeRequest(BaseModel):
     label: NodeLabel
     properties: dict = Field(default_factory=dict)
@@ -183,6 +191,16 @@ def get_portfolio_service() -> PortfolioService:
     return PortfolioService()
 
 
+def get_portfolio_intelligence_service() -> PortfolioIntelligenceService:
+    return PortfolioIntelligenceService()
+
+
+def get_portfolio_orchestrator_service(
+    orchestrator: OrchestratorAgent = Depends(get_orchestrator_agent),
+) -> PortfolioOrchestratorService:
+    return PortfolioOrchestratorService(orchestrator=orchestrator)
+
+
 def get_llm_key_store() -> LLMKeyStore:
     return LLMKeyStore()
 
@@ -209,6 +227,82 @@ async def portfolio_summary(
     portfolio: PortfolioService = Depends(get_portfolio_service),
 ):
     return portfolio.portfolio_summary(include_archived=include_archived)
+
+
+@app.get("/api/v1/portfolio/compliance/rollup")
+async def portfolio_compliance_rollup(
+    include_archived: bool = False,
+    intelligence: PortfolioIntelligenceService = Depends(get_portfolio_intelligence_service),
+):
+    return intelligence.compliance_rollup(include_archived=include_archived)
+
+
+@app.get("/api/v1/portfolio/risk/rollup")
+async def portfolio_risk_rollup(
+    include_archived: bool = False,
+    intelligence: PortfolioIntelligenceService = Depends(get_portfolio_intelligence_service),
+):
+    return intelligence.risk_rollup(include_archived=include_archived)
+
+
+@app.get("/api/v1/portfolio/intelligence/dashboard")
+async def portfolio_executive_dashboard(
+    include_archived: bool = False,
+    intelligence: PortfolioIntelligenceService = Depends(get_portfolio_intelligence_service),
+):
+    return intelligence.executive_dashboard(include_archived=include_archived)
+
+
+@app.post("/api/v1/portfolio/orchestrator/run")
+async def portfolio_orchestrator_run(
+    request: PortfolioOrchestratorRunRequest,
+    actor: ActorContext = Depends(get_actor_context),
+    rbac: RBACService = Depends(get_rbac_service),
+    portfolio: PortfolioService = Depends(get_portfolio_service),
+    portfolio_orchestrator: PortfolioOrchestratorService = Depends(get_portfolio_orchestrator_service),
+):
+    from fastapi import HTTPException
+
+    targets = request.project_ids
+    if not targets:
+        targets = [
+            project["project_id"]
+            for project in portfolio.list_projects(include_archived=False)["projects"]
+        ]
+    for project_id in targets:
+        try:
+            rbac.require(project_id, actor, "orchestrator.run")
+        except PermissionError as exc:
+            raise HTTPException(status_code=403, detail=str(exc)) from exc
+    try:
+        return await portfolio_orchestrator.run(
+            goal=request.goal,
+            project_ids=targets or None,
+            requested_agents=request.requested_agents or None,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/api/v1/portfolio/orchestrator/runs")
+async def portfolio_orchestrator_runs(
+    limit: int = 20,
+    portfolio_orchestrator: PortfolioOrchestratorService = Depends(get_portfolio_orchestrator_service),
+):
+    return portfolio_orchestrator.list_runs(limit)
+
+
+@app.get("/api/v1/portfolio/orchestrator/runs/{portfolio_run_id}")
+async def portfolio_orchestrator_run_detail(
+    portfolio_run_id: str,
+    portfolio_orchestrator: PortfolioOrchestratorService = Depends(get_portfolio_orchestrator_service),
+):
+    from fastapi import HTTPException
+
+    try:
+        return portfolio_orchestrator.get_run(portfolio_run_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @app.get("/api/v1/projects/{project_id}/record")

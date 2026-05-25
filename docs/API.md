@@ -19,6 +19,12 @@ Base URL: `http://localhost:8000` (or `BACKEND_BASE_URL`).
 | GET | `/api/v1/projects/{project_id}/record` | Project registry record |
 | POST | `/api/v1/projects/{project_id}/archive` | Archive project |
 | GET | `/api/v1/portfolio/summary` | Cross-project graph totals and summaries |
+| GET | `/api/v1/portfolio/compliance/rollup` | Cross-project compliance posture rollup |
+| GET | `/api/v1/portfolio/risk/rollup` | Cross-project Risk node rollup by severity |
+| GET | `/api/v1/portfolio/intelligence/dashboard` | Executive dashboard widgets |
+| POST | `/api/v1/portfolio/orchestrator/run` | Portfolio-level risk/compliance orchestrator run |
+| GET | `/api/v1/portfolio/orchestrator/runs` | Portfolio orchestrator run history |
+| GET | `/api/v1/portfolio/orchestrator/runs/{portfolio_run_id}` | Portfolio orchestrator run detail |
 
 ## Projects & ingestion
 

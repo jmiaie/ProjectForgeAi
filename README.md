@@ -25,7 +25,7 @@ PYTHONPATH=backend/app uvicorn main:app --reload --host 0.0.0.0 --port 8000
 cd frontend && npm install && npm run dev
 ```
 
-Tests: `PYTHONPATH=backend/app python3 -m unittest discover -s backend/app/tests` (118 tests)
+Tests: `PYTHONPATH=backend/app python3 -m unittest discover -s backend/app/tests` (125 tests)
 
 ## What ships today
 
@@ -35,7 +35,7 @@ Tests: `PYTHONPATH=backend/app python3 -m unittest discover -s backend/app/tests
 - **Compliance** — standard/HIPAA/legal/SOC2/GDPR profiles, redaction, audit trail
 - **Integrations** — OAuth PKCE (production credential gate), encrypted API keys, MCP HTTP/SSE/stdio discovery, webhook connector, connection health UI
 - **Enterprise** — RBAC scaffolding, upgrade manager, on-prem Compose overlay, Helm chart, SSO/OIDC, SOC 2 export
-- **Portfolio** — multi-project registry, cross-project summaries, project switcher UI
+- **Portfolio** — multi-project registry, cross-project summaries, compliance/risk rollups, executive dashboard, portfolio orchestrator
 - **Ingestion expansion** — IFC/DWG CAD stubs, codebase archives, PostgreSQL schema snapshots
 - **LLM billing** — flagship upsell routing, BYO keys, per-project usage metering
 - **RTK spatial** — geo-tagged assets, graph coordinate sync, map view UI
@@ -59,6 +59,8 @@ PROJECTFORGE_V14.md   Agent handoff brief (vision + conventions)
 | `USE_LANGGRAPH_ORCHESTRATOR` | `false` | LangGraph StateGraph execution |
 | `USE_LANGGRAPH_BRANCHING` | `true` | Conditional specialist routing after intake |
 | `RBAC_ENFORCE` | `false` | Enforce project role permissions |
+| `OIDC_ENABLED` | `false` | Enable SSO/OIDC authentication |
+| `OIDC_MOCK` | `true` | Mock SSO login for development |
 | `PROJECT_TIER` | `starter` | Feature tier (`starter`, `pro`, `enterprise`) |
 | `FLAGSHIP_LLM_MODEL` | `anthropic/claude-3-5-sonnet-20241022` | Flagship model for pro+ routing |
 | `OAUTH_MOCK_TOKEN_EXCHANGE` | `true` | Mock OAuth tokens in dev |
@@ -94,5 +96,6 @@ main
                                          └── cursor/sprint13-ingestion-ebb0
                                               └── cursor/sprint14-llm-billing-ebb0
                                                    └── cursor/sprint15-rtk-spatial-ebb0
-                                                        └── cursor/sprint16-identity-deploy-ebb0   ← active
+                                                        └── cursor/sprint16-identity-deploy-ebb0
+                                                             └── cursor/sprint17-portfolio-intelligence-ebb0   ← active
 ```
