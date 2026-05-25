@@ -5,7 +5,9 @@ import { ConnectionsPanel } from '@/components/ConnectionsPanel';
 import { GraphPanel } from '@/components/GraphPanel';
 import { IngestionPanel } from '@/components/IngestionPanel';
 import { OrchestratorPanel } from '@/components/OrchestratorPanel';
+import { PortfolioPanel } from '@/components/PortfolioPanel';
 import { ProjectSummaryCards } from '@/components/ProjectSummaryCards';
+import { ProjectSwitcher } from '@/components/ProjectSwitcher';
 import { WorkbenchPanel } from '@/components/WorkbenchPanel';
 import {
   apiGet,
@@ -51,12 +53,11 @@ export default async function Home({
               Ingest documents, build a living graph, run specialist agents, and keep controls auditable.
             </p>
           </div>
-          <form>
-            <input className="input" name="projectId" defaultValue={projectId} aria-label="Project ID" />
-          </form>
+          <ProjectSwitcher activeProjectId={projectId} />
         </header>
 
         <div className="stack">
+          <PortfolioPanel activeProjectId={projectId} />
           <ProjectSummaryCards
             health={health}
             graph={graph}

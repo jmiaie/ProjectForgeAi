@@ -13,6 +13,8 @@ __pycache__/
 .audit/
 .connections/
 .automations/
+.projects/
+.rbac/
 vaults/
 node_modules/
 .next/

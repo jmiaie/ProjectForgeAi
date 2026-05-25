@@ -9,6 +9,17 @@ Base URL: `http://localhost:8000` (or `BACKEND_BASE_URL`).
 | GET | `/health` | Service health, LLM default, native Locus/OMPA status |
 | GET | `/api/v1/storage/{project_id}/status` | Per-project storage backends |
 
+## Projects & portfolio
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/v1/projects` | List active projects (optional `include_archived`) |
+| POST | `/api/v1/projects/register` | Create project with name, compliance, tier |
+| POST | `/api/v1/projects/` | Create project and run starter ingestion/graph build |
+| GET | `/api/v1/projects/{project_id}/record` | Project registry record |
+| POST | `/api/v1/projects/{project_id}/archive` | Archive project |
+| GET | `/api/v1/portfolio/summary` | Cross-project graph totals and summaries |
+
 ## Projects & ingestion
 
 | Method | Path | Description |

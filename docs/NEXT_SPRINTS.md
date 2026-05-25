@@ -15,14 +15,6 @@ Phases are ordered by dependency. Sprints 1–10 are **complete**.
 
 ## Phase 4 — Domain expansion (active)
 
-### Sprint 12: Multi-project portfolio
-
-- Project registry (create/list/archive projects)
-- Portfolio dashboard with cross-project graph summaries
-- Per-project tier and compliance defaults on create
-
-### Sprint 13: Ingestion expansion
-
 - CAD/BIM adapter stubs (IFC, DWG metadata)
 - Codebase ingestion (git archive / folder upload)
 - Database connector intake (PostgreSQL read-only schema snapshot)
@@ -51,9 +43,9 @@ Phases are ordered by dependency. Sprints 1–10 are **complete**.
 
 ## Immediate next actions
 
-1. Project registry API + multi-project frontend switcher
-2. CAD/BIM ingestion adapter stub
-3. BYO LLM key storage and UI
+1. CAD/BIM ingestion adapter stub (Sprint 13)
+2. Codebase folder upload ingestion
+3. BYO LLM key storage and UI (Sprint 14)
 4. Helm chart from on-prem Compose manifest
 
 See [STATUS.md](STATUS.md) and [API.md](API.md).

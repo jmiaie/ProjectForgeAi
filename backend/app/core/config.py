@@ -55,6 +55,8 @@ class Settings(BaseSettings):
     RBAC_DEFAULT_ROLE: str = "owner"
     RBAC_MEMBERSHIP_ROOT: str = "./.rbac"
     PROJECT_TIER: str = "starter"
+    PROJECT_REGISTRY_ROOT: str = "./.projects"
+    DEFAULT_PROJECT_ID: str = "proj_123"
     IMAGE_OCR_ENABLED: bool = True
     IMAGE_OCR_TIMEOUT_SECONDS: int = 30
     TESSERACT_CMD: str | None = None

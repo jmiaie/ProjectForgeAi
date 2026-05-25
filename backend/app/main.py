@@ -20,6 +20,7 @@ from graph.models import EdgeType, NodeLabel
 from graph.mutations import GraphMutationError, GraphMutationService
 from ingestion.pipeline import IngestionPipeline
 from integrations.intake_form import router as intake_router
+from projects.service import PortfolioService
 from storage.status import get_storage_status
 from workbench.service import WorkbenchService
 
@@ -38,8 +39,16 @@ app.include_router(intake_router, prefix="/api/v1")
 
 
 class CreateProjectRequest(BaseModel):
+    name: str = "Starter Project"
     files: list[str] = Field(default_factory=list)
     compliance: str = "standard"
+    tier: str | None = None
+
+
+class RegisterProjectRequest(BaseModel):
+    name: str = Field(..., min_length=1)
+    compliance: str = "standard"
+    tier: str | None = None
 
 
 class SetComplianceProfileRequest(BaseModel):
@@ -138,6 +147,76 @@ def get_upgrade_manager() -> UpgradeManager:
     return UpgradeManager()
 
 
+def get_portfolio_service() -> PortfolioService:
+    return PortfolioService()
+
+
+@app.get("/api/v1/projects")
+async def list_projects(
+    include_archived: bool = False,
+    portfolio: PortfolioService = Depends(get_portfolio_service),
+):
+    return portfolio.list_projects(include_archived=include_archived)
+
+
+@app.get("/api/v1/portfolio/summary")
+async def portfolio_summary(
+    include_archived: bool = False,
+    portfolio: PortfolioService = Depends(get_portfolio_service),
+):
+    return portfolio.portfolio_summary(include_archived=include_archived)
+
+
+@app.get("/api/v1/projects/{project_id}/record")
+async def get_project_record(
+    project_id: str,
+    portfolio: PortfolioService = Depends(get_portfolio_service),
+):
+    try:
+        return portfolio.get_project(project_id)
+    except ValueError as exc:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.post("/api/v1/projects/register")
+async def register_project(
+    request: RegisterProjectRequest,
+    actor: ActorContext = Depends(get_actor_context),
+    rbac: RBACService = Depends(get_rbac_service),
+    portfolio: PortfolioService = Depends(get_portfolio_service),
+):
+    try:
+        rbac.require(settings.DEFAULT_PROJECT_ID, actor, "access.manage")
+    except PermissionError as exc:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+
+    record = portfolio.create_project(
+        name=request.name,
+        compliance=request.compliance,
+        tier=request.tier,
+    )
+    return {"status": "created", "project": record.as_dict()}
+
+
+@app.post("/api/v1/projects/{project_id}/archive")
+async def archive_project(
+    project_id: str,
+    _: ActorContext = Depends(require_permission("access.manage")),
+    portfolio: PortfolioService = Depends(get_portfolio_service),
+):
+    try:
+        record = portfolio.archive_project(project_id)
+    except ValueError as exc:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return {"status": "archived", "project": record.as_dict()}
+
+
 @app.get("/api/v1/projects/{project_id}/access/members")
 async def list_project_members(
     project_id: str,
@@ -227,14 +306,21 @@ async def create_project(
     integrations_manager: IntegrationsManager = Depends(get_integrations_manager),
     ingestion: IngestionPipeline = Depends(get_ingestion_pipeline),
     graph_builder: ProjectGraphBuilder = Depends(get_graph_builder),
+    portfolio: PortfolioService = Depends(get_portfolio_service),
 ):
-    project_id = "proj_123"
-    compliance.set_profile(project_id, request.compliance)
+    record = portfolio.create_project(
+        name=request.name,
+        compliance=request.compliance,
+        tier=request.tier,
+    )
+    project_id = record.project_id
     await integrations_manager.get_recommended_connectors(compliance=request.compliance)
     ingestion_result = await ingestion.process_files(project_id, request.files)
     graph_result = graph_builder.build_from_latest_manifest(project_id)
+    portfolio.registry.touch(project_id)
     return {
         "project_id": project_id,
+        "project": record.as_dict(),
         "status": "orchestrated",
         "message": "ProjectForge AI is live!",
         "ingestion": ingestion_result,
@@ -246,18 +332,42 @@ async def create_project(
 async def create_project_from_uploads(
     files: list[UploadFile] = File(default_factory=list),
     compliance: str = Form(default="standard"),
-    project_id: str = Form(default="proj_123"),
+    project_id: str = Form(default=""),
+    name: str = Form(default="Uploaded project"),
+    tier: str = Form(default=""),
     compliance_enforcer: ComplianceEnforcer = Depends(get_compliance_enforcer),
     integrations_manager: IntegrationsManager = Depends(get_integrations_manager),
     ingestion: IngestionPipeline = Depends(get_ingestion_pipeline),
     graph_builder: ProjectGraphBuilder = Depends(get_graph_builder),
+    portfolio: PortfolioService = Depends(get_portfolio_service),
 ):
-    compliance_enforcer.set_profile(project_id, compliance)
+    if project_id:
+        record = portfolio.registry.get(project_id)
+        if record is None:
+            record = portfolio.registry.create(
+                name=name,
+                compliance=compliance,
+                tier=tier or None,
+                project_id=project_id,
+            )
+            compliance_enforcer.set_profile(project_id, compliance)
+        else:
+            compliance_enforcer.set_profile(project_id, record.compliance)
+    else:
+        record = portfolio.create_project(
+            name=name,
+            compliance=compliance,
+            tier=tier or None,
+        )
+        project_id = record.project_id
+
     await integrations_manager.get_recommended_connectors(compliance=compliance)
     ingestion_result = await ingestion.process_files(project_id, files)
     graph_result = graph_builder.build_from_latest_manifest(project_id)
+    portfolio.registry.touch(project_id)
     return {
         "project_id": project_id,
+        "project": record.as_dict(),
         "status": "orchestrated",
         "message": "ProjectForge AI uploaded project documents.",
         "ingestion": ingestion_result,
