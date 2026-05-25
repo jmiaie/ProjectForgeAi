@@ -5,6 +5,7 @@ import { ConnectionsPanel } from '@/components/ConnectionsPanel';
 import { GraphPanel } from '@/components/GraphPanel';
 import { IngestionPanel } from '@/components/IngestionPanel';
 import { LLMPanel } from '@/components/LLMPanel';
+import { MapPanel } from '@/components/MapPanel';
 import { OrchestratorPanel } from '@/components/OrchestratorPanel';
 import { PortfolioPanel } from '@/components/PortfolioPanel';
 import { ProjectSummaryCards } from '@/components/ProjectSummaryCards';
@@ -75,6 +76,7 @@ export default async function Home({
           </div>
           <AccessPanel projectId={projectId} />
           <LLMPanel projectId={projectId} />
+          <MapPanel projectId={projectId} />
           <WorkbenchPanel projectId={projectId} />
           <ConnectionsPanel projectId={projectId} initialConnections={connections?.connections ?? []} />
           <AutomationsPanel projectId={projectId} initialAutomations={automations?.automations ?? []} />

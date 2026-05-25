@@ -25,6 +25,7 @@ from ingestion.intake_sources import snapshot_postgres_schema
 from ingestion.pipeline import IngestionPipeline
 from integrations.intake_form import router as intake_router
 from projects.service import PortfolioService
+from spatial.service import SpatialService
 from storage.status import get_storage_status
 from workbench.service import WorkbenchService
 
@@ -101,6 +102,16 @@ class LLMKeyRequest(BaseModel):
     api_key: str
 
 
+class SpatialAssetRequest(BaseModel):
+    name: str
+    latitude: float
+    longitude: float
+    altitude: float | None = None
+    asset_type: str = "site"
+    graph_node_id: str | None = None
+    properties: dict = Field(default_factory=dict)
+
+
 class CreateGraphNodeRequest(BaseModel):
     label: NodeLabel
     properties: dict = Field(default_factory=dict)
@@ -171,6 +182,10 @@ def get_llm_key_store() -> LLMKeyStore:
 
 def get_llm_usage_meter() -> LLMUsageMeter:
     return LLMUsageMeter()
+
+
+def get_spatial_service() -> SpatialService:
+    return SpatialService()
 
 
 @app.get("/api/v1/projects")
@@ -483,6 +498,62 @@ async def llm_usage_summary(
     usage_meter: LLMUsageMeter = Depends(get_llm_usage_meter),
 ):
     return usage_meter.summary(project_id, limit)
+
+
+@app.get("/api/v1/projects/{project_id}/spatial/assets")
+async def list_spatial_assets(
+    project_id: str,
+    _: ActorContext = Depends(require_permission("project.read")),
+    spatial: SpatialService = Depends(get_spatial_service),
+):
+    return spatial.list_assets(project_id)
+
+
+@app.post("/api/v1/projects/{project_id}/spatial/assets")
+async def register_spatial_asset(
+    project_id: str,
+    request: SpatialAssetRequest,
+    _: ActorContext = Depends(require_permission("graph.write")),
+    spatial: SpatialService = Depends(get_spatial_service),
+):
+    asset = spatial.register_asset(
+        project_id,
+        name=request.name,
+        latitude=request.latitude,
+        longitude=request.longitude,
+        altitude=request.altitude,
+        asset_type=request.asset_type,
+        graph_node_id=request.graph_node_id,
+        properties=request.properties,
+    )
+    return {"project_id": project_id, "asset": asset.as_dict()}
+
+
+@app.post("/api/v1/projects/{project_id}/spatial/sync-graph")
+async def sync_spatial_from_graph(
+    project_id: str,
+    _: ActorContext = Depends(require_permission("graph.write")),
+    spatial: SpatialService = Depends(get_spatial_service),
+):
+    return spatial.sync_from_graph(project_id)
+
+
+@app.get("/api/v1/projects/{project_id}/spatial/map")
+async def spatial_map_view(
+    project_id: str,
+    _: ActorContext = Depends(require_permission("project.read")),
+    spatial: SpatialService = Depends(get_spatial_service),
+):
+    return spatial.map_view(project_id)
+
+
+@app.get("/api/v1/projects/{project_id}/spatial/status")
+async def spatial_rtk_status(
+    project_id: str,
+    _: ActorContext = Depends(require_permission("project.read")),
+    spatial: SpatialService = Depends(get_spatial_service),
+):
+    return spatial.rtk_status(project_id)
 
 
 @app.get("/health")

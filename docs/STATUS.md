@@ -1,21 +1,21 @@
 # ProjectForge AI v14 — Status
 
-Last updated: Sprint 14 complete on branch `cursor/sprint14-llm-billing-ebb0`.
+Last updated: Sprint 15 complete on branch `cursor/sprint15-rtk-spatial-ebb0`.
 
 ## Verification
 
 ```bash
-PYTHONPATH=backend/app python3 -m unittest discover -s backend/app/tests   # 107 tests
+PYTHONPATH=backend/app python3 -m unittest discover -s backend/app/tests   # 112 tests
 python3 scripts/check_graph_schema_version.py
 cd frontend && npm run typecheck
 ```
 
-## New in Sprint 14
+## New in Sprint 15
 
-- **Flagship routing** — pro+ tiers auto-route reasoning/extraction to flagship model; starter gets upsell hint
-- **BYO keys** — encrypted per-project provider keys via `/llm/keys` API
-- **Usage metering** — token/call tracking per project at `/llm/usage`
-- **LLMPanel** — routing preview, usage stats, key management UI
+- **RTK spatial layer** — geo-tagged asset store wired through `RTKAdapter`
+- **Graph sync** — index nodes with `latitude`/`longitude` (or `lat`/`lon`) properties
+- **Map API** — bounds + markers for frontend map view
+- **MapPanel** — construction-oriented site map with add/sync controls
 
 ## Backend modules
 

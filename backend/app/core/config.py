@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     FLAGSHIP_LLM_MODEL: str = "anthropic/claude-3-5-sonnet-20241022"
     LLM_KEY_ROOT: str = "./.llm-keys"
     LLM_USAGE_ROOT: str = "./.llm-usage"
+    SPATIAL_ASSET_ROOT: str = "./.spatial"
     NEO4J_URI: str = "bolt://neo4j:7687"
     NEO4J_USER: str = "neo4j"
     NEO4J_PASSWORD: str = "projectforge-password"

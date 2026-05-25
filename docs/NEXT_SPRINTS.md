@@ -1,44 +1,39 @@
 # ProjectForge AI — Roadmap
 
-Phases are ordered by dependency. Sprints 1–13 are **complete**.
+Phases are ordered by dependency. Sprints 1–14 are **complete**. Phase 4 Sprint 15 is **complete**.
 
-## Phase 4 — Domain expansion (active)
+## Phase 4 — Domain expansion (complete)
 
-### Sprint 12: Multi-project portfolio — Done
-
-- Project registry, portfolio summary API, project switcher UI — **Done**
-
-### Sprint 13: Ingestion expansion — Done
-
-- CAD/BIM stubs, codebase archives, PostgreSQL schema intake — **Done**
-
-### Sprint 14: LLM & billing — Done
-
-- Flagship model upsell routing in LLMRouter — **Done**
-- BYO API key storage and management UI — **Done**
-- Per-project LLM usage metering — **Done**
-
-### Sprint 15: RTK spatial layer — Next
-
-- RTK adapter wiring for geo-tagged project assets
-- Map view in frontend for construction anchor workflows
+| Sprint | Scope | Status |
+|--------|-------|--------|
+| 12 Portfolio | Project registry, switcher, cross-project summaries | Done |
+| 13 Ingestion | CAD/BIM stubs, codebase archives, PostgreSQL schema | Done |
+| 14 LLM & billing | Flagship routing, BYO keys, usage metering | Done |
+| 15 RTK spatial | Geo assets, graph sync, map view | Done |
 
 ---
 
-## Phase 5 — Enterprise GA (planned)
+## Phase 5 — Enterprise GA (active)
 
-- Full RBAC with SSO/OIDC identity provider
-- SOC 2 control mapping export
+### Sprint 16: Identity & deploy
+
+- SSO/OIDC identity provider scaffolding
 - Kubernetes Helm chart (alongside Compose overlay)
-- Air-gapped update bundle workflow
+- SOC 2 control mapping export starter
+
+### Sprint 17: Portfolio intelligence
+
+- Cross-project risk/compliance rollups
+- Portfolio-level orchestrator runs
+- Executive dashboard widgets
 
 ---
 
 ## Immediate next actions
 
-1. RTK spatial adapter stub (Sprint 15)
-2. Map view for geo-tagged graph nodes
-3. Helm chart from on-prem Compose manifest
-4. SSO/OIDC identity provider scaffolding
+1. SSO/OIDC scaffolding (Phase 5)
+2. Helm chart from on-prem Compose manifest
+3. Cross-project compliance rollup API
+4. Air-gapped update bundle workflow
 
 See [STATUS.md](STATUS.md) and [API.md](API.md).

@@ -33,6 +33,7 @@ backend/app/
 ├── integrations/    registry, intake_form, oauth_state_store, connectors (oauth, mcp)
 ├── automations/     service, store, scheduling, temporal_worker/workflows/activities
 ├── workbench/       Locus + graph query service
+├── spatial/           geo asset store and map service
 ├── storage/         locus_adapter, ompa_adapter, rtk_adapter, native_loader
 └── core/            config, llm_router, integrations_manager
 ```

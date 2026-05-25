@@ -17,6 +17,7 @@ __pycache__/
 .rbac/
 .llm-keys/
 .llm-usage/
+.spatial/
 vaults/
 node_modules/
 .next/
