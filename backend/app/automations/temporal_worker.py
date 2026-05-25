@@ -19,6 +19,7 @@ def temporal_worker_settings() -> dict:
         "namespace": settings.TEMPORAL_NAMESPACE,
         "task_queue": settings.TEMPORAL_TASK_QUEUE,
         "use_worker_dispatch": settings.TEMPORAL_USE_WORKER_DISPATCH,
+        "sync_schedules": settings.TEMPORAL_SYNC_SCHEDULES,
         "status": "configured",
     }
 

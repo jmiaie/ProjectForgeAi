@@ -46,7 +46,12 @@ def parse_email(
                 }
             )
             if payload:
-                parsed_attachment = parse_attachment(part_filename, payload, parent_source=source_name)
+                parsed_attachment = parse_attachment(
+                    part_filename,
+                    payload,
+                    parent_source=source_name,
+                    depth=0,
+                )
                 if parsed_attachment is not None:
                     attachment_chunks.extend(parsed_attachment.chunks)
                     warnings.extend(parsed_attachment.warnings)

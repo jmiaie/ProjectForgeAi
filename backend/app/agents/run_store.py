@@ -22,6 +22,16 @@ class OrchestratorRunStore:
         latest_path.write_text(json.dumps(payload, indent=2, sort_keys=True))
         return payload
 
+    def write_checkpoint(self, run: OrchestratorRun) -> dict:
+        project_dir = self.root / run.project_id
+        checkpoint_dir = project_dir / "checkpoints" / run.run_id
+        os.makedirs(checkpoint_dir, exist_ok=True)
+        payload = run.model_dump(mode="json")
+        step_index = len(run.steps)
+        checkpoint_path = checkpoint_dir / f"step_{step_index:02d}.json"
+        checkpoint_path.write_text(json.dumps(payload, indent=2, sort_keys=True))
+        return self.write(run)
+
     def read(self, project_id: str, run_id: str | None = None) -> dict | None:
         project_dir = self.root / project_id
         path = project_dir / f"{run_id}.json" if run_id else project_dir / "latest.json"
@@ -30,3 +40,24 @@ class OrchestratorRunStore:
         payload = json.loads(path.read_text())
         payload["path"] = str(path)
         return payload
+
+    def list_runs(self, project_id: str, limit: int = 20) -> list[dict]:
+        project_dir = self.root / project_id
+        if not project_dir.exists():
+            return []
+        runs = []
+        for path in sorted(project_dir.glob("run_*.json"), reverse=True):
+            payload = json.loads(path.read_text())
+            runs.append(
+                {
+                    "run_id": payload.get("run_id"),
+                    "status": payload.get("status"),
+                    "goal": payload.get("goal"),
+                    "created_at": payload.get("created_at"),
+                    "completed_at": payload.get("completed_at"),
+                    "step_count": len(payload.get("steps", [])),
+                }
+            )
+            if len(runs) >= limit:
+                break
+        return runs

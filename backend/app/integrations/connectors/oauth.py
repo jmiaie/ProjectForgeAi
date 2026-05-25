@@ -1,27 +1,45 @@
+import base64
+import hashlib
 import secrets
 from urllib.parse import urlencode
 
+import httpx
+
 from core.config import settings
+from integrations.oauth_state_store import OAuthStateStore
 
 
 class OAuthConnector:
     def __init__(self, name: str, config: dict):
         self.name = name
         self.config = config
+        self.state_store = OAuthStateStore()
 
     def start(self, project_id: str | None = None, redirect_uri: str | None = None) -> dict:
         state = secrets.token_urlsafe(24)
+        code_verifier = secrets.token_urlsafe(48)
+        code_challenge = _pkce_challenge(code_verifier)
         scopes = self.config.get("scopes", [])
         callback_uri = redirect_uri or f"{settings.BACKEND_BASE_URL}/api/v1/intake/oauth/{self.name}/callback"
+        client_id = _client_id(self.name)
         params = {
-            "client_id": f"{self.name}_client_id_placeholder",
+            "client_id": client_id,
             "redirect_uri": callback_uri,
             "response_type": "code",
             "scope": " ".join(scopes),
             "state": state,
+            "code_challenge": code_challenge,
+            "code_challenge_method": "S256",
             "access_type": "offline",
             "prompt": "consent",
         }
+        self.state_store.create(
+            state=state,
+            connector_type=self.name,
+            code_verifier=code_verifier,
+            project_id=project_id,
+            redirect_uri=callback_uri,
+        )
         return {
             "connector": self.name,
             "type": "oauth",
@@ -30,19 +48,36 @@ class OAuthConnector:
             "authorization_url": f"{self._authorize_url()}?{urlencode(params)}",
             "redirect_uri": callback_uri,
             "scopes": scopes,
+            "pkce": True,
         }
 
     async def authenticate(self, auth_data: dict):
         code = auth_data.get("code")
         if not code:
             raise ValueError(f"{self.name} requires OAuth code")
+
+        state_payload = self.state_store.consume(auth_data.get("state"))
+        if state_payload is None and not settings.OAUTH_ALLOW_UNVERIFIED_STATE:
+            raise ValueError("OAuth state is missing, expired, or invalid")
+
+        redirect_uri = state_payload["redirect_uri"] if state_payload else auth_data.get("redirect_uri")
+        code_verifier = state_payload["code_verifier"] if state_payload else auth_data.get("code_verifier")
+        token_payload = await _exchange_token(
+            provider=self.config.get("provider", self.name),
+            code=code,
+            redirect_uri=redirect_uri,
+            code_verifier=code_verifier,
+            connector_name=self.name,
+        )
         return {
             "id": f"oauth_{self.name}",
             "provider": self.config.get("provider", self.name),
-            "access_token": f"placeholder_access_{code}",
-            "refresh_token": auth_data.get("refresh_token"),
+            "access_token": token_payload["access_token"],
+            "refresh_token": token_payload.get("refresh_token"),
             "scopes": self.config.get("scopes", []),
             "account": auth_data.get("account"),
+            "token_type": token_payload.get("token_type", "Bearer"),
+            "expires_in": token_payload.get("expires_in"),
         }
 
     async def health(self, connection: dict | None = None) -> dict:
@@ -88,3 +123,78 @@ class APIKeyConnector:
             "status": "connected" if connection else "not_connected",
             "checks": {"api_key_present": bool(connection and connection.get("api_key"))},
         }
+
+
+def _pkce_challenge(code_verifier: str) -> str:
+    digest = hashlib.sha256(code_verifier.encode()).digest()
+    return base64.urlsafe_b64encode(digest).rstrip(b"=").decode()
+
+
+def _client_id(connector_name: str) -> str:
+    mapping = {
+        "google": settings.GOOGLE_OAUTH_CLIENT_ID,
+        "microsoft": settings.MICROSOFT_OAUTH_CLIENT_ID,
+        "github": settings.GITHUB_OAUTH_CLIENT_ID,
+        "slack": settings.SLACK_OAUTH_CLIENT_ID,
+    }
+    return mapping.get(connector_name) or f"{connector_name}_client_id_placeholder"
+
+
+def _client_secret(connector_name: str) -> str | None:
+    mapping = {
+        "google": settings.GOOGLE_OAUTH_CLIENT_SECRET,
+        "microsoft": settings.MICROSOFT_OAUTH_CLIENT_SECRET,
+        "github": settings.GITHUB_OAUTH_CLIENT_SECRET,
+        "slack": settings.SLACK_OAUTH_CLIENT_SECRET,
+    }
+    return mapping.get(connector_name)
+
+
+def _token_url(provider: str) -> str:
+    if provider == "google":
+        return "https://oauth2.googleapis.com/token"
+    if provider == "microsoft":
+        return "https://login.microsoftonline.com/common/oauth2/v2.0/token"
+    if provider == "github":
+        return "https://github.com/login/oauth/access_token"
+    if provider == "slack":
+        return "https://slack.com/api/oauth.v2.access"
+    return f"https://{provider}.example.com/oauth/token"
+
+
+async def _exchange_token(
+    *,
+    provider: str,
+    code: str,
+    redirect_uri: str | None,
+    code_verifier: str | None,
+    connector_name: str,
+) -> dict:
+    client_id = _client_id(connector_name)
+    client_secret = _client_secret(connector_name)
+    if settings.OAUTH_MOCK_TOKEN_EXCHANGE or not client_secret or client_id.endswith("_placeholder"):
+        return {
+            "access_token": f"mock_access_{code[:12]}",
+            "refresh_token": f"mock_refresh_{code[:12]}",
+            "token_type": "Bearer",
+            "expires_in": 3600,
+        }
+
+    data = {
+        "grant_type": "authorization_code",
+        "code": code,
+        "redirect_uri": redirect_uri,
+        "client_id": client_id,
+        "client_secret": client_secret,
+    }
+    if code_verifier:
+        data["code_verifier"] = code_verifier
+
+    headers = {"Accept": "application/json"}
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        response = await client.post(_token_url(provider), data=data, headers=headers)
+        response.raise_for_status()
+        payload = response.json()
+        if "access_token" not in payload:
+            raise ValueError(f"{connector_name} token exchange did not return access_token")
+        return payload

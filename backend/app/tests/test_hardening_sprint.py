@@ -12,7 +12,7 @@ from automations.models import AutomationDefinition, AutomationSchedule, Automat
 from automations.temporal_schedules import schedule_id_for
 from core.config import settings
 from graph.adapter import InMemoryGraphStore
-from graph.bootstrap import CONSTRAINTS, INDEXES
+from graph.bootstrap import MIGRATIONS, SCHEMA_VERSION
 from graph.builder import ProjectGraphBuilder
 from graph.models import EdgeType, NodeLabel
 from graph.mutations import GraphMutationService
@@ -139,8 +139,8 @@ class OfficeStructureTests(unittest.TestCase):
 
 class Neo4jBootstrapTests(unittest.TestCase):
     def test_bootstrap_statements_defined(self):
-        self.assertTrue(CONSTRAINTS)
-        self.assertTrue(INDEXES)
+        self.assertGreater(SCHEMA_VERSION, 0)
+        self.assertTrue(MIGRATIONS)
 
     def test_adapter_bootstrap_skips_without_driver(self):
         from graph.adapter import Neo4jGraphAdapter

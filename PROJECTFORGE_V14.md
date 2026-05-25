@@ -462,7 +462,7 @@ Ingestion manifests project into a starter graph:
 
 ### Orchestrator Agent
 
-The starter orchestrator runs specialist steps against graph, Locus, OMPA, and integration tool context:
+The starter orchestrator runs specialist steps against graph, Locus, OMPA, and integration tool context with per-step checkpoints:
 
 - Intake analyst
 - Scheduler
@@ -474,6 +474,7 @@ Endpoints:
 
 - `POST /api/v1/orchestrator/run`
 - `GET /api/v1/projects/{project_id}/orchestrator/status`
+- `GET /api/v1/projects/{project_id}/orchestrator/runs`
 
 ### Compliance Enforcement
 
@@ -495,11 +496,11 @@ Endpoints:
 
 The Intake/Connections layer manages real connection records:
 
-- OAuth start/callback scaffolding
+- OAuth PKCE start/callback with state store and token exchange (mock or real)
 - Encrypted token/API-key storage
-- Connection listing, status, and health checks
-- MCP server tool discovery stubs
+- Connection listing, status, health checks, and MCP HTTP tool discovery
 - Compliance-gated external writes
+- Frontend live health cards and MCP tool listing
 
 Endpoints:
 
@@ -538,7 +539,7 @@ Automation workflows are persisted locally and executed through a real Temporal 
 - Recurring reports backed by orchestrator runs
 - Integration sync jobs with compliance checks
 - Human approval gates
-- Run history, retry scheduling, and dead-letter queue
+- Run history, retry scheduling, dead-letter queue, schedule evaluation, and optional Temporal Schedule sync
 - Temporal worker, workflows, activities, and docker-compose services
 - Local fallback dispatch when Temporal is unavailable
 

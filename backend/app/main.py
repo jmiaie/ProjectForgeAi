@@ -358,6 +358,15 @@ async def orchestrator_status(
     return orchestrator.status(project_id, run_id)
 
 
+@app.get("/api/v1/projects/{project_id}/orchestrator/runs")
+async def orchestrator_runs(
+    project_id: str,
+    limit: int = 20,
+    orchestrator: OrchestratorAgent = Depends(get_orchestrator_agent),
+):
+    return orchestrator.list_runs(project_id, limit)
+
+
 @app.post("/api/v1/projects/{project_id}/automations")
 async def create_automation(
     project_id: str,

@@ -113,6 +113,7 @@ export function GraphFlowViewer({ projectId, refreshKey = 0, onGraphChanged }: G
   const [editSequence, setEditSequence] = useState('');
   const [editSeverity, setEditSeverity] = useState('');
   const [linkTargetId, setLinkTargetId] = useState('');
+  const [linkType, setLinkType] = useState<'DEPENDS_ON' | 'RELATES_TO'>('DEPENDS_ON');
   const [message, setMessage] = useState('Loading graph...');
   const [saving, setSaving] = useState(false);
 
@@ -219,9 +220,9 @@ export function GraphFlowViewer({ projectId, refreshKey = 0, onGraphChanged }: G
       await apiPost(`/api/v1/projects/${projectId}/graph/edges`, {
         source_id: selectedNode.id,
         target_id: linkTargetId,
-        type: 'DEPENDS_ON',
+        type: linkType,
       });
-      setMessage(`Linked ${selectedNode.label} to dependency target.`);
+      setMessage(`Linked ${selectedNode.label} with ${linkType.replaceAll('_', ' ').toLowerCase()}.`);
       onGraphChanged?.();
       await loadGraph();
     } catch (error) {
@@ -283,17 +284,26 @@ export function GraphFlowViewer({ projectId, refreshKey = 0, onGraphChanged }: G
                 </label>
               ) : null}
               {linkable ? (
-                <label className="field">
-                  <span>Depends on</span>
-                  <select value={linkTargetId} onChange={(event) => setLinkTargetId(event.target.value)}>
-                    <option value="">Select target node</option>
-                    {linkTargets.map((node) => (
-                      <option key={node.id} value={node.id}>
-                        {node.label}: {String(node.properties.name ?? node.id)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <>
+                  <label className="field">
+                    <span>Link type</span>
+                    <select value={linkType} onChange={(event) => setLinkType(event.target.value as 'DEPENDS_ON' | 'RELATES_TO')}>
+                      <option value="DEPENDS_ON">Depends on</option>
+                      <option value="RELATES_TO">Relates to</option>
+                    </select>
+                  </label>
+                  <label className="field">
+                    <span>Target node</span>
+                    <select value={linkTargetId} onChange={(event) => setLinkTargetId(event.target.value)}>
+                      <option value="">Select target node</option>
+                      {linkTargets.map((node) => (
+                        <option key={node.id} value={node.id}>
+                          {node.label}: {String(node.properties.name ?? node.id)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </>
               ) : null}
               <div className="button-row">
                 <Button disabled={saving || !editName.trim()} onClick={saveNode}>Save</Button>

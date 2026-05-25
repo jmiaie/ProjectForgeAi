@@ -37,8 +37,11 @@ class IntakeApiTests(unittest.TestCase):
         )
         self.assertEqual(start.status_code, 200)
         self.assertIn("authorization_url", start.json())
+        state = start.json()["state"]
 
-        callback = client.get("/api/v1/intake/oauth/google/callback?code=abc&project_id=api-int")
+        callback = client.get(
+            f"/api/v1/intake/oauth/google/callback?code=abc&state={state}&project_id=api-int"
+        )
         self.assertEqual(callback.status_code, 200)
         self.assertNotIn("access_token", callback.json()["connection"]["summary"])
 

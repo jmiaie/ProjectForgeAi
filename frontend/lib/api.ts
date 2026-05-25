@@ -30,6 +30,7 @@ export type ConnectionRecord = {
 export type OrchestratorRun = {
   run_id: string;
   project_id: string;
+  goal: string;
   status: string;
   steps: Array<{ name: string; status: string; summary: string; output: Record<string, unknown> }>;
   artifacts: Record<string, unknown>;

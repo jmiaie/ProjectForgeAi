@@ -19,12 +19,16 @@ class IntegrationsManagerTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn("authorization_url", start)
             self.assertEqual(start["connector"], "google")
 
-            result = await manager.connect("google", {"code": "abc123"}, project_id="int-test")
+            result = await manager.connect(
+                "google",
+                {"code": "abc123", "state": start["state"]},
+                project_id="int-test",
+            )
             self.assertEqual(result["status"], "connected")
             self.assertNotIn("access_token", result["connection"]["summary"])
 
             secret = store.load_secret("int-test", "google")
-            self.assertEqual(secret["access_token"], "placeholder_access_abc123")
+            self.assertEqual(secret["access_token"], "mock_access_abc123")
 
             health = await manager.health_check("int-test", "google")
             self.assertEqual(health["status"], "connected")

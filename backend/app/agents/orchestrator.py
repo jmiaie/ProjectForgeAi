@@ -26,17 +26,20 @@ class OrchestratorAgent:
         )
 
     async def run(self, request: OrchestratorRequest) -> dict:
-        run = OrchestratorRun(project_id=request.project_id, goal=request.goal)
-        if request.run_id:
-            run.run_id = request.run_id
+        sequence = request.requested_agents or DEFAULT_AGENT_SEQUENCE
+        run = self._load_or_create_run(request)
+
+        if request.resume and run.steps:
+            completed = {step.name for step in run.steps if step.status == OrchestratorStatus.COMPLETED}
+            sequence = [name for name in sequence if name not in completed]
 
         tools = self.tool_context_factory(request.project_id)
-        sequence = request.requested_agents or DEFAULT_AGENT_SEQUENCE
         for agent_name in sequence:
             step = await self._run_agent_step(agent_name, request.goal, tools)
             run.steps.append(step)
             if step.output.get("warning"):
                 run.warnings.append(step.output["warning"])
+            self.run_store.write_checkpoint(run)
 
         await tools.record_decision(
             f"Orchestrator {run.run_id} completed {len(run.steps)} steps for {request.project_id}: {request.goal}"
@@ -54,6 +57,23 @@ class OrchestratorAgent:
                 "status": "missing",
                 "warnings": [f"{project_id}: no orchestrator run found"],
             }
+        return run
+
+    def list_runs(self, project_id: str, limit: int = 20) -> dict[str, Any]:
+        return {"project_id": project_id, "runs": self.run_store.list_runs(project_id, limit)}
+
+    def _load_or_create_run(self, request: OrchestratorRequest) -> OrchestratorRun:
+        if request.run_id:
+            existing = self.run_store.read(request.project_id, request.run_id)
+            if existing and request.resume:
+                payload = {key: value for key, value in existing.items() if key != "path"}
+                run = OrchestratorRun.model_validate(payload)
+                run.status = OrchestratorStatus.RUNNING
+                return run
+
+        run = OrchestratorRun(project_id=request.project_id, goal=request.goal)
+        if request.run_id:
+            run.run_id = request.run_id
         return run
 
     async def _run_agent_step(

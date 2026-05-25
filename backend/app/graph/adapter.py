@@ -146,6 +146,33 @@ class Neo4jGraphAdapter:
 
         return self.status() | {"node_count": graph.node_count, "edge_count": graph.edge_count}
 
+    def rebuild_graph(self, graph: ProjectGraph) -> dict[str, Any]:
+        if self._driver is None:
+            self._memory.upsert_graph(graph)
+            return self.status() | {
+                "node_count": graph.node_count,
+                "edge_count": graph.edge_count,
+                "orphans_removed": 0,
+            }
+
+        try:
+            with self._driver.session() as session:
+                removed = session.execute_write(self._rebuild_graph_tx, graph)
+        except Exception as exc:
+            if settings.REQUIRE_NATIVE_NEO4J:
+                raise GraphAdapterError(f"Neo4j rebuild failed: {exc}") from exc
+            self.native = False
+            self.warning = str(exc)
+            self.__class__._native_disabled_warning = self.warning
+            self._memory.upsert_graph(graph)
+            removed = 0
+
+        return self.status() | {
+            "node_count": graph.node_count,
+            "edge_count": graph.edge_count,
+            "orphans_removed": removed,
+        }
+
     def upsert_node(self, project_id: str, node: GraphNode) -> dict[str, Any]:
         if self._driver is None:
             self._memory.upsert_node(project_id, node)
@@ -224,6 +251,23 @@ class Neo4jGraphAdapter:
             Neo4jGraphAdapter._upsert_node_tx(tx, node)
         for edge in graph.edges:
             Neo4jGraphAdapter._upsert_edge_tx(tx, edge)
+
+    @staticmethod
+    def _rebuild_graph_tx(tx, graph: ProjectGraph) -> int:
+        Neo4jGraphAdapter._upsert_graph_tx(tx, graph)
+        node_ids = [node.id for node in graph.nodes]
+        result = tx.run(
+            """
+            MATCH (n {project_id: $project_id})
+            WHERE NOT n.id IN $node_ids
+            WITH collect(n) AS orphans
+            FOREACH (node IN orphans | DETACH DELETE node)
+            RETURN size(orphans) AS removed
+            """,
+            project_id=graph.project_id,
+            node_ids=node_ids,
+        ).single()
+        return int(result["removed"] if result else 0)
 
     @staticmethod
     def _upsert_node_tx(tx, node: GraphNode) -> None:

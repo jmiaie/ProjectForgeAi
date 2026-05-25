@@ -24,6 +24,7 @@ class OrchestratorRequest(BaseModel):
     project_id: str
     goal: str = "Prepare project operating plan"
     run_id: str | None = None
+    resume: bool = False
     requested_agents: list[str] = Field(default_factory=list)
 
 

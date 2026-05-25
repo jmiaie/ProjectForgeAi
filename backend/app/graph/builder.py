@@ -32,7 +32,7 @@ class ProjectGraphBuilder:
         else:
             graph = self.build_from_manifest(project_id, manifest)
 
-        write_status = self.adapter.upsert_graph(graph)
+        write_status = self.adapter.rebuild_graph(graph)
         return {
             "project_id": project_id,
             "node_count": graph.node_count,

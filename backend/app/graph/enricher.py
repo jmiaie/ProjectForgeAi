@@ -91,6 +91,7 @@ class GraphEnrichmentService:
                 continue
 
             properties = {
+                "project_id": graph.project_id,
                 "name": fact.name,
                 "source": fact.source,
                 "source_hash": fact.source_hash,

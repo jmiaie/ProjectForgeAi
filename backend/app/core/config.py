@@ -38,6 +38,16 @@ class Settings(BaseSettings):
     TEMPORAL_TASK_QUEUE: str = "projectforge-automations"
     TEMPORAL_USE_WORKER_DISPATCH: bool = False
     TEMPORAL_SYNC_SCHEDULES: bool = False
+    OAUTH_MOCK_TOKEN_EXCHANGE: bool = True
+    OAUTH_ALLOW_UNVERIFIED_STATE: bool = False
+    GOOGLE_OAUTH_CLIENT_ID: str | None = None
+    GOOGLE_OAUTH_CLIENT_SECRET: str | None = None
+    MICROSOFT_OAUTH_CLIENT_ID: str | None = None
+    MICROSOFT_OAUTH_CLIENT_SECRET: str | None = None
+    GITHUB_OAUTH_CLIENT_ID: str | None = None
+    GITHUB_OAUTH_CLIENT_SECRET: str | None = None
+    SLACK_OAUTH_CLIENT_ID: str | None = None
+    SLACK_OAUTH_CLIENT_SECRET: str | None = None
     IMAGE_OCR_ENABLED: bool = True
     IMAGE_OCR_TIMEOUT_SECONDS: int = 30
     TESSERACT_CMD: str | None = None

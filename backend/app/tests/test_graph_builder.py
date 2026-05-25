@@ -16,6 +16,16 @@ class FakeGraphAdapter:
         self.graph = graph
         return {"backend": "fake", "native": False, "node_count": graph.node_count, "edge_count": graph.edge_count}
 
+    def rebuild_graph(self, graph):
+        self.graph = graph
+        return {
+            "backend": "fake",
+            "native": False,
+            "node_count": graph.node_count,
+            "edge_count": graph.edge_count,
+            "orphans_removed": 0,
+        }
+
     def get_graph(self, project_id):
         return self.graph if self.graph and self.graph.project_id == project_id else None
 
