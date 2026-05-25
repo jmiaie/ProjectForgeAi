@@ -28,6 +28,16 @@ Base URL: `http://localhost:8000` (or `BACKEND_BASE_URL`).
 | POST | `/api/v1/projects/upload` | Multipart file upload |
 | POST | `/api/v1/projects/{project_id}/ingestion/database-snapshot` | PostgreSQL schema snapshot (`db_schema`, optional `connection_uri`) |
 
+## LLM routing & billing
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/v1/projects/{project_id}/llm/routing` | Model routing preview by tier and task type |
+| GET | `/api/v1/projects/{project_id}/llm/keys` | List configured BYO provider keys |
+| POST | `/api/v1/projects/{project_id}/llm/keys` | Save encrypted BYO key (`provider`, `api_key`) |
+| DELETE | `/api/v1/projects/{project_id}/llm/keys/{provider}` | Remove BYO key |
+| GET | `/api/v1/projects/{project_id}/llm/usage` | Per-project LLM call and token usage summary |
+
 Supported upload types include PDF, email, mbox, Office, images, **IFC**, **DWG**, and **codebase archives** (zip/tar).
 
 ## Graph

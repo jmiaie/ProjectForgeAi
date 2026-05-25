@@ -11,7 +11,10 @@ from compliance.enforcer import ComplianceEnforcer
 from core.access_deps import get_actor_context, get_rbac_service, require_permission
 from core.config import settings
 from core.integrations_manager import IntegrationsManager
+from core.llm_keys import LLMKeyStore
 from core.llm_router import LLMRouter
+from core.llm_routing import routing_preview
+from core.usage_meter import LLMUsageMeter
 from core.rbac import ActorContext, RBACService
 from core.upgrade_manager import UpgradeManager
 from graph.builder import ProjectGraphBuilder
@@ -93,6 +96,11 @@ class DatabaseSnapshotRequest(BaseModel):
     db_schema: str = "public"
 
 
+class LLMKeyRequest(BaseModel):
+    provider: str = Field(..., examples=["openai", "anthropic", "groq"])
+    api_key: str
+
+
 class CreateGraphNodeRequest(BaseModel):
     label: NodeLabel
     properties: dict = Field(default_factory=dict)
@@ -155,6 +163,14 @@ def get_upgrade_manager() -> UpgradeManager:
 
 def get_portfolio_service() -> PortfolioService:
     return PortfolioService()
+
+
+def get_llm_key_store() -> LLMKeyStore:
+    return LLMKeyStore()
+
+
+def get_llm_usage_meter() -> LLMUsageMeter:
+    return LLMUsageMeter()
 
 
 @app.get("/api/v1/projects")
@@ -410,6 +426,63 @@ async def ingest_database_snapshot(
         "ingestion": ingestion_result,
         "graph": _graph_summary(graph_result),
     }
+
+
+@app.get("/api/v1/projects/{project_id}/llm/routing")
+async def llm_routing_preview(
+    project_id: str,
+    _: ActorContext = Depends(require_permission("project.read")),
+):
+    return routing_preview(project_id)
+
+
+@app.get("/api/v1/projects/{project_id}/llm/keys")
+async def list_llm_keys(
+    project_id: str,
+    _: ActorContext = Depends(require_permission("project.read")),
+    key_store: LLMKeyStore = Depends(get_llm_key_store),
+):
+    return {"project_id": project_id, "keys": key_store.list_keys(project_id)}
+
+
+@app.post("/api/v1/projects/{project_id}/llm/keys")
+async def upsert_llm_key(
+    project_id: str,
+    request: LLMKeyRequest,
+    _: ActorContext = Depends(require_permission("access.manage")),
+    key_store: LLMKeyStore = Depends(get_llm_key_store),
+):
+    record = key_store.upsert(
+        project_id=project_id,
+        provider=request.provider,
+        api_key=request.api_key,
+    )
+    return {"project_id": project_id, "key": record}
+
+
+@app.delete("/api/v1/projects/{project_id}/llm/keys/{provider}")
+async def delete_llm_key(
+    project_id: str,
+    provider: str,
+    _: ActorContext = Depends(require_permission("access.manage")),
+    key_store: LLMKeyStore = Depends(get_llm_key_store),
+):
+    deleted = key_store.delete(project_id, provider)
+    if not deleted:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=404, detail=f"No key for provider: {provider}")
+    return {"project_id": project_id, "provider": provider, "status": "deleted"}
+
+
+@app.get("/api/v1/projects/{project_id}/llm/usage")
+async def llm_usage_summary(
+    project_id: str,
+    limit: int = 100,
+    _: ActorContext = Depends(require_permission("project.read")),
+    usage_meter: LLMUsageMeter = Depends(get_llm_usage_meter),
+):
+    return usage_meter.summary(project_id, limit)
 
 
 @app.get("/health")

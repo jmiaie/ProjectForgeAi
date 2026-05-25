@@ -1,20 +1,21 @@
 # ProjectForge AI v14 — Status
 
-Last updated: Sprint 13 complete on branch `cursor/sprint13-ingestion-ebb0`.
+Last updated: Sprint 14 complete on branch `cursor/sprint14-llm-billing-ebb0`.
 
 ## Verification
 
 ```bash
-PYTHONPATH=backend/app python3 -m unittest discover -s backend/app/tests   # 100 tests
+PYTHONPATH=backend/app python3 -m unittest discover -s backend/app/tests   # 107 tests
 python3 scripts/check_graph_schema_version.py
 cd frontend && npm run typecheck
 ```
 
-## New in Sprint 13
+## New in Sprint 14
 
-- **CAD/BIM stubs** — `.ifc` entity/schema metadata, `.dwg` metadata-only parse
-- **Codebase archives** — `.zip`, `.tar`, `.tar.gz` source file indexing
-- **Database intake** — `POST /ingestion/database-snapshot` for PostgreSQL schema
+- **Flagship routing** — pro+ tiers auto-route reasoning/extraction to flagship model; starter gets upsell hint
+- **BYO keys** — encrypted per-project provider keys via `/llm/keys` API
+- **Usage metering** — token/call tracking per project at `/llm/usage`
+- **LLMPanel** — routing preview, usage stats, key management UI
 
 ## Backend modules
 

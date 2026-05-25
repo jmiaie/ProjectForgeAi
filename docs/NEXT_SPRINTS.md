@@ -1,17 +1,6 @@
 # ProjectForge AI — Roadmap
 
-Phases are ordered by dependency. Sprints 1–11 (Phase 3) are **complete**.
-
-## Phase 3 (complete)
-
-| Sprint | Scope | Status |
-|--------|-------|--------|
-| 8 LangGraph branching | Conditional routing, orchestrator audit, branch in API | Done |
-| 9 Integrations | OAuth prod gate, MCP SDK, webhook connector | Done |
-| 10 Timeline & CI | Date-based Gantt, GitHub Actions, schema version check | Done |
-| 11 Enterprise | RBAC, upgrade manager, on-prem overlay, access UI | Done |
-
----
+Phases are ordered by dependency. Sprints 1–13 are **complete**.
 
 ## Phase 4 — Domain expansion (active)
 
@@ -21,17 +10,15 @@ Phases are ordered by dependency. Sprints 1–11 (Phase 3) are **complete**.
 
 ### Sprint 13: Ingestion expansion — Done
 
-- CAD/BIM adapter stubs (IFC, DWG metadata) — **Done**
-- Codebase archive ingestion (zip/tar) — **Done**
-- PostgreSQL schema snapshot intake — **Done**
+- CAD/BIM stubs, codebase archives, PostgreSQL schema intake — **Done**
 
-### Sprint 14: LLM & billing — Next
+### Sprint 14: LLM & billing — Done
 
-- Flagship model upsell routing in LLMRouter
-- BYO API key management UI
-- Usage metering hooks per project
+- Flagship model upsell routing in LLMRouter — **Done**
+- BYO API key storage and management UI — **Done**
+- Per-project LLM usage metering — **Done**
 
-### Sprint 15: RTK spatial layer
+### Sprint 15: RTK spatial layer — Next
 
 - RTK adapter wiring for geo-tagged project assets
 - Map view in frontend for construction anchor workflows
@@ -49,9 +36,9 @@ Phases are ordered by dependency. Sprints 1–11 (Phase 3) are **complete**.
 
 ## Immediate next actions
 
-1. Flagship model upsell routing in LLMRouter (Sprint 14)
-2. BYO API key management UI
-3. Usage metering hooks per project
-4. Helm chart from on-prem Compose manifest
+1. RTK spatial adapter stub (Sprint 15)
+2. Map view for geo-tagged graph nodes
+3. Helm chart from on-prem Compose manifest
+4. SSO/OIDC identity provider scaffolding
 
 See [STATUS.md](STATUS.md) and [API.md](API.md).

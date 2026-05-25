@@ -10,6 +10,10 @@ FEATURE_CATALOG: dict[str, dict[str, Any]] = {
         "tier": "pro",
         "description": "LLM-backed graph enrichment",
     },
+    "flagship_llm": {
+        "tier": "pro",
+        "description": "Automatic flagship model routing for reasoning tasks",
+    },
     "langgraph_branching": {
         "tier": "pro",
         "description": "Conditional LangGraph orchestrator routing",

@@ -37,6 +37,7 @@ Tests: `PYTHONPATH=backend/app python3 -m unittest discover -s backend/app/tests
 - **Enterprise** — RBAC scaffolding, upgrade manager, on-prem Compose overlay, self-improvement gate
 - **Portfolio** — multi-project registry, cross-project summaries, project switcher UI
 - **Ingestion expansion** — IFC/DWG CAD stubs, codebase archives, PostgreSQL schema snapshots
+- **LLM billing** — flagship upsell routing, BYO keys, per-project usage metering
 - **Automations** — scheduling, Temporal worker, approvals, dead letters, optional Schedule sync
 - **Frontend** — editable React Flow graph, timeline/Gantt, workbench, orchestrator artifacts, automation controls
 
@@ -55,7 +56,7 @@ PROJECTFORGE_V14.md   Agent handoff brief (vision + conventions)
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `USE_LANGGRAPH_ORCHESTRATOR` | `false` | LangGraph StateGraph execution |
-| `RBAC_ENFORCE` | `false` | Enforce project role permissions |
+| `PROJECT_TIER` | `starter` | Feature tier (`starter`, `pro`, `enterprise`) |
 | `PROJECT_TIER` | `starter` | Feature tier (`starter`, `pro`, `enterprise`) |
 | `OAUTH_MOCK_TOKEN_EXCHANGE` | `true` | Mock OAuth tokens in dev |
 | `TEMPORAL_SYNC_SCHEDULES` | `false` | Register Temporal Schedule API jobs |
@@ -87,5 +88,6 @@ main
                           └── cursor/sprint9-10-integrations-ci-ebb0
                                └── cursor/sprint11-enterprise-ebb0
                                     └── cursor/sprint12-portfolio-ebb0
-                                         └── cursor/sprint13-ingestion-ebb0   ← active
+                                         └── cursor/sprint13-ingestion-ebb0
+                                              └── cursor/sprint14-llm-billing-ebb0   ← active
 ```
