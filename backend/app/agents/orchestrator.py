@@ -44,6 +44,7 @@ class OrchestratorAgent:
                 sequence,
                 tools,
                 self.run_store.write_checkpoint,
+                branching=settings.USE_LANGGRAPH_BRANCHING,
             )
         else:
             for agent_name in sequence:
@@ -194,6 +195,7 @@ class OrchestratorAgent:
         return {
             "project_operating_plan": {
                 "goal": run.goal,
+                "branch_path": run.metadata.get("branch_path"),
                 "sections": [step.name for step in run.steps],
                 "next_actions": [
                     "Validate extracted sources with project owner.",

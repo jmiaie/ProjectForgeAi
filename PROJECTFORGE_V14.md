@@ -1,592 +1,108 @@
-# ProjectForge AI — Master Build Framework v14
+# ProjectForge AI — Agent Handoff (v14)
 
-**Universal Agentic Project Management OS in a Box**
+Copy this document into Claude, Cursor, Lovable, Manus, or other coding agents as the parallel-development brief.
 
-Copy this entire markdown and paste it into Claude, Cursor, Lovable, Manus, or any other coding AI. This is the parallel-development source of truth for the v14 starter.
+## Vision
 
-## 1. Project Vision & Principles
+**ProjectForge AI** — upload all project documents once, get an instant living project graph, auto-generate templates, schedules, automations, communications, and compliance controls.
 
-**Name:** ProjectForge AI
+- Industry-agnostic (construction anchor; software, legal, healthcare, events, M&A)
+- Solopreneur-friendly through enterprise RBAC/audit/on-prem
+- LLM: low-cost default via LiteLLM, flagship upsell, BYO keys
+- Integrations: OAuth 2.0/PKCE, API keys, webhooks, MCP
+- Compliance-first: HIPAA priority + modular SOC 2, GDPR, legal
 
-**Tagline:** Upload all project documents once -> instant living project graph -> auto-generates every template, contract, schedule, automation, communication loop, and compliance control.
-
-**Scope:** Industry-agnostic. Construction is the anchor workflow, but the framework supports software, consulting, healthcare builds, legal, events, M&A, and short-form gigs.
-
-**Core promise:** PM framework in a box with accuracy grounding via custom protocols, Locus, and persistent memory.
-
-**Universal accessibility:** Solopreneurs on free/low-cost tiers through enterprises with RBAC, audit, and on-prem/air-gapped deployment.
-
-**LLM strategy:** Low-cost models by default, flagship upsells, and bring-your-own keys across providers.
-
-**Integrations:** One Intake Wizard for OAuth 2.0/PKCE, API keys, webhooks, and MCP servers.
-
-**Compliance-first:** HIPAA priority plus modular SOC 2, GDPR, and legal controls. Self-learning/healing is gated by project category.
-
-**Data-first:** Phase 1 supports PDFs, images, emails, and Office files. Later phases add CAD/BIM, codebases, databases, and specialized sources.
-
-## 2. High-Level Architecture
+## Architecture (summary)
 
 ```text
-User Upload + Intake Wizard (OAuth / API / MCP)
-    ↓
-Ingestion Pipeline (parsers -> Locus.index + OMPA.record)
-    ↓
-HybridStore (Locus + OMPA Vault + Neo4j Project Graph)
-    ↓
-Integrations Manager (MCP tool discovery)
-    ↓
-Orchestrator Agent (LangGraph) + Specialist Agents
-    ↓
-LLM Router (LiteLLM - low-cost default + flagship/BYO)
-    ↓
-ComplianceEnforcer + SelfImprover (gated) + UpgradeManager
-    ↓
-Temporal Workflows (timed emails, recurring reports, automations)
-    ↓
-Frontend Dashboard (React Flow, chat, templates, Gantt)
+Upload + Intake → Ingestion → Locus + OMPA + Neo4j graph
+    → Orchestrator (LangGraph) + specialists → LLM Router
+    → Compliance + audit → Temporal automations → Next.js dashboard
 ```
 
-Per-project isolation: dedicated Locus store, OMPA vault, encrypted blobs, and graph partitioning.
+Full diagram: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
-## 3. Tech Stack
+## Tech stack
 
-- **Backend:** FastAPI + LangGraph + Temporal.io (Python)
-- **LLM layer:** LiteLLM for 100+ providers and local Ollama
-- **Storage:** Locus + OMPA + optional RTK + Neo4j + PostgreSQL
-- **Integrations:** Authlib OAuth + MCP Python SDK
-- **Frontend:** Next.js 15 + TypeScript + shadcn/ui + React Flow + Tailwind
-- **Deployment:** SaaS default with hybrid/on-prem manifests
+| Layer | Stack |
+|-------|-------|
+| Backend | FastAPI, LangGraph, Temporal.io (Python 3.12) |
+| LLM | LiteLLM (+ Ollama local) |
+| Storage | Locus, OMPA, Neo4j, PostgreSQL |
+| Integrations | Authlib OAuth, MCP Python SDK |
+| Frontend | Next.js 15, TypeScript, React Flow, Tailwind |
+| Deploy | Docker Compose; hybrid/on-prem manifests planned |
 
-## 4. Repository Structure
+## Repository map
 
 ```text
-projectforge-ai/
-├── backend/
-│   ├── app/
-│   │   ├── agents/
-│   │   │   └── orchestrator.py
-│   │   ├── compliance/
-│   │   │   └── enforcer.py
-│   │   ├── core/
-│   │   │   ├── config.py
-│   │   │   ├── integrations_manager.py
-│   │   │   └── llm_router.py
-│   │   ├── ingestion/
-│   │   │   ├── pipeline.py
-│   │   │   └── parsers/common/
-│   │   ├── integrations/
-│   │   │   ├── registry.py
-│   │   │   ├── intake_form.py
-│   │   │   └── connectors/
-│   │   │       ├── mcp.py
-│   │   │       └── oauth.py
-│   │   ├── storage/
-│   │   │   ├── locus_adapter.py
-│   │   │   ├── ompa_adapter.py
-│   │   │   └── rtk_adapter.py
-│   │   └── main.py
-├── frontend/
-│   ├── app/settings/connections/page.tsx
-│   └── components/IntakeWizard.tsx
-├── submodules/
-├── docker-compose.yml
-├── requirements.txt
-├── .env.example
-└── README.md
+backend/app/
+  agents/           orchestrator.py, langgraph_runner.py, run_store.py, tools.py
+  graph/            adapter, builder, enricher, mutations, bootstrap, extraction
+  ingestion/        pipeline, attachments, parsers/common/*
+  integrations/     intake_form, registry, connectors/oauth.py, connectors/mcp.py
+  automations/      service, scheduling, temporal_*, worker_main.py
+  compliance/       enforcer, redaction, audit
+  workbench/        service.py
+  storage/          locus_adapter, ompa_adapter, native_loader
+  main.py           FastAPI entry + route registration
+
+frontend/
+  app/              dashboard + settings/connections
+  components/       GraphPanel, TimelinePanel, OrchestratorPanel, etc.
+  lib/api.ts        typed API client
 ```
 
-## 5. Core Code Files
-
-### `backend/app/core/config.py`
-
-```python
-from typing import Literal
-
-from pydantic_settings import BaseSettings, SettingsConfigDict
-
-
-class Settings(BaseSettings):
-    PROJECT_NAME: str = "ProjectForge AI"
-    DEPLOYMENT_MODE: Literal["saas", "hybrid", "onprem"] = "saas"
-    DEFAULT_COMPLIANCE: str = "standard"
-    DEFAULT_LLM_MODEL: str = "groq/llama-3.1-70b-versatile"
-    NEO4J_URI: str = "bolt://neo4j:7687"
-    POSTGRES_URI: str = "postgresql://projectforge:projectforge@postgres:5432/projectforge"
-    ENCRYPTION_KEY: str = "dev-only-change-me"
-    LOCUS_SOURCE_PATH: str | None = None
-    LOCUS_ENGINE: str = "locus:LocusEngine"
-    LOCUS_STORE_ROOT: str = "./.locus"
-    OMPA_SOURCE_PATH: str | None = None
-    OMPA_ENGINE: str = "ompa:Ompa"
-    OMPA_VAULT_ROOT: str = "./vaults"
-    REQUIRE_NATIVE_LOCUS_OMPA: bool = False
-
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
-
-
-settings = Settings()
-```
-
-### `backend/app/compliance/enforcer.py`
-
-```python
-from dataclasses import dataclass
-
-from core.config import settings
-
-
-@dataclass(frozen=True)
-class ComplianceProfile:
-    project_id: str
-    category: str
-    allow_self_learning: bool = True
-
-
-def get_compliance_profile(project_id: str) -> ComplianceProfile:
-    category = settings.DEFAULT_COMPLIANCE.lower()
-    restricted = category in {"hipaa", "legal"}
-    return ComplianceProfile(project_id=project_id, category=category, allow_self_learning=not restricted)
-```
-
-### `backend/app/core/llm_router.py`
-
-```python
-from typing import Any
-
-from pydantic import BaseModel
-
-from compliance.enforcer import get_compliance_profile
-from core.config import settings
-
-
-class LLMRequest(BaseModel):
-    messages: list[dict[str, Any]]
-    project_id: str
-    model: str | None = None
-    task_type: str = "general"
-
-
-class LLMRouter:
-    async def call(self, req: LLMRequest) -> str:
-        profile = get_compliance_profile(req.project_id)
-        if profile.category in {"hipaa", "legal"}:
-            model = "anthropic/claude-3-5-sonnet-20241022"
-        else:
-            model = req.model or settings.DEFAULT_LLM_MODEL
-
-        import litellm
-
-        response = await litellm.acompletion(
-            model=model,
-            messages=req.messages,
-            temperature=0.3 if req.task_type == "reasoning" else 0.0,
-        )
-        return response.choices[0].message.content
-```
-
-### `backend/app/core/integrations_manager.py`
-
-```python
-from integrations.registry import ConnectorRegistry
-
-
-class IntegrationsManager:
-    async def get_recommended_connectors(self, project_id: str | None = None, compliance: str = "standard") -> list[str]:
-        return ConnectorRegistry.get_recommended(compliance)
-
-    async def connect(self, connector_type: str, auth_data: dict, project_id: str | None = None) -> dict:
-        connector = ConnectorRegistry.get_connector(connector_type)
-        connection = await connector.authenticate(auth_data)
-        return {"status": "connected", "connector": connector_type, "project_id": project_id, "connection": connection}
-```
-
-### `backend/app/integrations/registry.py`
-
-```python
-from typing import Any
-
-
-class ConnectorRegistry:
-    _connectors: dict[str, dict[str, Any]] = {
-        "google": {"type": "oauth", "provider": "google", "scopes": ["email", "calendar", "drive.readonly"]},
-        "microsoft": {"type": "oauth", "provider": "microsoft", "mcp_support": True},
-        "slack": {"type": "oauth"},
-        "github": {"type": "oauth"},
-        "jira": {"type": "api_key"},
-        "mcp_server": {"type": "mcp", "description": "Any MCP server"},
-    }
-
-    @classmethod
-    def get_connector(cls, name: str):
-        config = cls._connectors.get(name)
-        if config is None:
-            raise ValueError(f"Unknown connector: {name}")
-        if config["type"] == "oauth":
-            from integrations.connectors.oauth import OAuthConnector
-            return OAuthConnector(name, config)
-        if config["type"] == "mcp":
-            from integrations.connectors.mcp import MCPConnector
-            return MCPConnector()
-        if config["type"] == "api_key":
-            from integrations.connectors.oauth import APIKeyConnector
-            return APIKeyConnector(name, config)
-        raise ValueError(f"Unsupported connector type: {config['type']}")
-
-    @classmethod
-    def get_recommended(cls, compliance: str = "standard") -> list[str]:
-        if compliance.lower() == "hipaa":
-            return ["microsoft", "mcp_server"]
-        return list(cls._connectors.keys())
-```
-
-### `backend/app/integrations/intake_form.py`
-
-```python
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
-
-from core.integrations_manager import IntegrationsManager
-
-
-router = APIRouter(prefix="/intake", tags=["intake"])
-
-
-class ConnectionRequest(BaseModel):
-    connector_type: str = Field(..., examples=["google", "mcp_server"])
-    auth_data: dict = Field(default_factory=dict)
-    project_id: str | None = None
-
-
-def get_integrations_manager() -> IntegrationsManager:
-    return IntegrationsManager()
-
-
-@router.get("/connections/recommended")
-async def recommended_connections(compliance: str = "standard", manager: IntegrationsManager = Depends(get_integrations_manager)):
-    connectors = await manager.get_recommended_connectors(compliance=compliance)
-    return {"connectors": connectors}
-
-
-@router.post("/connections")
-async def run_intake(data: ConnectionRequest, manager: IntegrationsManager = Depends(get_integrations_manager)):
-    try:
-        return await manager.connect(data.connector_type, data.auth_data, data.project_id)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-```
-
-### `backend/app/main.py`
-
-```python
-from fastapi import Depends, FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
-
-from core.config import settings
-from core.integrations_manager import IntegrationsManager
-from core.llm_router import LLMRouter
-from ingestion.pipeline import IngestionPipeline
-from integrations.intake_form import router as intake_router
-
-
-app = FastAPI(title=settings.PROJECT_NAME)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-app.include_router(intake_router, prefix="/api/v1")
-
-
-class CreateProjectRequest(BaseModel):
-    files: list[str] = Field(default_factory=list)
-    compliance: str = "standard"
-
-
-def get_llm_router() -> LLMRouter:
-    return LLMRouter()
-
-
-def get_integrations_manager() -> IntegrationsManager:
-    return IntegrationsManager()
-
-
-def get_ingestion_pipeline() -> IngestionPipeline:
-    return IngestionPipeline()
-
-
-@app.post("/api/v1/projects/")
-async def create_project(
-    request: CreateProjectRequest,
-    integrations_manager: IntegrationsManager = Depends(get_integrations_manager),
-    ingestion: IngestionPipeline = Depends(get_ingestion_pipeline),
-):
-    project_id = "proj_123"
-    await integrations_manager.get_recommended_connectors(compliance=request.compliance)
-    ingestion_result = await ingestion.process_files(project_id, request.files)
-    return {
-        "project_id": project_id,
-        "status": "orchestrated",
-        "message": "ProjectForge AI is live!",
-        "ingestion": ingestion_result,
-    }
-
-
-@app.get("/health")
-async def health():
-    return {"status": "healthy", "llm_default": settings.DEFAULT_LLM_MODEL}
-
-
-if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run(app, host="0.0.0.0", port=8000)
-```
-
-### `frontend/components/IntakeWizard.tsx`
-
-```tsx
-'use client';
-
-import { useEffect, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-
-type IntakeWizardProps = {
-  onComplete?: () => void;
-};
-
-export default function IntakeWizard({ onComplete }: IntakeWizardProps) {
-  const [recommended, setRecommended] = useState<string[]>(['google', 'microsoft', 'slack', 'github', 'mcp_server']);
-  const [status, setStatus] = useState<string>('');
-
-  useEffect(() => {
-    fetch('/api/v1/intake/connections/recommended')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data?.connectors) setRecommended(data.connectors);
-      })
-      .catch(() => {});
-  }, []);
-
-  const handleConnect = async (type: string) => {
-    setStatus(`Connecting to ${type}...`);
-    const payload = type === 'mcp_server' ? { server_url: 'https://example-mcp.local' } : { code: 'placeholder-oauth-code' };
-    const response = await fetch('/api/v1/intake/connections', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ connector_type: type, auth_data: payload }),
-    });
-    setStatus(response.ok ? `${type} connected` : `${type} needs configuration`);
-  };
-
-  return (
-    <Card className="mx-auto max-w-2xl p-8">
-      <h1 className="mb-2 text-3xl font-bold">Connect Your Tools</h1>
-      <p className="mb-8 text-sm text-muted-foreground">
-        ProjectForge can ingest calendars, files, chat, issue trackers, and MCP tools.
-      </p>
-      <div className="grid grid-cols-2 gap-4">
-        {recommended.map((tool) => (
-          <Button key={tool} variant="outline" className="h-24 flex-col" onClick={() => handleConnect(tool)}>
-            <span className="text-lg capitalize">{tool.replace('_', ' ')}</span>
-          </Button>
-        ))}
-      </div>
-      {status ? <p className="mt-4 text-sm">{status}</p> : null}
-      <Button onClick={onComplete} className="mt-8 w-full">Skip & Continue</Button>
-    </Card>
-  );
-}
-```
-
-## 6. Local Run
-
-```bash
-cp .env.example .env
-docker-compose up backend
-curl http://localhost:8000/health
-```
-
-### Native Locus + OMPA
-
-Use installed packages or point ProjectForge at local source checkouts:
+## Conventions
+
+1. **Config** — all flags in `core/config.py` + `.env.example`; never hardcode secrets.
+2. **Graph** — mutations go through `graph/mutations.py`; adapter handles Neo4j vs memory.
+3. **Compliance** — gate LLM calls and external writes via `compliance/enforcer.py`.
+4. **Tests** — `backend/app/tests/` with unittest; run with `PYTHONPATH=backend/app`.
+5. **Frontend** — call backend via `lib/api.ts`; default project `NEXT_PUBLIC_DEFAULT_PROJECT_ID`.
+
+## Native Locus + OMPA
 
 ```env
-LOCUS_SOURCE_PATH=/absolute/path/to/locus
-LOCUS_ENGINE=locus:LocusEngine
-LOCUS_STORE_ROOT=./.locus
-OMPA_SOURCE_PATH=/absolute/path/to/ompa
-OMPA_ENGINE=ompa:Ompa
-OMPA_VAULT_ROOT=./vaults
+LOCUS_SOURCE_PATH=/path/to/locus
+OMPA_SOURCE_PATH=/path/to/ompa
 REQUIRE_NATIVE_LOCUS_OMPA=true
 ```
 
-`/health` and `/api/v1/storage/{project_id}/status` expose whether native Locus/OMPA are loaded.
+Without native packages, dev fallbacks activate (reported on `/health`).
 
-### Phase 1 Ingestion
+## Key feature flags
 
-The starter now supports:
+| Flag | Purpose |
+|------|---------|
+| `USE_LANGGRAPH_ORCHESTRATOR` | LangGraph with conditional branching |
+| `USE_LANGGRAPH_BRANCHING` | Route specialists after intake by goal/graph density |
+| `OAUTH_MOCK_TOKEN_EXCHANGE` | Dev OAuth without real client credentials |
+| `TEMPORAL_SYNC_SCHEDULES` | Register schedules with Temporal API |
+| `NEO4J_BOOTSTRAP_ON_CONNECT` | Auto-apply graph migrations |
+| `IMAGE_OCR_ENABLED` | Tesseract for image uploads |
 
-- PDF text extraction via `pypdf`
-- Email `.eml` body/header extraction
-- Mailbox `.mbox` archive extraction with per-message provenance
-- Office Open XML starters for DOCX, XLSX, and PPTX
-- Image metadata plus optional Tesseract OCR text chunks
-- Multipart upload endpoint: `POST /api/v1/projects/upload`
-- Per-project manifests at `INGESTION_MANIFEST_ROOT/{project_id}/latest.json`
+## Current phase
 
-### Project Graph Builder
+**Phase 3** — production depth: LangGraph branching, real OAuth, MCP SDK, Gantt bars, CI migrations.
 
-Ingestion manifests project into a starter graph:
+Roadmap: [docs/NEXT_SPRINTS.md](docs/NEXT_SPRINTS.md)  
+Status: [docs/STATUS.md](docs/STATUS.md)  
+API: [docs/API.md](docs/API.md)
 
-- Project, document, and chunk nodes
-- `HAS_DOCUMENT` and `HAS_CHUNK` provenance edges
-- Source hashes and parser metadata carried onto graph nodes
-- Neo4j adapter with local in-memory fallback, bootstrap constraints/indexes, and partial node/edge mutations
-- Endpoints:
-  - `POST /api/v1/projects/{project_id}/graph/build`
-  - `GET /api/v1/projects/{project_id}/graph`
-  - `GET /api/v1/projects/{project_id}/graph/status`
-  - `POST /api/v1/projects/{project_id}/graph/enrich`
-  - `POST /api/v1/projects/{project_id}/graph/nodes`
-  - `PATCH /api/v1/projects/{project_id}/graph/nodes/{node_id}`
-  - `DELETE /api/v1/projects/{project_id}/graph/nodes/{node_id}`
-  - `POST /api/v1/projects/{project_id}/graph/edges`
-  - `DELETE /api/v1/projects/{project_id}/graph/edges`
-  - `POST /api/v1/graph/bootstrap`
+## Agent roles
 
-### Orchestrator Agent
+- **Cursor** — integration, git, CI, local run verification
+- **Claude** — orchestrator/LangGraph, specialist agents
+- **Lovable** — dashboard UX, templates, timeline
+- **Manus** — OAuth/MCP/ingestion E2E tests
+- **Grok** — framework coordination and product framing
 
-The starter orchestrator runs specialist steps against graph, Locus, OMPA, and integration tool context with per-step checkpoints:
+## Do not regenerate
 
-- Intake analyst
-- Scheduler
-- Risk analyst
-- Compliance reviewer
-- Template generator
+These modules exist and are tested — extend, do not replace from scratch:
 
-Endpoints:
+- `graph/bootstrap.py`, `automations/temporal_schedules.py`, `ingestion/attachments.py`
+- Full ingestion parser suite, orchestrator run store, OAuth PKCE state store
 
-- `POST /api/v1/orchestrator/run`
-- `GET /api/v1/projects/{project_id}/orchestrator/status`
-- `GET /api/v1/projects/{project_id}/orchestrator/runs`
-
-### Compliance Enforcement
-
-Project-level compliance profiles gate sensitive actions:
-
-- Profiles: `standard`, `hipaa`, `legal`, `soc2`, `gdpr`
-- Restricted LLM calls redact email, phone, SSN, MRN, and DOB patterns before provider calls
-- HIPAA/legal/GDPR block ungated OMPA memory writes
-- Restricted profiles require human approval for external integration writes
-- Per-project audit trail records profile changes, LLM checks, memory-write checks, and external-write checks
-
-Endpoints:
-
-- `GET /api/v1/projects/{project_id}/compliance/profile`
-- `POST /api/v1/projects/{project_id}/compliance/profile`
-- `GET /api/v1/projects/{project_id}/compliance/audit`
-
-### Integrations Wizard
-
-The Intake/Connections layer manages real connection records:
-
-- OAuth PKCE start/callback with state store and token exchange (mock or real)
-- Encrypted token/API-key storage
-- Connection listing, status, health checks, and MCP HTTP tool discovery
-- Compliance-gated external writes
-- Frontend live health cards and MCP tool listing
-
-Endpoints:
-
-- `POST /api/v1/intake/connections/oauth/start`
-- `GET /api/v1/intake/oauth/{connector_type}/callback`
-- `POST /api/v1/intake/connections`
-- `GET /api/v1/intake/connections/{project_id}`
-- `GET /api/v1/intake/connections/{project_id}/{connector_type}/status`
-- `GET /api/v1/intake/connections/{project_id}/{connector_type}/health`
-- `GET /api/v1/intake/connections/{project_id}/mcp/tools`
-
-### Frontend Project OS
-
-The `frontend/` Next.js app provides the starter operator dashboard:
-
-- Runtime, graph, compliance, and connection summary cards
-- Multipart upload panel
-- Graph build/status panel
-- Orchestrator run/status panel
-- Compliance profile/audit panel
-- Connections panel with Intake Wizard
-
-Run locally:
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-### Temporal-Ready Automations
-
-Automation workflows are persisted locally and executed through a real Temporal worker process:
-
-- Timed reminders
-- Recurring reports backed by orchestrator runs
-- Integration sync jobs with compliance checks
-- Human approval gates
-- Run history, retry scheduling, dead-letter queue, schedule evaluation, and optional Temporal Schedule sync
-- Temporal worker, workflows, activities, and docker-compose services
-- Local fallback dispatch when Temporal is unavailable
-
-Endpoints:
-
-- `POST /api/v1/projects/{project_id}/automations`
-- `GET /api/v1/projects/{project_id}/automations`
-- `POST /api/v1/projects/{project_id}/automations/{automation_id}/run`
-- `POST /api/v1/projects/{project_id}/automations/{automation_id}/approve`
-- `GET /api/v1/projects/{project_id}/automations/runs`
-- `GET /api/v1/projects/{project_id}/automations/dead-letters`
-- `POST /api/v1/projects/{project_id}/automations/{automation_id}/retry`
-- `GET /api/v1/automations/temporal/status`
-- `POST /api/v1/automations/temporal/run-due`
-- `POST /api/v1/automations/temporal/start-due`
-
-Run the worker locally:
-
-```bash
-PYTHONPATH=backend/app python -m automations.worker_main
-```
-
-Direct Python:
-
-```bash
-python3 -m venv .venv
-. .venv/bin/activate
-pip install -r requirements.txt
-PYTHONPATH=backend/app uvicorn main:app --reload
-```
-
-## 7. Parallel Development Instructions
-
-- **Cursor:** Final integration, local running, git, PRs.
-- **Claude:** Deep agent logic, LangGraph orchestration, specialist-agent behavior.
-- **Grok:** Master framework coordination and product framing.
-- **Lovable:** Full-stack UI generation, dashboard, flows, templates.
-- **Manus:** Autonomous tests for OAuth, MCP, ingestion, and end-to-end smoke scripts.
-
-## 8. Next File to Generate
-
-Continue production hardening:
-
-```text
-backend/app/graph/bootstrap.py
-backend/app/automations/temporal_schedules.py
-backend/app/ingestion/attachments.py
-```
-
-Next targets: Neo4j migration versioning, Temporal schedule health UI, and attachment ingestion for nested `.eml` chains.
+When adding endpoints, register in `main.py` or `integrations/intake_form.py` and document in `docs/API.md`.

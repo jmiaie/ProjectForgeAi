@@ -1,238 +1,83 @@
-# ProjectForge AI — Master Build Framework v14
+# ProjectForge AI v14
 
-**Universal Agentic Project Management OS in a Box**
+**PM framework in a box** — upload project documents, build a living graph, run specialist agents, enforce compliance, and automate workflows.
 
-Copy this markdown into Claude, Cursor, Lovable, Manus, or other coding agents as the single source of truth for parallel development.
-
-## 1. Project Vision & Principles
-
-- **Name:** ProjectForge AI
-- **Tagline:** Upload all project documents once -> instant living project graph -> auto-generates templates, contracts, schedules, automations, communications, and compliance controls.
-- **Scope:** Industry-agnostic, with construction as the anchor use case and support for software, consulting, healthcare builds, legal, events, M&A, and small gigs.
-- **Core promise:** PM framework in a box with accuracy grounding through custom protocols and Locus.
-- **Accessibility:** Solopreneurs on a free/low-cost tier through enterprises with RBAC, audit, and on-prem support.
-- **LLM strategy:** Low-cost efficient models by default, flagship upsell, and bring-your-own API keys for any provider.
-- **Integrations:** Extensible Intake Wizard supporting OAuth 2.0/PKCE, API keys, webhooks, and MCP.
-- **Compliance-first:** HIPAA priority plus modular SOC 2, GDPR, and legal controls. Self-learning is gated by project category.
-- **Data-first:** Phase 1 supports PDFs, images, emails, and Office files. Later phases adapt to CAD/BIM, codebases, databases, and more.
-
-## 2. High-Level Architecture
-
-```text
-User Upload + Intake Wizard (OAuth / API / MCP)
-    ↓
-Ingestion Pipeline (parsers -> Locus.index + OMPA.record)
-    ↓
-HybridStore (Locus + OMPA Vault + Neo4j Project Graph)
-    ↓
-Integrations Manager (MCP tool discovery)
-    ↓
-Orchestrator Agent (LangGraph) + Specialist Agents
-    ↓
-LLM Router (LiteLLM - low-cost default + flagship/BYO)
-    ↓
-ComplianceEnforcer + SelfImprover (gated) + UpgradeManager
-    ↓
-Temporal Workflows (timed emails, recurring reports, automations)
-    ↓
-Frontend Dashboard (React Flow, chat, templates, Gantt)
-```
-
-Per-project isolation uses a dedicated Locus store, OMPA vault, and encrypted blobs.
-
-## 3. Tech Stack
-
-- **Backend:** FastAPI + LangGraph + Temporal.io (Python)
-- **LLM layer:** LiteLLM for 100+ providers and local Ollama
-- **Storage:** Locus, OMPA, optional RTK, Neo4j, PostgreSQL
-- **Integrations:** Authlib OAuth + MCP Python SDK
-- **Frontend:** Next.js 15 + TypeScript + shadcn/ui + React Flow + Tailwind
-- **Deployment:** Hybrid-first SaaS default with on-prem/air-gapped manifests
-
-## 4. Repository Structure
-
-```text
-projectforge-ai/
-├── backend/
-│   └── app/
-│       ├── agents/
-│       ├── compliance/
-│       ├── core/
-│       ├── ingestion/
-│       │   └── parsers/common/
-│       ├── integrations/
-│       │   └── connectors/
-│       ├── storage/
-│       └── main.py
-├── frontend/
-│   ├── app/settings/connections/page.tsx
-│   └── components/IntakeWizard.tsx
-├── submodules/
-├── docker-compose.yml
-├── requirements.txt
-├── .env.example
-└── README.md
-```
-
-## 5. Local Run
+## Quick start
 
 ```bash
 cp .env.example .env
-docker-compose up backend frontend
-curl http://localhost:8000/health
+docker compose up backend frontend automation-worker temporal neo4j postgres
 ```
 
-### Native Locus + OMPA Integration
+| Service | URL |
+|---------|-----|
+| Dashboard | http://localhost:3000 |
+| API | http://localhost:8000 |
+| Health | http://localhost:8000/health |
+| Neo4j Browser | http://localhost:7474 |
 
-ProjectForge loads your native Locus and OMPA implementations directly. Install them as Python packages or point the app at local checkouts:
-
-```env
-LOCUS_SOURCE_PATH=/absolute/path/to/locus
-LOCUS_ENGINE=locus:LocusEngine
-LOCUS_STORE_ROOT=./.locus
-OMPA_SOURCE_PATH=/absolute/path/to/ompa
-OMPA_ENGINE=ompa:Ompa
-OMPA_VAULT_ROOT=./vaults
-REQUIRE_NATIVE_LOCUS_OMPA=true
-```
-
-`/health` and `/api/v1/storage/{project_id}/status` report whether native Locus/OMPA are loaded or the development fallback is active.
-
-### Phase 1 Ingestion
-
-Current ingestion supports:
-
-- PDF text extraction via `pypdf`
-- Email `.eml` body/header extraction
-- Office Open XML starters for DOCX, XLSX, and PPTX
-- Image metadata stubs with explicit OCR-not-configured warnings
-- Multipart upload endpoint: `POST /api/v1/projects/upload`
-- Per-project ingestion manifest at `INGESTION_MANIFEST_ROOT/{project_id}/latest.json`
-
-### Project Graph Builder
-
-Ingestion manifests now build starter project graphs with provenance:
-
-- Project, document, and chunk nodes
-- `HAS_DOCUMENT` and `HAS_CHUNK` edges
-- Source hash and parser metadata on graph nodes
-- Neo4j adapter with in-memory fallback for local development
-- Graph endpoints:
-  - `POST /api/v1/projects/{project_id}/graph/build`
-  - `POST /api/v1/projects/{project_id}/graph/enrich`
-  - `GET /api/v1/projects/{project_id}/graph`
-  - `GET /api/v1/projects/{project_id}/graph/status`
-- Workbench endpoint:
-  - `POST /api/v1/projects/{project_id}/workbench/query`
-
-### Orchestrator Agent
-
-The starter orchestrator runs deterministic specialist steps over the graph/Locus/OMPA tool context:
-
-- Intake analyst
-- Scheduler
-- Risk analyst
-- Compliance reviewer
-- Template generator
-
-Endpoints:
-
-- `POST /api/v1/orchestrator/run`
-- `GET /api/v1/projects/{project_id}/orchestrator/status`
-
-### Compliance Enforcement
-
-Compliance profiles now gate sensitive actions and produce audit events:
-
-- Profiles: `standard`, `hipaa`, `legal`, `soc2`, `gdpr`
-- Redaction hooks for email, phone, SSN, MRN, and DOB patterns before restricted LLM calls
-- Memory-write gating for HIPAA/legal/GDPR profiles
-- External-write approval gating for restricted integrations
-- Audit event stream per project
-
-Endpoints:
-
-- `GET /api/v1/projects/{project_id}/compliance/profile`
-- `POST /api/v1/projects/{project_id}/compliance/profile`
-- `GET /api/v1/projects/{project_id}/compliance/audit`
-
-### Integrations Wizard
-
-The Intake/Connections layer now supports managed connection flows:
-
-- OAuth start and callback scaffolding
-- Encrypted API-key and token storage
-- Connection listing/status/health endpoints
-- MCP server connection and tool discovery stubs
-- Compliance-gated external writes
-
-Endpoints:
-
-- `POST /api/v1/intake/connections/oauth/start`
-- `GET /api/v1/intake/oauth/{connector_type}/callback`
-- `POST /api/v1/intake/connections`
-- `GET /api/v1/intake/connections/{project_id}`
-- `GET /api/v1/intake/connections/{project_id}/{connector_type}/status`
-- `GET /api/v1/intake/connections/{project_id}/{connector_type}/health`
-- `GET /api/v1/intake/connections/{project_id}/mcp/tools`
-
-### Frontend Project OS
-
-The Next.js dashboard at `frontend/` exposes:
-
-- Runtime, graph, compliance, and connection summary cards
-- Multipart document upload panel
-- Graph build panel
-- Orchestrator run panel
-- Compliance profile and audit controls
-- Connections panel with Intake Wizard
-
-Run locally:
+Native development:
 
 ```bash
-cd frontend
-npm install
-npm run dev
-```
-
-### Temporal-Ready Automations
-
-Automation workflows can be created, approved, run locally, and later moved behind Temporal workers:
-
-- Timed reminders
-- Recurring reports
-- Integration sync jobs
-- Human approval gates
-- Run history and local persistence
-- Temporal worker configuration status
-
-Endpoints:
-
-- `POST /api/v1/projects/{project_id}/automations`
-- `GET /api/v1/projects/{project_id}/automations`
-- `POST /api/v1/projects/{project_id}/automations/{automation_id}/run`
-- `POST /api/v1/projects/{project_id}/automations/{automation_id}/retry`
-- `POST /api/v1/projects/{project_id}/automations/{automation_id}/approve`
-- `GET /api/v1/projects/{project_id}/automations/runs`
-- `GET /api/v1/projects/{project_id}/automations/dead-letters`
-- `GET /api/v1/automations/temporal/status`
-- `POST /api/v1/automations/temporal/run-due`
-
-For direct Python execution:
-
-```bash
-python -m venv .venv
-. .venv/bin/activate
 pip install -r requirements.txt
-PYTHONPATH=backend/app uvicorn main:app --reload
+PYTHONPATH=backend/app uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+cd frontend && npm install && npm run dev
 ```
 
-## 6. Parallel Development Instructions
+Tests: `PYTHONPATH=backend/app python3 -m unittest discover -s backend/app/tests` (72 tests)
 
-- **Cursor:** Final integration, local running, git.
-- **Claude:** Deep agent logic and LangGraph.
-- **Grok:** Master framework coordination.
-- **Lovable:** Rapid full-stack UI and basic backend generation.
-- **Manus:** Autonomous tests for OAuth flows, MCP connectors, and ingestion.
+## What ships today
 
-Next component priority: Phase 1 PDF ingestion parser.
+- **Ingestion** — PDF, email, mbox, Office (DOCX/XLSX/PPTX), image OCR, nested attachments
+- **Graph** — Neo4j with in-memory fallback, bootstrap/migrations, enrich, node/edge CRUD, orphan cleanup
+- **Orchestrator** — five specialist agents, checkpoints, run history, resume; optional LangGraph with conditional branching
+- **Compliance** — standard/HIPAA/legal/SOC2/GDPR profiles, redaction, audit trail
+- **Integrations** — OAuth PKCE, encrypted API keys, MCP HTTP discovery, connection health UI
+- **Automations** — scheduling, Temporal worker, approvals, dead letters, optional Schedule sync
+- **Frontend** — editable React Flow graph, timeline/Gantt, workbench, orchestrator artifacts, automation controls
+
+## Repository layout
+
+```text
+backend/app/          FastAPI services (ingestion, graph, agents, compliance, integrations, automations)
+frontend/             Next.js 15 dashboard
+docs/                 Status, roadmap, API reference, architecture
+docker-compose.yml    Full stack (backend, frontend, worker, temporal, neo4j, postgres)
+PROJECTFORGE_V14.md   Agent handoff brief (vision + conventions)
+```
+
+## Key environment flags
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `USE_LANGGRAPH_ORCHESTRATOR` | `false` | LangGraph StateGraph execution |
+| `USE_LANGGRAPH_BRANCHING` | `true` | Conditional specialist routing after intake |
+| `OAUTH_MOCK_TOKEN_EXCHANGE` | `true` | Mock OAuth tokens in dev |
+| `TEMPORAL_SYNC_SCHEDULES` | `false` | Register Temporal Schedule API jobs |
+| `NEO4J_BOOTSTRAP_ON_CONNECT` | `true` | Apply graph schema migrations on connect |
+| `IMAGE_OCR_ENABLED` | `true` | Tesseract OCR for images |
+
+See `.env.example` for Locus/OMPA paths, OAuth client IDs, and Temporal settings.
+
+## Documentation
+
+| Doc | Purpose |
+|-----|---------|
+| [docs/STATUS.md](docs/STATUS.md) | Current implementation snapshot and verification |
+| [docs/NEXT_SPRINTS.md](docs/NEXT_SPRINTS.md) | Phase roadmap and sprint backlog |
+| [docs/API.md](docs/API.md) | REST endpoint reference |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design and data flow |
+| [PROJECTFORGE_V14.md](PROJECTFORGE_V14.md) | Full agent handoff for parallel development |
+| [frontend/README.md](frontend/README.md) | Dashboard development notes |
+
+## Branch chain
+
+```text
+main
+ └── cursor/projectforge-v14-framework-ebb0
+      └── cursor/graph-editing-scheduling-ebb0
+           └── cursor/neo4j-edges-attachments-ebb0
+                └── cursor/sprint345-hardening-ebb0
+                     └── cursor/docs-phase3-ebb0   ← active
+```

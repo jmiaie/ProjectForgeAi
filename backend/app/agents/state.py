@@ -37,6 +37,7 @@ class OrchestratorRun(BaseModel):
     completed_at: str | None = None
     steps: list[AgentStep] = Field(default_factory=list)
     artifacts: dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
     warnings: list[str] = Field(default_factory=list)
 
     def complete(self) -> None:
