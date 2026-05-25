@@ -25,7 +25,7 @@ PYTHONPATH=backend/app uvicorn main:app --reload --host 0.0.0.0 --port 8000
 cd frontend && npm install && npm run dev
 ```
 
-Tests: `PYTHONPATH=backend/app python3 -m unittest discover -s backend/app/tests` (100 tests)
+Tests: `PYTHONPATH=backend/app python3 -m unittest discover -s backend/app/tests` (107 tests)
 
 ## What ships today
 
@@ -56,8 +56,10 @@ PROJECTFORGE_V14.md   Agent handoff brief (vision + conventions)
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `USE_LANGGRAPH_ORCHESTRATOR` | `false` | LangGraph StateGraph execution |
+| `USE_LANGGRAPH_BRANCHING` | `true` | Conditional specialist routing after intake |
+| `RBAC_ENFORCE` | `false` | Enforce project role permissions |
 | `PROJECT_TIER` | `starter` | Feature tier (`starter`, `pro`, `enterprise`) |
-| `PROJECT_TIER` | `starter` | Feature tier (`starter`, `pro`, `enterprise`) |
+| `FLAGSHIP_LLM_MODEL` | `anthropic/claude-3-5-sonnet-20241022` | Flagship model for pro+ routing |
 | `OAUTH_MOCK_TOKEN_EXCHANGE` | `true` | Mock OAuth tokens in dev |
 | `TEMPORAL_SYNC_SCHEDULES` | `false` | Register Temporal Schedule API jobs |
 | `NEO4J_BOOTSTRAP_ON_CONNECT` | `true` | Apply graph schema migrations on connect |
