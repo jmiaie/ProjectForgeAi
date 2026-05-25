@@ -17,6 +17,7 @@ class ConnectorRegistry:
         "github": {"type": "oauth"},
         "jira": {"type": "api_key"},
         "mcp_server": {"type": "mcp", "description": "Any MCP server"},
+        "webhook": {"type": "webhook", "description": "Outbound webhook endpoint"},
     }
 
     @classmethod
@@ -37,6 +38,10 @@ class ConnectorRegistry:
             from integrations.connectors.oauth import APIKeyConnector
 
             return APIKeyConnector(name, config)
+        if config["type"] == "webhook":
+            from integrations.connectors.webhook import WebhookConnector
+
+            return WebhookConnector(name, config)
 
         raise ValueError(f"Unsupported connector type: {config['type']}")
 

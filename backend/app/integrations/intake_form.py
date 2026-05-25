@@ -19,6 +19,14 @@ class OAuthStartRequest(BaseModel):
     redirect_uri: str | None = None
 
 
+class WebhookRegisterRequest(BaseModel):
+    project_id: str
+    webhook_url: str
+    secret: str | None = None
+    events: list[str] = Field(default_factory=lambda: ["project.updated", "automation.completed"])
+    send_test: bool = False
+
+
 def get_integrations_manager() -> IntegrationsManager:
     return IntegrationsManager()
 
@@ -56,6 +64,27 @@ async def oauth_callback(
             connector_type,
             {"code": code, "state": state},
             project_id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+
+
+@router.post("/connections/webhook/register")
+async def register_webhook(
+    data: WebhookRegisterRequest,
+    manager: IntegrationsManager = Depends(get_integrations_manager),
+):
+    try:
+        return await manager.register_webhook(
+            data.project_id,
+            {
+                "webhook_url": data.webhook_url,
+                "secret": data.secret,
+                "events": data.events,
+            },
+            send_test=data.send_test,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

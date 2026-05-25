@@ -25,15 +25,15 @@ PYTHONPATH=backend/app uvicorn main:app --reload --host 0.0.0.0 --port 8000
 cd frontend && npm install && npm run dev
 ```
 
-Tests: `PYTHONPATH=backend/app python3 -m unittest discover -s backend/app/tests` (72 tests)
+Tests: `PYTHONPATH=backend/app python3 -m unittest discover -s backend/app/tests` (80 tests)
 
 ## What ships today
 
 - **Ingestion** — PDF, email, mbox, Office (DOCX/XLSX/PPTX), image OCR, nested attachments
 - **Graph** — Neo4j with in-memory fallback, bootstrap/migrations, enrich, node/edge CRUD, orphan cleanup
-- **Orchestrator** — five specialist agents, checkpoints, run history, resume; optional LangGraph with conditional branching
+- **Orchestrator** — five specialist agents, checkpoints, run history, resume; optional LangGraph with conditional branching; orchestrator audit trail
 - **Compliance** — standard/HIPAA/legal/SOC2/GDPR profiles, redaction, audit trail
-- **Integrations** — OAuth PKCE, encrypted API keys, MCP HTTP discovery, connection health UI
+- **Integrations** — OAuth PKCE (production credential gate), encrypted API keys, MCP HTTP/SSE/stdio discovery, webhook connector, connection health UI
 - **Automations** — scheduling, Temporal worker, approvals, dead letters, optional Schedule sync
 - **Frontend** — editable React Flow graph, timeline/Gantt, workbench, orchestrator artifacts, automation controls
 
@@ -79,5 +79,6 @@ main
       └── cursor/graph-editing-scheduling-ebb0
            └── cursor/neo4j-edges-attachments-ebb0
                 └── cursor/sprint345-hardening-ebb0
-                     └── cursor/docs-phase3-ebb0   ← active
+                     └── cursor/docs-phase3-ebb0
+                          └── cursor/sprint9-10-integrations-ci-ebb0   ← active
 ```

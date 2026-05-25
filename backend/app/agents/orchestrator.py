@@ -1,5 +1,6 @@
 from typing import Any
 
+from agents.audit import OrchestratorAuditStore
 from agents.langgraph_runner import run_langgraph_orchestrator
 from agents.run_store import OrchestratorRunStore
 from agents.state import AgentStep, OrchestratorRequest, OrchestratorRun, OrchestratorStatus
@@ -21,8 +22,10 @@ class OrchestratorAgent:
         self,
         run_store: OrchestratorRunStore | None = None,
         tool_context_factory=None,
+        audit_store: OrchestratorAuditStore | None = None,
     ):
         self.run_store = run_store or OrchestratorRunStore()
+        self.audit_store = audit_store or OrchestratorAuditStore()
         self.tool_context_factory = tool_context_factory or (
             lambda project_id: OrchestratorToolContext(project_id)
         )
@@ -31,11 +34,19 @@ class OrchestratorAgent:
         sequence = request.requested_agents or DEFAULT_AGENT_SEQUENCE
         run = self._load_or_create_run(request)
 
+        self._audit(
+            run,
+            "run_started",
+            f"Orchestrator run started for goal: {request.goal}",
+            {"resume": request.resume, "requested_agents": sequence},
+        )
+
         if request.resume and run.steps:
             completed = {step.name for step in run.steps if step.status == OrchestratorStatus.COMPLETED}
             sequence = [name for name in sequence if name not in completed]
 
         tools = self.tool_context_factory(request.project_id)
+        steps_before = len(run.steps)
 
         if settings.USE_LANGGRAPH_ORCHESTRATOR:
             run = await run_langgraph_orchestrator(
@@ -46,6 +57,13 @@ class OrchestratorAgent:
                 self.run_store.write_checkpoint,
                 branching=settings.USE_LANGGRAPH_BRANCHING,
             )
+            for step in run.steps[steps_before:]:
+                self._audit(
+                    run,
+                    "step_completed",
+                    f"{step.name}: {step.summary}",
+                    {"agent": step.name},
+                )
         else:
             for agent_name in sequence:
                 step = await self._run_agent_step(agent_name, request.goal, tools)
@@ -53,13 +71,55 @@ class OrchestratorAgent:
                 if step.output.get("warning"):
                     run.warnings.append(step.output["warning"])
                 self.run_store.write_checkpoint(run)
+                self._audit(
+                    run,
+                    "step_completed",
+                    f"{agent_name}: {step.summary}",
+                    {"agent": agent_name},
+                )
+
+        if run.metadata.get("branch_path"):
+            self._audit(
+                run,
+                "branch_selected",
+                f"LangGraph branch path: {run.metadata['branch_path']}",
+                {"branch_path": run.metadata["branch_path"]},
+            )
 
         await tools.record_decision(
             f"Orchestrator {run.run_id} completed {len(run.steps)} steps for {request.project_id}: {request.goal}"
         )
         run.artifacts = self._compile_artifacts(run)
         run.complete()
+        self._audit(
+            run,
+            "run_completed",
+            f"Orchestrator run completed with {len(run.steps)} steps",
+            {"step_count": len(run.steps), "warnings": run.warnings},
+        )
         return self.run_store.write(run)
+
+    def audit_events(self, project_id: str, run_id: str | None = None, limit: int = 100) -> dict[str, Any]:
+        return {
+            "project_id": project_id,
+            "run_id": run_id,
+            "events": self.audit_store.list_events(project_id, run_id, limit),
+        }
+
+    def _audit(
+        self,
+        run: OrchestratorRun,
+        event_type: str,
+        message: str,
+        metadata: dict[str, Any] | None = None,
+    ) -> None:
+        self.audit_store.record(
+            project_id=run.project_id,
+            run_id=run.run_id,
+            event_type=event_type,
+            message=message,
+            metadata=metadata,
+        )
 
     def status(self, project_id: str, run_id: str | None = None) -> dict[str, Any]:
         run = self.run_store.read(project_id, run_id)

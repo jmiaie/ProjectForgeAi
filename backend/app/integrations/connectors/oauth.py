@@ -16,6 +16,7 @@ class OAuthConnector:
         self.state_store = OAuthStateStore()
 
     def start(self, project_id: str | None = None, redirect_uri: str | None = None) -> dict:
+        require_oauth_credentials(self.name)
         state = secrets.token_urlsafe(24)
         code_verifier = secrets.token_urlsafe(48)
         code_challenge = _pkce_challenge(code_verifier)
@@ -150,6 +151,28 @@ def _client_secret(connector_name: str) -> str | None:
     return mapping.get(connector_name)
 
 
+def oauth_credentials_configured(connector_name: str) -> bool:
+    client_id = _client_id(connector_name)
+    client_secret = _client_secret(connector_name)
+    return bool(
+        client_id
+        and client_secret
+        and not client_id.endswith("_placeholder")
+        and client_secret.strip()
+    )
+
+
+def require_oauth_credentials(connector_name: str) -> None:
+    if settings.OAUTH_MOCK_TOKEN_EXCHANGE:
+        return
+    if not oauth_credentials_configured(connector_name):
+        raise ValueError(
+            f"{connector_name} OAuth credentials are not configured. "
+            f"Set {connector_name.upper()}_OAUTH_CLIENT_ID and "
+            f"{connector_name.upper()}_OAUTH_CLIENT_SECRET, or enable OAUTH_MOCK_TOKEN_EXCHANGE."
+        )
+
+
 def _token_url(provider: str) -> str:
     if provider == "google":
         return "https://oauth2.googleapis.com/token"
@@ -172,13 +195,17 @@ async def _exchange_token(
 ) -> dict:
     client_id = _client_id(connector_name)
     client_secret = _client_secret(connector_name)
-    if settings.OAUTH_MOCK_TOKEN_EXCHANGE or not client_secret or client_id.endswith("_placeholder"):
+    if settings.OAUTH_MOCK_TOKEN_EXCHANGE:
         return {
             "access_token": f"mock_access_{code[:12]}",
             "refresh_token": f"mock_refresh_{code[:12]}",
             "token_type": "Bearer",
             "expires_in": 3600,
         }
+    if not oauth_credentials_configured(connector_name):
+        raise ValueError(
+            f"{connector_name} OAuth credentials are not configured for production token exchange"
+        )
 
     data = {
         "grant_type": "authorization_code",

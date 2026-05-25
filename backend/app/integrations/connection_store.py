@@ -68,7 +68,7 @@ def _fernet_key(raw_key: str) -> bytes:
 def _safe_summary(connection: dict[str, Any]) -> dict[str, Any]:
     safe = {}
     for key, value in connection.items():
-        if key.lower() in {"token", "access_token", "refresh_token", "api_key", "client_secret", "client"}:
+        if key.lower() in {"token", "access_token", "refresh_token", "api_key", "client_secret", "client", "secret"}:
             continue
         safe[key] = value
     return safe

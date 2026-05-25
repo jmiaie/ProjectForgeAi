@@ -1,14 +1,16 @@
 # ProjectForge AI v14 — Status
 
-Last updated: Phase 3 kickoff on branch `cursor/docs-phase3-ebb0`.
+Last updated: Sprint 9–10 complete on branch `cursor/sprint9-10-integrations-ci-ebb0`.
 
 ## Verification
 
 ```bash
-PYTHONPATH=backend/app python3 -m unittest discover -s backend/app/tests   # 72 tests
+PYTHONPATH=backend/app python3 -m unittest discover -s backend/app/tests   # 80 tests (Neo4j smoke skips without bolt)
 cd frontend && npm run typecheck
 curl http://localhost:8000/health
 ```
+
+CI: `.github/workflows/ci.yml` runs backend tests with Neo4j service + frontend typecheck.
 
 ## Backend modules
 

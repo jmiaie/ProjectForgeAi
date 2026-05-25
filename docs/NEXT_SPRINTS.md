@@ -1,6 +1,6 @@
 # ProjectForge AI — Roadmap
 
-Phases are ordered by dependency. Sprints 1–7 (Phase 1–2) are **complete** unless noted.
+Phases are ordered by dependency. Sprints 1–7 (Phase 1–2) are **complete**.
 
 ## Phase 1–2 (complete)
 
@@ -14,34 +14,31 @@ Phases are ordered by dependency. Sprints 1–7 (Phase 1–2) are **complete** u
 | 6 Frontend | Dashboard, editable graph, timeline, workbench, panels | Done |
 | 7 Temporal | Worker, scheduling, approvals, dead letters, Schedule sync | Done |
 
-Phase 2 extras delivered: LangGraph sequential runner, editable timeline dates, graph DEPENDS_ON/RELATES_TO linking.
+Phase 2 extras: LangGraph sequential + branching, editable timeline dates, graph linking.
 
 ---
 
 ## Phase 3 — Production depth (active)
 
-### Sprint 8: LangGraph branching
+### Sprint 8: LangGraph branching — Done
 
-**Status:** In progress. Conditional routing after intake based on goal keywords and graph density.
+- Conditional routing (`standard`, `compliance_first`, `risk_heavy`) — **Done**
+- Branch path in run metadata, artifacts, and run history API — **Done**
+- Orchestrator audit events (separate from compliance audit) — **Done**
 
-- Sequential StateGraph runner — **Done**
-- Router node with `compliance_first`, `risk_heavy`, `standard` paths — **Done (Phase 3 kickoff)**
-- Orchestrator audit events separate from compliance audit — **Next**
-- Expose branch decision in run artifacts / API — **Next**
+### Sprint 9: Integrations hardening — Done
 
-### Sprint 9: Integrations hardening
+- Production OAuth credential gate when mock exchange disabled — **Done**
+- MCP Python SDK transport (SSE + stdio) with HTTP fallback — **Done**
+- Webhook connector + `POST /intake/connections/webhook/register` — **Done**
 
-- Real Google/Microsoft OAuth credentials; disable `OAUTH_MOCK_TOKEN_EXCHANGE` — **Next**
-- Live MCP Python SDK transport (stdio/SSE) alongside HTTP fallback — **Next**
-- Webhook connector type in registry — **Next**
+### Sprint 10: Timeline & CI — Done
 
-### Sprint 10: Timeline & CI
+- Gantt bars from `start_date` / `due_date` — **Done**
+- GitHub Actions CI (backend tests + Neo4j bootstrap smoke) — **Done**
+- Graph schema version bump workflow — **Next** (manual bump in `graph/bootstrap.py`)
 
-- Gantt bars computed from `start_date` / `due_date` on graph nodes — **In progress**
-- Neo4j migration smoke test in CI (GitHub Actions) — **Next**
-- Graph schema version bump workflow — **Next**
-
-### Sprint 11: Enterprise controls
+### Sprint 11: Enterprise controls (next)
 
 - RBAC scaffolding for project-scoped actions
 - Self-improver / upgrade manager gates wired to compliance category
@@ -58,20 +55,11 @@ Phase 2 extras delivered: LangGraph sequential runner, editable timeline dates, 
 
 ---
 
-## Parallel agent assignments
-
-| Agent | Focus |
-|-------|-------|
-| Cursor | Integration, git, CI, frontend polish |
-| Claude | LangGraph depth, specialist agent logic |
-| Lovable | Dashboard UX, templates, Gantt |
-| Manus | OAuth/MCP E2E tests, ingestion smoke |
-
 ## Immediate next actions
 
-1. Finish Gantt date-based bar layout in `TimelinePanel`
-2. Wire orchestrator branch metadata into run API response
-3. Add webhook connector stub + intake form route
-4. CI job: `unittest` + Neo4j bootstrap smoke on push
+1. RBAC scaffolding (Sprint 11)
+2. Orchestrator audit panel in frontend
+3. Webhook test delivery UI in ConnectionsPanel
+4. Graph schema version bump automation in CI
 
-See [STATUS.md](STATUS.md) for verification commands and [API.md](API.md) for endpoints.
+See [STATUS.md](STATUS.md) and [API.md](API.md).

@@ -367,6 +367,16 @@ async def orchestrator_runs(
     return orchestrator.list_runs(project_id, limit)
 
 
+@app.get("/api/v1/projects/{project_id}/orchestrator/audit")
+async def orchestrator_audit(
+    project_id: str,
+    run_id: str | None = None,
+    limit: int = 100,
+    orchestrator: OrchestratorAgent = Depends(get_orchestrator_agent),
+):
+    return orchestrator.audit_events(project_id, run_id, limit)
+
+
 @app.post("/api/v1/projects/{project_id}/automations")
 async def create_automation(
     project_id: str,

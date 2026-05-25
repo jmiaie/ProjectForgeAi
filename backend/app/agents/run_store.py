@@ -56,6 +56,7 @@ class OrchestratorRunStore:
                     "created_at": payload.get("created_at"),
                     "completed_at": payload.get("completed_at"),
                     "step_count": len(payload.get("steps", [])),
+                    "branch_path": (payload.get("metadata") or {}).get("branch_path"),
                 }
             )
             if len(runs) >= limit:

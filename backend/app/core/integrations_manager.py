@@ -92,10 +92,25 @@ class IntegrationsManager:
             raise ValueError(f"{connector_type} does not support MCP tool discovery")
         return {"project_id": project_id, **await discover(secret)}
 
+    async def register_webhook(
+        self,
+        project_id: str,
+        auth_data: dict,
+        *,
+        send_test: bool = False,
+    ) -> dict:
+        result = await self.connect("webhook", auth_data, project_id)
+        if send_test:
+            connector = ConnectorRegistry.get_connector("webhook")
+            secret = self.connection_store.load_secret(project_id, "webhook")
+            test_result = await connector.deliver_test(secret)
+            result["test_delivery"] = test_result
+        return result
+
 
 def _safe_connection_summary(connection: dict) -> dict:
     return {
         key: value
         for key, value in connection.items()
-        if key.lower() not in {"token", "access_token", "refresh_token", "api_key", "client_secret", "client"}
+        if key.lower() not in {"token", "access_token", "refresh_token", "api_key", "client_secret", "client", "secret"}
     }

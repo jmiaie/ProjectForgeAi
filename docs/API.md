@@ -43,7 +43,8 @@ Base URL: `http://localhost:8000` (or `BACKEND_BASE_URL`).
 |--------|------|-------------|
 | POST | `/api/v1/orchestrator/run` | Run specialist workflow (`resume`, `requested_agents` optional) |
 | GET | `/api/v1/projects/{project_id}/orchestrator/status` | Latest or specific run status |
-| GET | `/api/v1/projects/{project_id}/orchestrator/runs` | Run history |
+| GET | `/api/v1/projects/{project_id}/orchestrator/runs` | Run history (includes `branch_path`) |
+| GET | `/api/v1/projects/{project_id}/orchestrator/audit` | Orchestrator audit events |
 
 ## Compliance
 
@@ -67,6 +68,12 @@ Prefix: `/api/v1/intake`
 | GET | `/connections/{project_id}/{connector_type}/status` | Connection status |
 | GET | `/connections/{project_id}/{connector_type}/health` | Live health check |
 | GET | `/connections/{project_id}/mcp/tools` | MCP tool discovery |
+
+### Webhooks
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/connections/webhook/register` | Register outbound webhook (`webhook_url`, `events`, optional `send_test`) |
 
 ## Automations
 
