@@ -1,0 +1,40 @@
+# On-prem / air-gapped production overlay for ProjectForge AI v14
+#
+# Usage:
+#   cp deploy/onprem/.env.prod.example .env
+#   docker compose -f docker-compose.yml -f deploy/onprem/docker-compose.prod.yml up -d
+
+services:
+  backend:
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DEPLOYMENT_MODE: onprem
+      PROJECT_TIER: enterprise
+      RBAC_ENFORCE: "true"
+      OAUTH_MOCK_TOKEN_EXCHANGE: "false"
+      REQUIRE_NATIVE_NEO4J: "false"
+      NEO4J_BOOTSTRAP_ON_CONNECT: "true"
+    command: >
+      sh -c "pip install --no-cache-dir -r /workspace/requirements.txt &&
+             uvicorn main:app --host 0.0.0.0 --port 8000 --workers 2"
+
+  frontend:
+    restart: unless-stopped
+    command: >
+      sh -c "npm install &&
+             npm run build &&
+             npm run start -- --hostname 0.0.0.0 --port 3000"
+
+  automation-worker:
+    restart: unless-stopped
+
+  postgres:
+    restart: unless-stopped
+
+  neo4j:
+    restart: unless-stopped
+
+  temporal:
+    restart: unless-stopped

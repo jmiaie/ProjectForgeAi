@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { apiGet, apiPost, type OrchestratorRun } from '@/lib/api';
+import { apiGet, apiPost, type OrchestratorAuditEvent, type OrchestratorRun } from '@/lib/api';
 import { StatusBadge } from '@/components/StatusBadge';
 
 type OrchestratorRunSummary = {
@@ -11,6 +11,7 @@ type OrchestratorRunSummary = {
   status: string;
   goal: string;
   step_count: number;
+  branch_path?: string;
   created_at?: string;
 };
 
@@ -22,6 +23,7 @@ export function OrchestratorPanel({ projectId }: OrchestratorPanelProps) {
   const [goal, setGoal] = useState('Create project operating plan');
   const [run, setRun] = useState<OrchestratorRun | undefined>();
   const [history, setHistory] = useState<OrchestratorRunSummary[]>([]);
+  const [auditEvents, setAuditEvents] = useState<OrchestratorAuditEvent[]>([]);
   const [error, setError] = useState('');
 
   const loadHistory = async () => {
@@ -39,8 +41,17 @@ export function OrchestratorPanel({ projectId }: OrchestratorPanelProps) {
     }
   };
 
+  const loadAudit = async (runId?: string) => {
+    const query = runId ? `?run_id=${runId}&limit=20` : '?limit=20';
+    const result = await apiGet<{ events: OrchestratorAuditEvent[] }>(
+      `/api/v1/projects/${projectId}/orchestrator/audit${query}`,
+    );
+    setAuditEvents(result.events);
+  };
+
   useEffect(() => {
     loadHistory().catch(() => undefined);
+    loadAudit().catch(() => undefined);
   }, [projectId]);
 
   const runWorkflow = async () => {
@@ -52,6 +63,7 @@ export function OrchestratorPanel({ projectId }: OrchestratorPanelProps) {
       });
       setRun(result);
       await loadHistory();
+      await loadAudit(result.run_id);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to run orchestrator');
     }
@@ -69,6 +81,7 @@ export function OrchestratorPanel({ projectId }: OrchestratorPanelProps) {
       });
       setRun(result);
       await loadHistory();
+      await loadAudit(result.run_id);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to resume orchestrator');
     }
@@ -99,6 +112,9 @@ export function OrchestratorPanel({ projectId }: OrchestratorPanelProps) {
         {error ? <p className="badge badge-warning">{error}</p> : null}
         {run ? (
           <div className="stack">
+            {run.metadata?.branch_path ? (
+              <p className="muted">Branch path: {String(run.metadata.branch_path)}</p>
+            ) : null}
             {run.steps.map((step) => (
               <div className="stat" key={step.name}>
                 <div className="row">
@@ -115,6 +131,17 @@ export function OrchestratorPanel({ projectId }: OrchestratorPanelProps) {
             ) : null}
           </div>
         ) : null}
+        {auditEvents.length ? (
+          <div className="stack">
+            <div className="eyebrow">Orchestrator audit</div>
+            {auditEvents.map((event) => (
+              <div className="stat" key={event.id}>
+                <strong>{event.event_type.replace('_', ' ')}</strong>
+                <p className="muted">{event.message}</p>
+              </div>
+            ))}
+          </div>
+        ) : null}
         {history.length ? (
           <div className="stack">
             <div className="eyebrow">Recent runs</div>
@@ -122,7 +149,8 @@ export function OrchestratorPanel({ projectId }: OrchestratorPanelProps) {
               <div className="stat" key={entry.run_id}>
                 <strong>{entry.run_id}</strong>
                 <p className="muted">
-                  {entry.status} · {entry.step_count} step(s) · {entry.goal}
+                  {entry.status} · {entry.step_count} step(s)
+                  {entry.branch_path ? ` · ${entry.branch_path}` : ''} · {entry.goal}
                 </p>
               </div>
             ))}

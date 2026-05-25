@@ -25,7 +25,7 @@ PYTHONPATH=backend/app uvicorn main:app --reload --host 0.0.0.0 --port 8000
 cd frontend && npm install && npm run dev
 ```
 
-Tests: `PYTHONPATH=backend/app python3 -m unittest discover -s backend/app/tests` (80 tests)
+Tests: `PYTHONPATH=backend/app python3 -m unittest discover -s backend/app/tests` (88 tests)
 
 ## What ships today
 
@@ -34,6 +34,7 @@ Tests: `PYTHONPATH=backend/app python3 -m unittest discover -s backend/app/tests
 - **Orchestrator** — five specialist agents, checkpoints, run history, resume; optional LangGraph with conditional branching; orchestrator audit trail
 - **Compliance** — standard/HIPAA/legal/SOC2/GDPR profiles, redaction, audit trail
 - **Integrations** — OAuth PKCE (production credential gate), encrypted API keys, MCP HTTP/SSE/stdio discovery, webhook connector, connection health UI
+- **Enterprise** — RBAC scaffolding, upgrade manager, on-prem Compose overlay, self-improvement gate
 - **Automations** — scheduling, Temporal worker, approvals, dead letters, optional Schedule sync
 - **Frontend** — editable React Flow graph, timeline/Gantt, workbench, orchestrator artifacts, automation controls
 
@@ -52,7 +53,8 @@ PROJECTFORGE_V14.md   Agent handoff brief (vision + conventions)
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `USE_LANGGRAPH_ORCHESTRATOR` | `false` | LangGraph StateGraph execution |
-| `USE_LANGGRAPH_BRANCHING` | `true` | Conditional specialist routing after intake |
+| `RBAC_ENFORCE` | `false` | Enforce project role permissions |
+| `PROJECT_TIER` | `starter` | Feature tier (`starter`, `pro`, `enterprise`) |
 | `OAUTH_MOCK_TOKEN_EXCHANGE` | `true` | Mock OAuth tokens in dev |
 | `TEMPORAL_SYNC_SCHEDULES` | `false` | Register Temporal Schedule API jobs |
 | `NEO4J_BOOTSTRAP_ON_CONNECT` | `true` | Apply graph schema migrations on connect |
@@ -80,5 +82,6 @@ main
            └── cursor/neo4j-edges-attachments-ebb0
                 └── cursor/sprint345-hardening-ebb0
                      └── cursor/docs-phase3-ebb0
-                          └── cursor/sprint9-10-integrations-ci-ebb0   ← active
+                          └── cursor/sprint9-10-integrations-ci-ebb0
+                               └── cursor/sprint11-enterprise-ebb0   ← active
 ```

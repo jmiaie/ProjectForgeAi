@@ -143,6 +143,9 @@ class ComplianceEnforcer:
         if action == "memory_write" and not profile.allow_memory_writes:
             allowed = False
             reason = f"{profile.category} profile blocks ungated memory writes"
+        elif action == "self_learning" and not profile.allow_self_learning:
+            allowed = False
+            reason = f"{profile.category} profile blocks self-learning and adaptive improvements"
         elif action == "external_write" and profile.require_human_approval_for_external_writes:
             allowed = False
             reason = f"{profile.category} profile requires human approval for external writes"

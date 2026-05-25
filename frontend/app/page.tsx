@@ -1,3 +1,4 @@
+import { AccessPanel } from '@/components/AccessPanel';
 import { AutomationsPanel } from '@/components/AutomationsPanel';
 import { CompliancePanel } from '@/components/CompliancePanel';
 import { ConnectionsPanel } from '@/components/ConnectionsPanel';
@@ -70,6 +71,7 @@ export default async function Home({
             <OrchestratorPanel projectId={projectId} />
             <CompliancePanel projectId={projectId} initialProfile={compliance} />
           </div>
+          <AccessPanel projectId={projectId} />
           <WorkbenchPanel projectId={projectId} />
           <ConnectionsPanel projectId={projectId} initialConnections={connections?.connections ?? []} />
           <AutomationsPanel projectId={projectId} initialAutomations={automations?.automations ?? []} />

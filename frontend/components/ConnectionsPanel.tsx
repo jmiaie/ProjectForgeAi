@@ -22,6 +22,7 @@ export function ConnectionsPanel({ projectId, initialConnections }: ConnectionsP
   const [connections, setConnections] = useState(initialConnections);
   const [health, setHealth] = useState<Record<string, ConnectionHealth>>({});
   const [mcpTools, setMcpTools] = useState<Array<Record<string, unknown>>>([]);
+  const [webhookUrl, setWebhookUrl] = useState('');
   const [message, setMessage] = useState('');
 
   const refresh = async () => {
@@ -66,13 +67,47 @@ export function ConnectionsPanel({ projectId, initialConnections }: ConnectionsP
     setMessage(`Discovered ${result.tools?.length ?? 0} MCP tool(s).`);
   };
 
+  const registerWebhook = async () => {
+    if (!webhookUrl) {
+      setMessage('Enter a webhook URL first.');
+      return;
+    }
+    const result = await apiPost<{ test_delivery?: { delivered?: boolean } }>(
+      '/api/v1/intake/connections/webhook/register',
+      {
+        project_id: projectId,
+        webhook_url: webhookUrl,
+        events: ['project.updated', 'automation.completed'],
+        send_test: true,
+      },
+    );
+    setMessage(
+      result.test_delivery?.delivered
+        ? 'Webhook registered and test delivery succeeded.'
+        : 'Webhook registered.',
+    );
+    await refresh();
+  };
+
+  const testWebhook = async () => {
+    const result = await apiPost<{ test_delivery?: { delivered?: boolean; status_code?: number } }>(
+      `/api/v1/intake/connections/${projectId}/webhook/test`,
+      {},
+    );
+    setMessage(
+      `Webhook test: HTTP ${result.test_delivery?.status_code ?? 'unknown'} · delivered=${String(result.test_delivery?.delivered)}`,
+    );
+  };
+
+  const hasWebhook = connections.some((connection) => connection.connector_type === 'webhook');
+
   return (
     <Card className="panel">
       <div className="panel-header">
         <div>
           <div className="eyebrow">Tooling</div>
           <h2>Connections</h2>
-          <p className="muted">OAuth, API-key, and MCP connections with encrypted credentials.</p>
+          <p className="muted">OAuth, API-key, MCP, and webhook connections with encrypted credentials.</p>
         </div>
         <div className="row">
           <Button variant="outline" onClick={refresh}>Refresh</Button>
@@ -81,6 +116,21 @@ export function ConnectionsPanel({ projectId, initialConnections }: ConnectionsP
         </div>
       </div>
       <div className="stack">
+        <div className="stack">
+          <div className="eyebrow">Webhook</div>
+          <div className="button-row">
+            <input
+              className="input"
+              placeholder="https://hooks.example.com/projectforge"
+              value={webhookUrl}
+              onChange={(event) => setWebhookUrl(event.target.value)}
+            />
+            <Button variant="outline" onClick={registerWebhook}>Register + test</Button>
+            {hasWebhook ? (
+              <Button variant="outline" onClick={testWebhook}>Send test</Button>
+            ) : null}
+          </div>
+        </div>
         {connections.length ? (
           connections.map((connection) => (
             <div className="stat" key={connection.connector_type}>

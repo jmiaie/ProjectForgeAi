@@ -8,9 +8,12 @@ from automations.models import AutomationDefinition, AutomationSchedule, Automat
 from automations.service import AutomationService
 from automations.temporal_worker import run_due_automations, temporal_worker_settings
 from compliance.enforcer import ComplianceEnforcer
+from core.access_deps import get_actor_context, get_rbac_service, require_permission
 from core.config import settings
 from core.integrations_manager import IntegrationsManager
 from core.llm_router import LLMRouter
+from core.rbac import ActorContext, RBACService
+from core.upgrade_manager import UpgradeManager
 from graph.builder import ProjectGraphBuilder
 from graph.enricher import GraphEnrichmentService
 from graph.models import EdgeType, NodeLabel
@@ -64,6 +67,15 @@ class WorkbenchQueryRequest(BaseModel):
 
 class EnrichGraphRequest(BaseModel):
     use_llm: bool = False
+
+
+class AssignMemberRequest(BaseModel):
+    actor_id: str
+    role: str = Field(..., examples=["viewer", "editor", "admin", "owner"])
+
+
+class SelfImproveRequest(BaseModel):
+    goal: str = "Analyze project outcomes and propose improvements"
 
 
 class CreateGraphNodeRequest(BaseModel):
@@ -122,6 +134,92 @@ def get_graph_mutation_service() -> GraphMutationService:
     return GraphMutationService()
 
 
+def get_upgrade_manager() -> UpgradeManager:
+    return UpgradeManager()
+
+
+@app.get("/api/v1/projects/{project_id}/access/members")
+async def list_project_members(
+    project_id: str,
+    _: ActorContext = Depends(require_permission("access.manage")),
+    rbac: RBACService = Depends(get_rbac_service),
+):
+    return {"project_id": project_id, "members": rbac.list_members(project_id)}
+
+
+@app.post("/api/v1/projects/{project_id}/access/members")
+async def assign_project_member(
+    project_id: str,
+    request: AssignMemberRequest,
+    _: ActorContext = Depends(require_permission("access.manage")),
+    rbac: RBACService = Depends(get_rbac_service),
+):
+    try:
+        member = rbac.assign_member(project_id, request.actor_id, request.role)
+    except ValueError as exc:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"project_id": project_id, "member": member}
+
+
+@app.get("/api/v1/projects/{project_id}/access/check")
+async def check_project_access(
+    project_id: str,
+    action: str,
+    actor: ActorContext = Depends(get_actor_context),
+    rbac: RBACService = Depends(get_rbac_service),
+):
+    decision = rbac.check(project_id, actor, action)
+    return {
+        "project_id": project_id,
+        "action": action,
+        "allowed": decision.allowed,
+        "reason": decision.reason,
+        "role": decision.role,
+        "actor": actor.as_dict(),
+    }
+
+
+@app.get("/api/v1/projects/{project_id}/upgrade/status")
+async def upgrade_status(
+    project_id: str,
+    _: ActorContext = Depends(require_permission("project.read")),
+    upgrade: UpgradeManager = Depends(get_upgrade_manager),
+):
+    return upgrade.feature_status(project_id)
+
+
+@app.post("/api/v1/projects/{project_id}/upgrade/self-improve")
+async def run_self_improvement(
+    project_id: str,
+    request: SelfImproveRequest,
+    actor: ActorContext = Depends(require_permission("self_learning.run")),
+    upgrade: UpgradeManager = Depends(get_upgrade_manager),
+    compliance: ComplianceEnforcer = Depends(get_compliance_enforcer),
+    orchestrator: OrchestratorAgent = Depends(get_orchestrator_agent),
+):
+    upgrade.require_feature(project_id, "self_learning")
+    compliance_decision = compliance.check_action(project_id, "self_learning", payload={"goal": request.goal})
+    if not compliance_decision.allowed:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=403, detail=compliance_decision.reason)
+
+    result = await orchestrator.run(
+        OrchestratorRequest(
+            project_id=project_id,
+            goal=f"[self-improve] {request.goal}",
+            requested_agents=["intake_analyst", "risk_analyst", "template_generator"],
+        )
+    )
+    return {
+        "project_id": project_id,
+        "actor": actor.as_dict(),
+        "self_improvement": result,
+    }
+
+
 @app.post("/api/v1/projects/")
 async def create_project(
     request: CreateProjectRequest,
@@ -173,6 +271,9 @@ async def health():
     return {
         "status": "healthy",
         "llm_default": settings.DEFAULT_LLM_MODEL,
+        "deployment_mode": settings.DEPLOYMENT_MODE,
+        "project_tier": settings.PROJECT_TIER,
+        "rbac_enforce": settings.RBAC_ENFORCE,
         "storage": storage,
     }
 
@@ -194,6 +295,7 @@ async def compliance_profile(
 async def set_compliance_profile(
     project_id: str,
     request: SetComplianceProfileRequest,
+    _: ActorContext = Depends(require_permission("compliance.set")),
     compliance: ComplianceEnforcer = Depends(get_compliance_enforcer),
 ):
     return compliance.set_profile(project_id, request.category).as_dict()
@@ -243,8 +345,12 @@ async def bootstrap_graph_storage(
 async def enrich_project_graph(
     project_id: str,
     request: EnrichGraphRequest,
+    _: ActorContext = Depends(require_permission("graph.write")),
     enrichment: GraphEnrichmentService = Depends(get_graph_enrichment_service),
+    upgrade: UpgradeManager = Depends(get_upgrade_manager),
 ):
+    if request.use_llm:
+        upgrade.require_feature(project_id, "graph_enrichment_llm")
     return await enrichment.enrich(project_id, use_llm=request.use_llm)
 
 
@@ -252,6 +358,7 @@ async def enrich_project_graph(
 async def create_graph_node(
     project_id: str,
     request: CreateGraphNodeRequest,
+    _: ActorContext = Depends(require_permission("graph.write")),
     mutations: GraphMutationService = Depends(get_graph_mutation_service),
 ):
     try:
@@ -267,6 +374,7 @@ async def update_graph_node(
     project_id: str,
     node_id: str,
     request: UpdateGraphNodeRequest,
+    _: ActorContext = Depends(require_permission("graph.write")),
     mutations: GraphMutationService = Depends(get_graph_mutation_service),
 ):
     try:
@@ -281,6 +389,7 @@ async def update_graph_node(
 async def delete_graph_node(
     project_id: str,
     node_id: str,
+    _: ActorContext = Depends(require_permission("graph.write")),
     mutations: GraphMutationService = Depends(get_graph_mutation_service),
 ):
     try:
@@ -295,6 +404,7 @@ async def delete_graph_node(
 async def create_graph_edge(
     project_id: str,
     request: CreateGraphEdgeRequest,
+    _: ActorContext = Depends(require_permission("graph.write")),
     mutations: GraphMutationService = Depends(get_graph_mutation_service),
 ):
     try:
@@ -317,6 +427,7 @@ async def delete_graph_edge(
     source_id: str,
     target_id: str,
     edge_type: EdgeType = EdgeType.DEPENDS_ON,
+    _: ActorContext = Depends(require_permission("graph.write")),
     mutations: GraphMutationService = Depends(get_graph_mutation_service),
 ):
     try:
@@ -344,8 +455,16 @@ async def workbench_query(
 @app.post("/api/v1/orchestrator/run")
 async def run_orchestrator(
     request: OrchestratorRequest,
+    actor: ActorContext = Depends(get_actor_context),
+    rbac: RBACService = Depends(get_rbac_service),
     orchestrator: OrchestratorAgent = Depends(get_orchestrator_agent),
 ):
+    try:
+        rbac.require(request.project_id, actor, "orchestrator.run")
+    except PermissionError as exc:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
     return await orchestrator.run(request)
 
 
@@ -413,6 +532,7 @@ async def approve_automation(
     project_id: str,
     automation_id: str,
     request: ApproveAutomationRequest,
+    _: ActorContext = Depends(require_permission("automations.approve")),
     service: AutomationService = Depends(get_automation_service),
 ):
     return service.approve(project_id, automation_id, request.approved_by)

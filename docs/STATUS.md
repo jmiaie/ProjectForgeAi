@@ -1,16 +1,21 @@
 # ProjectForge AI v14 — Status
 
-Last updated: Sprint 9–10 complete on branch `cursor/sprint9-10-integrations-ci-ebb0`.
+Last updated: Sprint 11 complete on branch `cursor/sprint11-enterprise-ebb0`.
 
 ## Verification
 
 ```bash
-PYTHONPATH=backend/app python3 -m unittest discover -s backend/app/tests   # 80 tests (Neo4j smoke skips without bolt)
+PYTHONPATH=backend/app python3 -m unittest discover -s backend/app/tests   # 88 tests
+python3 scripts/check_graph_schema_version.py
 cd frontend && npm run typecheck
-curl http://localhost:8000/health
 ```
 
-CI: `.github/workflows/ci.yml` runs backend tests with Neo4j service + frontend typecheck.
+## New in Sprint 11
+
+- **RBAC** — project roles (viewer/editor/admin/owner), `RBAC_ENFORCE`, member API, route guards
+- **Upgrade manager** — tier-gated features, compliance-gated self-improvement endpoint
+- **On-prem overlay** — `deploy/onprem/docker-compose.prod.yml`
+- **Frontend** — AccessPanel, orchestrator audit view, webhook register/test UI
 
 ## Backend modules
 

@@ -92,6 +92,19 @@ async def register_webhook(
         raise HTTPException(status_code=403, detail=str(exc)) from exc
 
 
+@router.post("/connections/{project_id}/webhook/test")
+async def test_webhook_delivery(
+    project_id: str,
+    manager: IntegrationsManager = Depends(get_integrations_manager),
+):
+    try:
+        return await manager.test_webhook(project_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+
+
 @router.post("/connections")
 async def run_intake(
     data: ConnectionRequest,

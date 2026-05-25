@@ -50,6 +50,11 @@ class Settings(BaseSettings):
     SLACK_OAUTH_CLIENT_SECRET: str | None = None
     USE_LANGGRAPH_ORCHESTRATOR: bool = False
     USE_LANGGRAPH_BRANCHING: bool = True
+    RBAC_ENFORCE: bool = False
+    RBAC_DEFAULT_ACTOR: str = "dev-user"
+    RBAC_DEFAULT_ROLE: str = "owner"
+    RBAC_MEMBERSHIP_ROOT: str = "./.rbac"
+    PROJECT_TIER: str = "starter"
     IMAGE_OCR_ENABLED: bool = True
     IMAGE_OCR_TIMEOUT_SECONDS: int = 30
     TESSERACT_CMD: str | None = None

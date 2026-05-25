@@ -107,6 +107,14 @@ class IntegrationsManager:
             result["test_delivery"] = test_result
         return result
 
+    async def test_webhook(self, project_id: str) -> dict:
+        secret = self.connection_store.load_secret(project_id, "webhook")
+        if secret is None:
+            raise ValueError("webhook connection not found for project")
+        connector = ConnectorRegistry.get_connector("webhook")
+        delivery = await connector.deliver_test(secret)
+        return {"project_id": project_id, "connector": "webhook", "test_delivery": delivery}
+
 
 def _safe_connection_summary(connection: dict) -> dict:
     return {

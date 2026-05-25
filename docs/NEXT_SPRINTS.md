@@ -1,65 +1,59 @@
 # ProjectForge AI — Roadmap
 
-Phases are ordered by dependency. Sprints 1–7 (Phase 1–2) are **complete**.
+Phases are ordered by dependency. Sprints 1–10 are **complete**.
 
-## Phase 1–2 (complete)
+## Phase 3 (complete)
 
 | Sprint | Scope | Status |
 |--------|-------|--------|
-| 1 Ingestion | PDF, email, mbox, Office, OCR, attachments, upload, manifest | Done |
-| 2 Graph | Schema, Neo4j bootstrap/migrations, enrich, mutations, orphan cleanup | Done |
-| 3 Orchestrator | Specialists, checkpoints, run history, resume, LangGraph runner | Done |
-| 4 Compliance | Profiles, redaction, gates, audit | Done |
-| 5 Integrations | OAuth PKCE, encrypted storage, MCP HTTP discovery, health UI | Done |
-| 6 Frontend | Dashboard, editable graph, timeline, workbench, panels | Done |
-| 7 Temporal | Worker, scheduling, approvals, dead letters, Schedule sync | Done |
-
-Phase 2 extras: LangGraph sequential + branching, editable timeline dates, graph linking.
+| 8 LangGraph branching | Conditional routing, orchestrator audit, branch in API | Done |
+| 9 Integrations | OAuth prod gate, MCP SDK, webhook connector | Done |
+| 10 Timeline & CI | Date-based Gantt, GitHub Actions, schema version check | Done |
+| 11 Enterprise | RBAC, upgrade manager, on-prem overlay, access UI | Done |
 
 ---
 
-## Phase 3 — Production depth (active)
+## Phase 4 — Domain expansion (active)
 
-### Sprint 8: LangGraph branching — Done
+### Sprint 12: Multi-project portfolio
 
-- Conditional routing (`standard`, `compliance_first`, `risk_heavy`) — **Done**
-- Branch path in run metadata, artifacts, and run history API — **Done**
-- Orchestrator audit events (separate from compliance audit) — **Done**
+- Project registry (create/list/archive projects)
+- Portfolio dashboard with cross-project graph summaries
+- Per-project tier and compliance defaults on create
 
-### Sprint 9: Integrations hardening — Done
+### Sprint 13: Ingestion expansion
 
-- Production OAuth credential gate when mock exchange disabled — **Done**
-- MCP Python SDK transport (SSE + stdio) with HTTP fallback — **Done**
-- Webhook connector + `POST /intake/connections/webhook/register` — **Done**
+- CAD/BIM adapter stubs (IFC, DWG metadata)
+- Codebase ingestion (git archive / folder upload)
+- Database connector intake (PostgreSQL read-only schema snapshot)
 
-### Sprint 10: Timeline & CI — Done
+### Sprint 14: LLM & billing
 
-- Gantt bars from `start_date` / `due_date` — **Done**
-- GitHub Actions CI (backend tests + Neo4j bootstrap smoke) — **Done**
-- Graph schema version bump workflow — **Next** (manual bump in `graph/bootstrap.py`)
+- Flagship model upsell routing in LLMRouter
+- BYO API key management UI
+- Usage metering hooks per project
 
-### Sprint 11: Enterprise controls (next)
+### Sprint 15: RTK spatial layer
 
-- RBAC scaffolding for project-scoped actions
-- Self-improver / upgrade manager gates wired to compliance category
-- On-prem deployment manifest (K8s/Compose prod overlays)
+- RTK adapter wiring for geo-tagged project assets
+- Map view in frontend for construction anchor workflows
 
 ---
 
-## Phase 4 — Domain expansion (planned)
+## Phase 5 — Enterprise GA (planned)
 
-- CAD/BIM and codebase ingestion adapters
-- RTK spatial layer integration
-- Multi-project portfolio dashboard
-- Flagship LLM upsell routing and BYO key management UI
+- Full RBAC with SSO/OIDC identity provider
+- SOC 2 control mapping export
+- Kubernetes Helm chart (alongside Compose overlay)
+- Air-gapped update bundle workflow
 
 ---
 
 ## Immediate next actions
 
-1. RBAC scaffolding (Sprint 11)
-2. Orchestrator audit panel in frontend
-3. Webhook test delivery UI in ConnectionsPanel
-4. Graph schema version bump automation in CI
+1. Project registry API + multi-project frontend switcher
+2. CAD/BIM ingestion adapter stub
+3. BYO LLM key storage and UI
+4. Helm chart from on-prem Compose manifest
 
 See [STATUS.md](STATUS.md) and [API.md](API.md).

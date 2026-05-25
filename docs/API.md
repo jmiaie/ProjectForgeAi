@@ -45,6 +45,11 @@ Base URL: `http://localhost:8000` (or `BACKEND_BASE_URL`).
 | GET | `/api/v1/projects/{project_id}/orchestrator/status` | Latest or specific run status |
 | GET | `/api/v1/projects/{project_id}/orchestrator/runs` | Run history (includes `branch_path`) |
 | GET | `/api/v1/projects/{project_id}/orchestrator/audit` | Orchestrator audit events |
+| GET | `/api/v1/projects/{project_id}/access/members` | List project members (requires `access.manage`) |
+| POST | `/api/v1/projects/{project_id}/access/members` | Assign member role |
+| GET | `/api/v1/projects/{project_id}/access/check?action=` | Check permission for actor |
+| GET | `/api/v1/projects/{project_id}/upgrade/status` | Feature tier status |
+| POST | `/api/v1/projects/{project_id}/upgrade/self-improve` | Compliance-gated self-improvement run |
 
 ## Compliance
 
@@ -74,6 +79,7 @@ Prefix: `/api/v1/intake`
 | Method | Path | Description |
 |--------|------|-------------|
 | POST | `/connections/webhook/register` | Register outbound webhook (`webhook_url`, `events`, optional `send_test`) |
+| POST | `/connections/{project_id}/webhook/test` | Send test event to registered webhook |
 
 ## Automations
 

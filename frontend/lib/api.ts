@@ -1,6 +1,9 @@
 export type HealthResponse = {
   status: string;
   llm_default: string;
+  deployment_mode?: string;
+  project_tier?: string;
+  rbac_enforce?: boolean;
   storage: Record<string, unknown>;
 };
 
@@ -34,7 +37,26 @@ export type OrchestratorRun = {
   status: string;
   steps: Array<{ name: string; status: string; summary: string; output: Record<string, unknown> }>;
   artifacts: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
   warnings: string[];
+};
+
+export type OrchestratorAuditEvent = {
+  id: string;
+  event_type: string;
+  message: string;
+  run_id: string;
+  created_at: string;
+  metadata?: Record<string, unknown>;
+};
+
+export type UpgradeStatus = {
+  project_id: string;
+  project_tier: string;
+  deployment_mode: string;
+  compliance_category: string;
+  allow_self_learning: boolean;
+  features: Record<string, { enabled: boolean; required_tier: string; description: string }>;
 };
 
 export type AutomationRecord = {
@@ -52,8 +74,21 @@ export type AutomationRecord = {
   };
 };
 
+function actorHeaders(extra: HeadersInit = {}): HeadersInit {
+  const headers = new Headers(extra);
+  const actor = process.env.NEXT_PUBLIC_RBAC_ACTOR;
+  const role = process.env.NEXT_PUBLIC_RBAC_ROLE;
+  if (actor) {
+    headers.set('X-ProjectForge-Actor', actor);
+  }
+  if (role) {
+    headers.set('X-ProjectForge-Role', role);
+  }
+  return headers;
+}
+
 export async function apiGet<T>(path: string): Promise<T> {
-  const response = await fetch(path, { cache: 'no-store' });
+  const response = await fetch(path, { cache: 'no-store', headers: actorHeaders() });
   if (!response.ok) {
     throw new Error(`${path} failed with ${response.status}`);
   }
@@ -63,7 +98,7 @@ export async function apiGet<T>(path: string): Promise<T> {
 export async function apiPost<T>(path: string, body: unknown): Promise<T> {
   const response = await fetch(path, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: actorHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(body),
   });
   if (!response.ok) {
@@ -75,7 +110,7 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
 export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
   const response = await fetch(path, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
+    headers: actorHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(body),
   });
   if (!response.ok) {
@@ -85,7 +120,7 @@ export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
 }
 
 export async function apiDelete<T>(path: string): Promise<T> {
-  const response = await fetch(path, { method: 'DELETE' });
+  const response = await fetch(path, { method: 'DELETE', headers: actorHeaders() });
   if (!response.ok) {
     throw new Error(`${path} failed with ${response.status}`);
   }
