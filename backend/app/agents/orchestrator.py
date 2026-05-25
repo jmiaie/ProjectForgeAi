@@ -1,8 +1,10 @@
 from typing import Any
 
+from agents.langgraph_runner import run_langgraph_orchestrator
 from agents.run_store import OrchestratorRunStore
 from agents.state import AgentStep, OrchestratorRequest, OrchestratorRun, OrchestratorStatus
 from agents.tools import OrchestratorToolContext
+from core.config import settings
 
 
 DEFAULT_AGENT_SEQUENCE = [
@@ -34,12 +36,22 @@ class OrchestratorAgent:
             sequence = [name for name in sequence if name not in completed]
 
         tools = self.tool_context_factory(request.project_id)
-        for agent_name in sequence:
-            step = await self._run_agent_step(agent_name, request.goal, tools)
-            run.steps.append(step)
-            if step.output.get("warning"):
-                run.warnings.append(step.output["warning"])
-            self.run_store.write_checkpoint(run)
+
+        if settings.USE_LANGGRAPH_ORCHESTRATOR:
+            run = await run_langgraph_orchestrator(
+                self,
+                run,
+                sequence,
+                tools,
+                self.run_store.write_checkpoint,
+            )
+        else:
+            for agent_name in sequence:
+                step = await self._run_agent_step(agent_name, request.goal, tools)
+                run.steps.append(step)
+                if step.output.get("warning"):
+                    run.warnings.append(step.output["warning"])
+                self.run_store.write_checkpoint(run)
 
         await tools.record_decision(
             f"Orchestrator {run.run_id} completed {len(run.steps)} steps for {request.project_id}: {request.goal}"

@@ -48,6 +48,7 @@ class Settings(BaseSettings):
     GITHUB_OAUTH_CLIENT_SECRET: str | None = None
     SLACK_OAUTH_CLIENT_ID: str | None = None
     SLACK_OAUTH_CLIENT_SECRET: str | None = None
+    USE_LANGGRAPH_ORCHESTRATOR: bool = False
     IMAGE_OCR_ENABLED: bool = True
     IMAGE_OCR_TIMEOUT_SECONDS: int = 30
     TESSERACT_CMD: str | None = None

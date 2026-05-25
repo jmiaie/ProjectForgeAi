@@ -16,6 +16,7 @@ export function GraphPanel({ projectId, initialStatus }: GraphPanelProps) {
   const [status, setStatus] = useState<GraphStatus | undefined>(initialStatus);
   const [message, setMessage] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
+  const [useLlmEnrich, setUseLlmEnrich] = useState(false);
 
   const refreshStatus = async () => {
     const nextStatus = await apiGet<GraphStatus>(`/api/v1/projects/${projectId}/graph/status`);
@@ -38,11 +39,11 @@ export function GraphPanel({ projectId, initialStatus }: GraphPanelProps) {
     setMessage('Enriching graph from indexed chunks...');
     const result = await apiPost<{ added_nodes: number; facts_extracted: number }>(
       `/api/v1/projects/${projectId}/graph/enrich`,
-      { use_llm: false },
+      { use_llm: useLlmEnrich },
     );
     await refreshStatus();
     setMessage(
-      `Graph enriched with ${result.added_nodes} new nodes from ${result.facts_extracted} extracted facts.`,
+      `Graph enriched (${useLlmEnrich ? 'LLM' : 'heuristic'}) with ${result.added_nodes} new nodes from ${result.facts_extracted} extracted facts.`,
     );
   };
 
@@ -72,6 +73,14 @@ export function GraphPanel({ projectId, initialStatus }: GraphPanelProps) {
             <Button variant="outline" onClick={buildGraph}>
               Build graph
             </Button>
+            <label className="row">
+              <input
+                type="checkbox"
+                checked={useLlmEnrich}
+                onChange={(event) => setUseLlmEnrich(event.target.checked)}
+              />
+              <span className="muted">LLM enrich</span>
+            </label>
             <Button variant="outline" onClick={enrichGraph}>Enrich graph</Button>
             <Button onClick={addTask}>Add task</Button>
           </div>
@@ -89,7 +98,7 @@ export function GraphPanel({ projectId, initialStatus }: GraphPanelProps) {
         {message ? <p className="muted">{message}</p> : null}
       </Card>
       <GraphFlowViewer projectId={projectId} refreshKey={refreshKey} onGraphChanged={refreshStatus} />
-      <TimelinePanel projectId={projectId} refreshKey={refreshKey} />
+      <TimelinePanel projectId={projectId} refreshKey={refreshKey} onGraphChanged={refreshStatus} />
     </div>
   );
 }
