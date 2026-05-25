@@ -36,6 +36,7 @@ Tests: `PYTHONPATH=backend/app python3 -m unittest discover -s backend/app/tests
 - **Integrations** — OAuth PKCE (production credential gate), encrypted API keys, MCP HTTP/SSE/stdio discovery, webhook connector, connection health UI
 - **Enterprise** — RBAC scaffolding, upgrade manager, on-prem Compose overlay, self-improvement gate
 - **Portfolio** — multi-project registry, cross-project summaries, project switcher UI
+- **Ingestion expansion** — IFC/DWG CAD stubs, codebase archives, PostgreSQL schema snapshots
 - **Automations** — scheduling, Temporal worker, approvals, dead letters, optional Schedule sync
 - **Frontend** — editable React Flow graph, timeline/Gantt, workbench, orchestrator artifacts, automation controls
 

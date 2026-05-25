@@ -26,6 +26,9 @@ Base URL: `http://localhost:8000` (or `BACKEND_BASE_URL`).
 |--------|------|-------------|
 | POST | `/api/v1/projects/` | Create project (starter) |
 | POST | `/api/v1/projects/upload` | Multipart file upload |
+| POST | `/api/v1/projects/{project_id}/ingestion/database-snapshot` | PostgreSQL schema snapshot (`db_schema`, optional `connection_uri`) |
+
+Supported upload types include PDF, email, mbox, Office, images, **IFC**, **DWG**, and **codebase archives** (zip/tar).
 
 ## Graph
 

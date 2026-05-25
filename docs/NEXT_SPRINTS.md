@@ -1,6 +1,6 @@
 # ProjectForge AI — Roadmap
 
-Phases are ordered by dependency. Sprints 1–10 are **complete**.
+Phases are ordered by dependency. Sprints 1–11 (Phase 3) are **complete**.
 
 ## Phase 3 (complete)
 
@@ -15,11 +15,17 @@ Phases are ordered by dependency. Sprints 1–10 are **complete**.
 
 ## Phase 4 — Domain expansion (active)
 
-- CAD/BIM adapter stubs (IFC, DWG metadata)
-- Codebase ingestion (git archive / folder upload)
-- Database connector intake (PostgreSQL read-only schema snapshot)
+### Sprint 12: Multi-project portfolio — Done
 
-### Sprint 14: LLM & billing
+- Project registry, portfolio summary API, project switcher UI — **Done**
+
+### Sprint 13: Ingestion expansion — Done
+
+- CAD/BIM adapter stubs (IFC, DWG metadata) — **Done**
+- Codebase archive ingestion (zip/tar) — **Done**
+- PostgreSQL schema snapshot intake — **Done**
+
+### Sprint 14: LLM & billing — Next
 
 - Flagship model upsell routing in LLMRouter
 - BYO API key management UI
