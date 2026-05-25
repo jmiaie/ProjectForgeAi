@@ -47,6 +47,48 @@ class IngestionManifestStore:
         manifest["path"] = str(manifest_path)
         return manifest
 
+    def append(
+        self,
+        *,
+        project_id: str,
+        documents: list[ParsedDocument],
+        storage: dict,
+        session: Any,
+    ) -> dict:
+        manifest = self.read_latest(project_id)
+        if manifest is None:
+            return self.write(
+                project_id=project_id,
+                documents=documents,
+                storage=storage,
+                session=session,
+            )
+
+        new_entries = [
+            {
+                "source": document.source,
+                "metadata": document.metadata,
+                "warnings": document.warnings,
+                "chunks": [chunk.metadata for chunk in document.chunks],
+            }
+            for document in documents
+        ]
+        added_chunks = sum(len(document.chunks) for document in documents)
+        manifest["documents"] = manifest.get("documents", []) + new_entries
+        manifest["files_processed"] = len(manifest["documents"])
+        manifest["chunks_indexed"] = manifest.get("chunks_indexed", 0) + added_chunks
+        manifest["warnings"] = manifest.get("warnings", []) + [
+            warning for document in documents for warning in document.warnings
+        ]
+        manifest["created_at"] = datetime.now(UTC).isoformat()
+        manifest["storage"] = storage
+        manifest["session"] = session
+
+        manifest_path = self.root / project_id / "latest.json"
+        manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True))
+        manifest["path"] = str(manifest_path)
+        return manifest
+
     def read_latest(self, project_id: str) -> dict | None:
         manifest_path = self.root / project_id / "latest.json"
         if not manifest_path.exists():

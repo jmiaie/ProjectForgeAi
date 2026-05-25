@@ -43,9 +43,9 @@ Phases are ordered by dependency. Sprints 1–10 are **complete**.
 
 ## Immediate next actions
 
-1. CAD/BIM ingestion adapter stub (Sprint 13)
-2. Codebase folder upload ingestion
-3. BYO LLM key storage and UI (Sprint 14)
+1. Flagship model upsell routing in LLMRouter (Sprint 14)
+2. BYO API key management UI
+3. Usage metering hooks per project
 4. Helm chart from on-prem Compose manifest
 
 See [STATUS.md](STATUS.md) and [API.md](API.md).

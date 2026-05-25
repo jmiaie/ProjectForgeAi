@@ -18,6 +18,7 @@ from graph.builder import ProjectGraphBuilder
 from graph.enricher import GraphEnrichmentService
 from graph.models import EdgeType, NodeLabel
 from graph.mutations import GraphMutationError, GraphMutationService
+from ingestion.intake_sources import snapshot_postgres_schema
 from ingestion.pipeline import IngestionPipeline
 from integrations.intake_form import router as intake_router
 from projects.service import PortfolioService
@@ -85,6 +86,11 @@ class AssignMemberRequest(BaseModel):
 
 class SelfImproveRequest(BaseModel):
     goal: str = "Analyze project outcomes and propose improvements"
+
+
+class DatabaseSnapshotRequest(BaseModel):
+    connection_uri: str | None = None
+    db_schema: str = "public"
 
 
 class CreateGraphNodeRequest(BaseModel):
@@ -370,6 +376,37 @@ async def create_project_from_uploads(
         "project": record.as_dict(),
         "status": "orchestrated",
         "message": "ProjectForge AI uploaded project documents.",
+        "ingestion": ingestion_result,
+        "graph": _graph_summary(graph_result),
+    }
+
+
+@app.post("/api/v1/projects/{project_id}/ingestion/database-snapshot")
+async def ingest_database_snapshot(
+    project_id: str,
+    request: DatabaseSnapshotRequest,
+    _: ActorContext = Depends(require_permission("graph.write")),
+    ingestion: IngestionPipeline = Depends(get_ingestion_pipeline),
+    graph_builder: ProjectGraphBuilder = Depends(get_graph_builder),
+    portfolio: PortfolioService = Depends(get_portfolio_service),
+):
+    from fastapi import HTTPException
+
+    if portfolio.registry.get(project_id) is None:
+        raise HTTPException(status_code=404, detail=f"Unknown project: {project_id}")
+
+    connection_uri = request.connection_uri or settings.POSTGRES_URI
+    try:
+        parsed = snapshot_postgres_schema(connection_uri, schema=request.db_schema)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    ingestion_result = await ingestion.append_documents(project_id, [parsed])
+    graph_result = graph_builder.build_from_latest_manifest(project_id)
+    portfolio.registry.touch(project_id)
+    return {
+        "project_id": project_id,
+        "status": "snapshot_ingested",
         "ingestion": ingestion_result,
         "graph": _graph_summary(graph_result),
     }

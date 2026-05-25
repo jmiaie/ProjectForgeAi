@@ -1,21 +1,20 @@
 # ProjectForge AI v14 — Status
 
-Last updated: Sprint 11 complete on branch `cursor/sprint11-enterprise-ebb0`.
+Last updated: Sprint 13 complete on branch `cursor/sprint13-ingestion-ebb0`.
 
 ## Verification
 
 ```bash
-PYTHONPATH=backend/app python3 -m unittest discover -s backend/app/tests   # 88 tests
+PYTHONPATH=backend/app python3 -m unittest discover -s backend/app/tests   # 100 tests
 python3 scripts/check_graph_schema_version.py
 cd frontend && npm run typecheck
 ```
 
-## New in Sprint 11
+## New in Sprint 13
 
-- **RBAC** — project roles (viewer/editor/admin/owner), `RBAC_ENFORCE`, member API, route guards
-- **Upgrade manager** — tier-gated features, compliance-gated self-improvement endpoint
-- **On-prem overlay** — `deploy/onprem/docker-compose.prod.yml`
-- **Frontend** — AccessPanel, orchestrator audit view, webhook register/test UI
+- **CAD/BIM stubs** — `.ifc` entity/schema metadata, `.dwg` metadata-only parse
+- **Codebase archives** — `.zip`, `.tar`, `.tar.gz` source file indexing
+- **Database intake** — `POST /ingestion/database-snapshot` for PostgreSQL schema
 
 ## Backend modules
 

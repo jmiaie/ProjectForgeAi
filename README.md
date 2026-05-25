@@ -25,7 +25,7 @@ PYTHONPATH=backend/app uvicorn main:app --reload --host 0.0.0.0 --port 8000
 cd frontend && npm install && npm run dev
 ```
 
-Tests: `PYTHONPATH=backend/app python3 -m unittest discover -s backend/app/tests` (95 tests)
+Tests: `PYTHONPATH=backend/app python3 -m unittest discover -s backend/app/tests` (100 tests)
 
 ## What ships today
 
@@ -35,6 +35,7 @@ Tests: `PYTHONPATH=backend/app python3 -m unittest discover -s backend/app/tests
 - **Compliance** — standard/HIPAA/legal/SOC2/GDPR profiles, redaction, audit trail
 - **Integrations** — OAuth PKCE (production credential gate), encrypted API keys, MCP HTTP/SSE/stdio discovery, webhook connector, connection health UI
 - **Enterprise** — RBAC scaffolding, upgrade manager, on-prem Compose overlay, self-improvement gate
+- **Portfolio** — multi-project registry, cross-project summaries, project switcher UI
 - **Automations** — scheduling, Temporal worker, approvals, dead letters, optional Schedule sync
 - **Frontend** — editable React Flow graph, timeline/Gantt, workbench, orchestrator artifacts, automation controls
 
@@ -83,5 +84,7 @@ main
                 └── cursor/sprint345-hardening-ebb0
                      └── cursor/docs-phase3-ebb0
                           └── cursor/sprint9-10-integrations-ci-ebb0
-                               └── cursor/sprint11-enterprise-ebb0   ← active
+                               └── cursor/sprint11-enterprise-ebb0
+                                    └── cursor/sprint12-portfolio-ebb0
+                                         └── cursor/sprint13-ingestion-ebb0   ← active
 ```

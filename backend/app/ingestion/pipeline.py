@@ -5,6 +5,8 @@ from typing import Any
 
 from ingestion.manifest import IngestionManifestStore
 from ingestion.parsers.base import ParsedChunk, ParsedDocument
+from ingestion.parsers.common.cad_bim import parse_dwg, parse_ifc
+from ingestion.parsers.common.codebase import parse_code_archive
 from ingestion.parsers.common.email import parse_email
 from ingestion.parsers.common.image import parse_image
 from ingestion.parsers.common.mbox import parse_mbox
@@ -67,6 +69,50 @@ class IngestionPipeline:
             "storage": storage,
         }
 
+    async def append_documents(self, project_id: str, documents: list[ParsedDocument]) -> dict:
+        locus = LocusAdapter(project_id)
+        ompa = OmpaAdapter(project_id)
+        session = await ompa.session_start()
+
+        chunks_indexed = 0
+        warnings: list[str] = []
+        for parsed in documents:
+            chunk_dicts = [chunk.as_dict() for chunk in parsed.chunks]
+            if chunk_dicts:
+                await locus.index_files(chunk_dicts)
+            await ompa.record_decision(
+                f"Appended {parsed.source}: {len(chunk_dicts)} chunks via {parsed.metadata.get('parser')}"
+            )
+            chunks_indexed += len(chunk_dicts)
+            warnings.extend(parsed.warnings)
+
+        storage = {
+            "locus": locus.status(),
+            "ompa": ompa.status(),
+            "native_ready": locus.native and ompa.native,
+        }
+        manifest = self.manifest_store.append(
+            project_id=project_id,
+            documents=documents,
+            storage=storage,
+            session=session,
+        )
+        return {
+            "status": "appended",
+            "project_id": project_id,
+            "files_processed": len(documents),
+            "chunks_indexed": chunks_indexed,
+            "warnings": warnings,
+            "manifest": {
+                "path": manifest["path"],
+                "files_processed": manifest["files_processed"],
+                "chunks_indexed": manifest["chunks_indexed"],
+                "warnings": manifest["warnings"],
+            },
+            "session": session,
+            "storage": storage,
+        }
+
     async def _parse_file(self, file: Any) -> ParsedDocument:
         filename = getattr(file, "filename", None) or getattr(file, "name", None) or str(file)
         suffix = Path(filename).suffix.lower()
@@ -98,6 +144,14 @@ class IngestionPipeline:
 
         if suffix in {".png", ".jpg", ".jpeg", ".gif", ".webp", ".tif", ".tiff", ".bmp"}:
             return await self._parse_payload_or_path(file, filename, parse_image)
+
+        lower_name = filename.lower()
+        if lower_name.endswith(".ifc"):
+            return await self._parse_payload_or_path(file, filename, parse_ifc)
+        if lower_name.endswith(".dwg"):
+            return await self._parse_payload_or_path(file, filename, parse_dwg)
+        if lower_name.endswith((".zip", ".tar", ".tar.gz", ".tgz")):
+            return await self._parse_payload_or_path(file, filename, parse_code_archive)
 
         chunk = ParsedChunk(
             source=filename,
