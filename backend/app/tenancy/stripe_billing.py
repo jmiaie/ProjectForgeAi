@@ -447,6 +447,7 @@ class StripeBillingService:
             "webhook_configured": bool(settings.STRIPE_WEBHOOK_SECRET) or settings.STRIPE_MOCK,
             "subscriptions_enabled": True,
             "customer_portal_enabled": True,
+            "metered_billing_enabled": settings.STRIPE_METERED_BILLING_ENABLED,
             "price_ids": {
                 "pro": settings.STRIPE_PRO_PRICE_ID,
                 "enterprise": settings.STRIPE_ENTERPRISE_PRICE_ID,

@@ -21,6 +21,7 @@ class TenantRecord(BaseModel):
     tenant_id: str
     name: str
     tier: str = "starter"
+    region: str = "us-east-1"
     status: TenantStatus = TenantStatus.ACTIVE
     created_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
@@ -34,14 +35,25 @@ class TenantRegistry:
         self.root = Path(root or settings.TENANT_REGISTRY_ROOT)
         os.makedirs(self.root, exist_ok=True)
 
-    def create(self, *, name: str, tier: str | None = None, tenant_id: str | None = None) -> TenantRecord:
+    def create(
+        self,
+        *,
+        name: str,
+        tier: str | None = None,
+        tenant_id: str | None = None,
+        region: str | None = None,
+    ) -> TenantRecord:
         record = TenantRecord(
             tenant_id=tenant_id or _generate_tenant_id(name),
             name=name.strip() or "Untitled tenant",
             tier=(tier or settings.PROJECT_TIER).lower(),
+            region=region or settings.DEFAULT_TENANT_REGION,
         )
         self._write(record)
         self._refresh_index()
+        from tenancy.regions import ensure_tenant_region
+
+        ensure_tenant_region(record.tenant_id, record.region)
         return record
 
     def get(self, tenant_id: str) -> TenantRecord | None:
@@ -64,6 +76,8 @@ class TenantRegistry:
         self._ensure_default_tenant()
         records = []
         for path in sorted(self.root.glob("tenant_*.json")):
+            if path.name.endswith(".region.json") or path.name.endswith(".neo4j.json"):
+                continue
             records.append(TenantRecord.model_validate(json.loads(path.read_text())))
         records.sort(key=lambda item: item.updated_at, reverse=True)
         return records

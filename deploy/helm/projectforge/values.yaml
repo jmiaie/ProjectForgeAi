@@ -53,6 +53,10 @@ neo4j:
   image: neo4j:5-community
   password: replace-neo4j-password
   storage: 10Gi
+  autoHeal:
+    enabled: false
+    schedule: "*/5 * * * *"
+    image: curlimages/curl:8.11.1
 
 temporal:
   enabled: true

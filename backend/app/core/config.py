@@ -104,6 +104,13 @@ class Settings(BaseSettings):
     NEO4J_CLUSTER_URIS: str = ""
     SLO_AVAILABILITY_TARGET: float = 0.999
     SLO_LATENCY_MS_TARGET: float = 750.0
+    STRIPE_METERED_BILLING_ENABLED: bool = True
+    STRIPE_LLM_METER_EVENT_NAME: str = "llm_token_overage"
+    LLM_OVERAGE_CENTS_PER_1K: int = 50
+    NEO4J_CLUSTER_AUTO_HEAL_ENABLED: bool = False
+    TENANT_REGION_ROUTING_ENABLED: bool = False
+    DEFAULT_TENANT_REGION: str = "us-east-1"
+    AVAILABLE_TENANT_REGIONS: str = "us-east-1:us,eu-west-1:eu,ap-southeast-1:ap"
     PROJECT_TIER: str = "starter"
     PROJECT_REGISTRY_ROOT: str = "./.projects"
     DEFAULT_PROJECT_ID: str = "proj_123"

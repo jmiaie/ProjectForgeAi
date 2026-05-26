@@ -1,4 +1,4 @@
-from fastapi import Depends, FastAPI, File, Form, Request, UploadFile
+from fastapi import Depends, FastAPI, File, Form, Header, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -40,10 +40,12 @@ from core.slo import compute_slo_status
 from tenancy.billing import TenantBillingService
 from tenancy.context import TenantContext, get_tenant_context, get_tenant_registry
 from tenancy.isolation import TenantIsolation
-from tenancy.neo4j_cluster import check_cluster_health
+from tenancy.neo4j_cluster import check_cluster_health, run_auto_heal
 from tenancy.neo4j_isolation import TenantNeo4jRegistry, create_graph_adapter
+from tenancy.regions import TenantRegionRegistry, ensure_tenant_region, list_region_catalog
 from tenancy.registry import TenantRegistry
 from tenancy.stripe_billing import StripeBillingService
+from tenancy.usage_metering import UsageMeteringService
 from workbench.service import WorkbenchService
 
 
@@ -141,6 +143,7 @@ class PortfolioOrchestratorRunRequest(BaseModel):
 class RegisterTenantRequest(BaseModel):
     name: str
     tier: str | None = None
+    region: str | None = None
 
 
 class BillingCheckoutRequest(BaseModel):
@@ -274,6 +277,15 @@ def get_stripe_billing_service() -> StripeBillingService:
     return StripeBillingService()
 
 
+def get_usage_metering_service() -> UsageMeteringService:
+    return UsageMeteringService()
+
+
+@app.get("/api/v1/regions")
+async def list_regions():
+    return list_region_catalog()
+
+
 @app.get("/api/v1/tenants")
 async def list_tenants(registry: TenantRegistry = Depends(get_tenant_registry)):
     tenants = registry.list_tenants()
@@ -285,7 +297,7 @@ async def register_tenant(
     request: RegisterTenantRequest,
     registry: TenantRegistry = Depends(get_tenant_registry),
 ):
-    record = registry.create(name=request.name, tier=request.tier)
+    record = registry.create(name=request.name, tier=request.tier, region=request.region)
     TenantIsolation.ensure_tenant_dirs(record.tenant_id)
     if settings.NEO4J_TENANT_ISOLATION_ENABLED:
         TenantNeo4jRegistry().ensure_database(record.tenant_id)
@@ -307,7 +319,40 @@ async def tenant_status(
         "isolation_enabled": settings.TENANT_ISOLATION_ENABLED,
         "project_registry_root": TenantIsolation.project_registry_root(tenant_id),
         "neo4j": TenantNeo4jRegistry().status(tenant_id),
+        "region": TenantRegionRegistry().get(tenant_id),
     }
+
+
+@app.get("/api/v1/tenants/{tenant_id}/region")
+async def tenant_region(
+    tenant_id: str,
+    x_projectforge_region: str | None = Header(default=None, alias="X-ProjectForge-Region"),
+):
+    registry = TenantRegionRegistry()
+    assigned = registry.get(tenant_id)
+    validation = registry.validate_request(tenant_id, x_projectforge_region)
+    return {"tenant_id": tenant_id, "region": assigned, "validation": validation}
+
+
+@app.get("/api/v1/tenants/{tenant_id}/billing/overage")
+async def tenant_billing_overage(
+    tenant_id: str,
+    metering: UsageMeteringService = Depends(get_usage_metering_service),
+):
+    return metering.overage_summary(tenant_id)
+
+
+@app.post("/api/v1/tenants/{tenant_id}/billing/usage/report")
+async def tenant_billing_usage_report(
+    tenant_id: str,
+    metering: UsageMeteringService = Depends(get_usage_metering_service),
+):
+    from fastapi import HTTPException
+
+    try:
+        return await metering.report_llm_overage(tenant_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.get("/api/v1/tenants/{tenant_id}/billing/invoices")
@@ -965,6 +1010,11 @@ async def observability_slo():
 @app.get("/api/v1/neo4j/cluster/status")
 async def neo4j_cluster_status():
     return check_cluster_health()
+
+
+@app.post("/api/v1/neo4j/cluster/heal")
+async def neo4j_cluster_heal():
+    return run_auto_heal()
 
 
 @app.get("/api/v1/observability/prometheus")

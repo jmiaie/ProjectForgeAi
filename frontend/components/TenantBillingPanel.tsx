@@ -15,6 +15,13 @@ type TenantSubscription = {
   } | null;
 };
 
+type TenantOverage = {
+  tenant_id: string;
+  overage_tokens: number;
+  overage_units_1k: number;
+  estimated_cents: number;
+};
+
 type TenantBillingPanelProps = {
   tenantId?: string;
 };
@@ -22,15 +29,18 @@ type TenantBillingPanelProps = {
 export function TenantBillingPanel({ tenantId = 'tenant_default' }: TenantBillingPanelProps) {
   const [quota, setQuota] = useState<TenantBillingQuota | undefined>();
   const [subscription, setSubscription] = useState<TenantSubscription['subscription']>();
+  const [overage, setOverage] = useState<TenantOverage | undefined>();
   const [message, setMessage] = useState('');
 
   const refresh = async () => {
-    const [quotaResult, subResult] = await Promise.all([
+    const [quotaResult, subResult, overageResult] = await Promise.all([
       apiGet<TenantBillingQuota>(`/api/v1/tenants/${tenantId}/billing/quota`),
       apiGet<TenantSubscription>(`/api/v1/tenants/${tenantId}/billing/subscription`),
+      apiGet<TenantOverage>(`/api/v1/tenants/${tenantId}/billing/overage`),
     ]);
     setQuota(quotaResult);
     setSubscription(subResult.subscription);
+    setOverage(overageResult);
   };
 
   useEffect(() => {
@@ -95,6 +105,20 @@ export function TenantBillingPanel({ tenantId = 'tenant_default' }: TenantBillin
     }
   };
 
+  const reportOverage = async () => {
+    setMessage('');
+    try {
+      const result = await apiPost<{ status: string; mode?: string }>(
+        `/api/v1/tenants/${tenantId}/billing/usage/report`,
+        {},
+      );
+      setMessage(`Usage report ${result.status}${result.mode ? ` (${result.mode})` : ''}`);
+      await refresh();
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'Usage report failed');
+    }
+  };
+
   if (!quota) {
     return (
       <Card className="panel">
@@ -118,10 +142,18 @@ export function TenantBillingPanel({ tenantId = 'tenant_default' }: TenantBillin
               {subscription.target_tier ? ` · ${subscription.target_tier}` : ''}
             </p>
           ) : null}
+          {overage && overage.overage_tokens > 0 ? (
+            <p className="muted">
+              LLM overage: {overage.overage_tokens.toLocaleString()} tokens (~${(overage.estimated_cents / 100).toFixed(2)})
+            </p>
+          ) : null}
         </div>
         <Button variant="outline" onClick={refresh}>Refresh</Button>
         <Button variant="outline" onClick={startCheckout}>One-time checkout</Button>
         <Button onClick={startSubscription}>Subscribe (pro)</Button>
+        {overage && overage.overage_tokens > 0 ? (
+          <Button variant="outline" onClick={reportOverage}>Report overage</Button>
+        ) : null}
         {hasActiveSubscription ? (
           <>
             <Button variant="outline" onClick={openCustomerPortal}>Customer portal</Button>

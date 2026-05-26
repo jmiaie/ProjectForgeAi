@@ -1,0 +1,27 @@
+{{- if and .Values.neo4j.enabled .Values.neo4j.autoHeal.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "projectforge.fullname" . }}-neo4j-heal
+  labels:
+    {{- include "projectforge.labels" . | nindent 4 }}
+    app.kubernetes.io/component: neo4j-heal
+spec:
+  schedule: {{ .Values.neo4j.autoHeal.schedule | quote }}
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: heal
+              image: {{ .Values.neo4j.autoHeal.image }}
+              command:
+                - /bin/sh
+                - -c
+                - >
+                  curl -sf -X POST
+                  http://{{ include "projectforge.fullname" . }}-backend:{{ .Values.backend.port }}/api/v1/neo4j/cluster/heal
+{{- end }}

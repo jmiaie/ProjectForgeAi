@@ -58,6 +58,32 @@ def check_cluster_health() -> dict[str, Any]:
     }
 
 
+def run_auto_heal() -> dict[str, Any]:
+    if not settings.NEO4J_CLUSTER_AUTO_HEAL_ENABLED:
+        return {"healed": False, "reason": "auto_heal_disabled"}
+
+    actions: list[dict[str, Any]] = []
+    for uri in cluster_uris():
+        health = check_uri_health(uri)
+        action = {"uri": uri, "before": health}
+        if not health["healthy"]:
+            retry = check_uri_health(uri)
+            action["retry"] = retry
+            action["recovered"] = retry["healthy"]
+        else:
+            action["recovered"] = True
+        actions.append(action)
+
+    health = check_cluster_health()
+    recovered_count = sum(1 for action in actions if action.get("recovered"))
+    return {
+        "healed": recovered_count > 0,
+        "auto_heal_enabled": True,
+        "actions": actions,
+        "cluster": health,
+    }
+
+
 def connect_with_failover():
     """Return (driver, active_uri) trying cluster URIs in order when failover is enabled."""
     from neo4j import GraphDatabase
