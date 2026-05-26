@@ -1,0 +1,109 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "max": 1,
+          "min": 0.99,
+          "unit": "percentunit"
+        }
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "1 - (projectforge_http_errors_total{service=\"projectforge-ai\"} / clamp_min(projectforge_http_requests_total{service=\"projectforge-ai\"}, 1))",
+          "legendFormat": "availability",
+          "refId": "A"
+        }
+      ],
+      "title": "Availability SLO (99.9%)",
+      "type": "gauge"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "unit": "ms"
+        }
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "projectforge_http_request_duration_ms_avg{service=\"projectforge-ai\"}",
+          "legendFormat": "avg latency",
+          "refId": "A"
+        }
+      ],
+      "title": "Latency SLO (<750ms avg)",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "max": 1,
+          "min": 0,
+          "unit": "percentunit"
+        }
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "clamp_min(1 - ((projectforge_http_errors_total{service=\"projectforge-ai\"} / clamp_min(projectforge_http_requests_total{service=\"projectforge-ai\"}, 1)) / 0.001), 0)",
+          "legendFormat": "error budget remaining",
+          "refId": "A"
+        }
+      ],
+      "title": "Error budget remaining",
+      "type": "gauge"
+    },
+    {
+      "datasource": "Prometheus",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "rate(projectforge_http_errors_total{service=\"projectforge-ai\"}[5m])",
+          "legendFormat": "error rate",
+          "refId": "A"
+        }
+      ],
+      "title": "Error rate (5m)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "id": 5,
+      "targets": [
+        {
+          "expr": "rate(projectforge_http_requests_total{service=\"projectforge-ai\"}[5m])",
+          "legendFormat": "request rate",
+          "refId": "A"
+        }
+      ],
+      "title": "Request rate (5m)",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["projectforge", "slo"],
+  "time": { "from": "now-6h", "to": "now" },
+  "title": "ProjectForge SLO Overview",
+  "uid": "projectforge-slo",
+  "version": 1
+}

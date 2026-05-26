@@ -1,25 +1,26 @@
 # ProjectForge AI v14 — Status
 
-Last updated: Sprint 23 complete on branch `cursor/sprint23-subscriptions-replica-alerts-ebb0`.
+Last updated: Sprint 24 complete on branch `cursor/sprint24-portal-cluster-slo-ebb0`.
 
 ## Verification
 
 ```bash
-PYTHONPATH=backend/app python3 -m unittest discover -s backend/app/tests   # 161 tests
-curl -s http://localhost:8000/api/v1/observability/prometheus | head
+PYTHONPATH=backend/app python3 -m unittest discover -s backend/app/tests   # 173 tests
+curl -s http://localhost:8000/api/v1/observability/slo
+curl -s http://localhost:8000/api/v1/neo4j/cluster/status
 cd frontend && npm run typecheck
 ```
 
-## New in Sprint 23
+## New in Sprint 24
 
-- **Stripe subscriptions** — recurring checkout, subscription store, webhook handlers for subscription lifecycle
-- **Neo4j read replicas** — enterprise-tier tenants route graph reads to `NEO4J_READ_REPLICA_URI`
-- **Alerting & runbooks** — Prometheus alert rules + on-call runbook in `deploy/observability/`
+- **Stripe customer portal** — `POST /billing/portal` and subscription cancellation UI/API
+- **Neo4j cluster failover** — health checks, URI failover, `GET /neo4j/cluster/status`
+- **SLO dashboards** — `GET /observability/slo`, SLO Grafana dashboard, error-budget alerts
 
 ## Resume development
 
 ```bash
-git checkout cursor/sprint23-subscriptions-replica-alerts-ebb0
+git checkout cursor/sprint24-portal-cluster-slo-ebb0
 pip install -r requirements.txt
 PYTHONPATH=backend/app uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```

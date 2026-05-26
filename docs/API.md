@@ -13,6 +13,8 @@ Base URL: `http://localhost:8000` (or `BACKEND_BASE_URL`).
 | GET | `/api/v1/observability/prometheus` | Prometheus text exposition format |
 | GET | `/api/v1/observability/traces/jaeger` | Jaeger-compatible trace batch export |
 | GET | `/api/v1/observability/traces/otlp` | OTLP JSON trace payload |
+| GET | `/api/v1/observability/slo` | Live SLO snapshot and error-budget status |
+| GET | `/api/v1/neo4j/cluster/status` | Neo4j cluster member health and active write URI |
 | GET | `/api/v1/storage/{project_id}/status` | Per-project storage backends |
 
 ## Tenants (SaaS)
@@ -33,6 +35,8 @@ Pass `X-ProjectForge-Tenant` on requests when tenant isolation is enabled.
 | POST | `/api/v1/tenants/{tenant_id}/billing/checkout` | Create Stripe/mock checkout session (`billing_mode`: `payment` or `subscription`) |
 | POST | `/api/v1/tenants/{tenant_id}/billing/subscribe` | Create recurring subscription checkout |
 | GET | `/api/v1/tenants/{tenant_id}/billing/subscription` | Tenant subscription status |
+| POST | `/api/v1/tenants/{tenant_id}/billing/portal` | Stripe customer portal session |
+| POST | `/api/v1/tenants/{tenant_id}/billing/subscription/cancel` | Cancel subscription (`at_period_end` optional) |
 | GET | `/api/v1/tenants/{tenant_id}/billing/invoices` | List tenant invoices |
 | GET | `/api/v1/billing/status` | Billing provider configuration status |
 | POST | `/api/v1/billing/webhook` | Stripe webhook (`checkout.session.completed`, `invoice.paid`, subscription events) |

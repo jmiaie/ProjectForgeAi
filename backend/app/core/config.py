@@ -100,6 +100,10 @@ class Settings(BaseSettings):
     STRIPE_WEBHOOK_SECRET: str | None = None
     STRIPE_PRO_PRICE_ID: str | None = None
     STRIPE_ENTERPRISE_PRICE_ID: str | None = None
+    NEO4J_CLUSTER_FAILOVER_ENABLED: bool = False
+    NEO4J_CLUSTER_URIS: str = ""
+    SLO_AVAILABILITY_TARGET: float = 0.999
+    SLO_LATENCY_MS_TARGET: float = 750.0
     PROJECT_TIER: str = "starter"
     PROJECT_REGISTRY_ROOT: str = "./.projects"
     DEFAULT_PROJECT_ID: str = "proj_123"

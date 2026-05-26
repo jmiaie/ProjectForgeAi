@@ -36,9 +36,11 @@ from projects.registry import ProjectRegistry
 from spatial.service import SpatialService
 from storage.status import get_storage_status
 from core.observability import ObservabilityMiddleware, metrics_collector, observability_status, recent_traces
+from core.slo import compute_slo_status
 from tenancy.billing import TenantBillingService
 from tenancy.context import TenantContext, get_tenant_context, get_tenant_registry
 from tenancy.isolation import TenantIsolation
+from tenancy.neo4j_cluster import check_cluster_health
 from tenancy.neo4j_isolation import TenantNeo4jRegistry, create_graph_adapter
 from tenancy.registry import TenantRegistry
 from tenancy.stripe_billing import StripeBillingService
@@ -150,6 +152,14 @@ class BillingCheckoutRequest(BaseModel):
 class BillingSubscribeRequest(BaseModel):
     success_url: str | None = None
     target_tier: str | None = None
+
+
+class BillingPortalRequest(BaseModel):
+    return_url: str | None = None
+
+
+class BillingCancelSubscriptionRequest(BaseModel):
+    at_period_end: bool = True
 
 
 class CreateGraphNodeRequest(BaseModel):
@@ -351,6 +361,34 @@ async def tenant_billing_subscription(
     stripe_billing: StripeBillingService = Depends(get_stripe_billing_service),
 ):
     return stripe_billing.get_subscription(tenant_id)
+
+
+@app.post("/api/v1/tenants/{tenant_id}/billing/portal")
+async def tenant_billing_portal(
+    tenant_id: str,
+    request: BillingPortalRequest,
+    stripe_billing: StripeBillingService = Depends(get_stripe_billing_service),
+):
+    from fastapi import HTTPException
+
+    try:
+        return await stripe_billing.create_customer_portal(tenant_id, return_url=request.return_url)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/api/v1/tenants/{tenant_id}/billing/subscription/cancel")
+async def tenant_billing_cancel_subscription(
+    tenant_id: str,
+    request: BillingCancelSubscriptionRequest,
+    stripe_billing: StripeBillingService = Depends(get_stripe_billing_service),
+):
+    from fastapi import HTTPException
+
+    try:
+        return await stripe_billing.cancel_subscription(tenant_id, at_period_end=request.at_period_end)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.post("/api/v1/billing/webhook")
@@ -917,6 +955,16 @@ async def observability_metrics(limit: int = 50):
         "recent_traces": recent_traces(limit),
         "otel": otel_status(),
     }
+
+
+@app.get("/api/v1/observability/slo")
+async def observability_slo():
+    return compute_slo_status()
+
+
+@app.get("/api/v1/neo4j/cluster/status")
+async def neo4j_cluster_status():
+    return check_cluster_health()
 
 
 @app.get("/api/v1/observability/prometheus")

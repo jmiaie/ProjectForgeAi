@@ -92,6 +92,7 @@ class Neo4jGraphAdapter:
         self._memory = InMemoryGraphStore()
         self._driver = None
         self._read_driver = None
+        self._write_uri: str | None = None
         self._bootstrapped = False
 
         if self.warning and not settings.REQUIRE_NATIVE_NEO4J:
@@ -101,13 +102,19 @@ class Neo4jGraphAdapter:
         try:
             from neo4j import GraphDatabase
 
-            self._driver = GraphDatabase.driver(
-                settings.NEO4J_URI,
-                auth=(settings.NEO4J_USER, settings.NEO4J_PASSWORD),
-                connection_timeout=settings.NEO4J_CONNECTION_TIMEOUT,
-            )
-            self._driver.verify_connectivity()
-            if read_uri and read_uri != settings.NEO4J_URI:
+            from tenancy.neo4j_cluster import connect_with_failover
+
+            if settings.NEO4J_CLUSTER_FAILOVER_ENABLED:
+                self._driver, self._write_uri = connect_with_failover()
+            else:
+                self._driver = GraphDatabase.driver(
+                    settings.NEO4J_URI,
+                    auth=(settings.NEO4J_USER, settings.NEO4J_PASSWORD),
+                    connection_timeout=settings.NEO4J_CONNECTION_TIMEOUT,
+                )
+                self._driver.verify_connectivity()
+                self._write_uri = settings.NEO4J_URI
+            if read_uri and read_uri != self._write_uri:
                 self._read_driver = GraphDatabase.driver(
                     read_uri,
                     auth=(settings.NEO4J_USER, settings.NEO4J_PASSWORD),
@@ -287,9 +294,10 @@ class Neo4jGraphAdapter:
         return {
             "backend": "neo4j",
             "native": self.native,
-            "uri": settings.NEO4J_URI,
+            "uri": self._write_uri or settings.NEO4J_URI,
             "read_uri": self.read_uri,
             "read_replica_active": self._read_driver is not None,
+            "cluster_failover_enabled": settings.NEO4J_CLUSTER_FAILOVER_ENABLED,
             "database": self.database,
             "tenant_id": self.tenant_id,
             "warning": self.warning,

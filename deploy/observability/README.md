@@ -86,3 +86,5 @@ For managed Prometheus / Grafana Cloud remote-write, see [GRAFANA_CLOUD.md](GRAF
 Import Prometheus alert rules from `grafana/alerts/projectforge-alerts.yaml` into Grafana Alerting or your Prometheus ruler.
 
 On-call procedures: [RUNBOOK.md](RUNBOOK.md).
+
+SLO definitions and error-budget alerting: [SLO.md](SLO.md). Import `grafana/dashboards/projectforge-slo.json` for the SLO dashboard.

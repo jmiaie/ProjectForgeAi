@@ -258,6 +258,7 @@ class StripeBillingService:
                 "status": "active",
                 "billing_mode": "subscription",
                 "provider": "mock",
+                "stripe_customer_id": f"cus_mock_{uuid4().hex[:12]}",
                 "created_at": datetime.now(UTC).isoformat(),
                 "current_period_end": datetime.now(UTC).isoformat(),
             }
@@ -328,6 +329,109 @@ class StripeBillingService:
             "mock_mode": settings.STRIPE_MOCK,
         }
 
+    async def create_customer_portal(
+        self,
+        tenant_id: str,
+        *,
+        return_url: str | None = None,
+    ) -> dict[str, Any]:
+        self._resolve_tenant(tenant_id)
+        subscription = self.subscription_store.get(tenant_id)
+        redirect = return_url or settings.FRONTEND_BASE_URL
+
+        if settings.STRIPE_MOCK or not settings.STRIPE_SECRET_KEY:
+            customer_id = (subscription or {}).get("stripe_customer_id") or f"cus_mock_{tenant_id[-8:]}"
+            if subscription is not None:
+                subscription["stripe_customer_id"] = customer_id
+                self.subscription_store.save(subscription)
+            return {
+                "mode": "mock",
+                "portal_url": f"{redirect}/portfolio?billing=portal&tenant_id={tenant_id}",
+                "customer_id": customer_id,
+            }
+
+        customer_id = (subscription or {}).get("stripe_customer_id")
+        if not customer_id:
+            raise ValueError("No Stripe customer on file for tenant; complete subscription checkout first")
+
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            response = await client.post(
+                "https://api.stripe.com/v1/billing_portal/sessions",
+                auth=(settings.STRIPE_SECRET_KEY, ""),
+                data={
+                    "customer": customer_id,
+                    "return_url": redirect,
+                },
+            )
+            response.raise_for_status()
+            payload = response.json()
+
+        return {
+            "mode": "stripe",
+            "portal_url": payload.get("url"),
+            "customer_id": customer_id,
+        }
+
+    async def cancel_subscription(
+        self,
+        tenant_id: str,
+        *,
+        at_period_end: bool = True,
+    ) -> dict[str, Any]:
+        self._resolve_tenant(tenant_id)
+        subscription = self.subscription_store.get(tenant_id)
+        if subscription is None:
+            raise ValueError(f"No subscription for tenant: {tenant_id}")
+        if subscription.get("status") == "canceled":
+            return {"status": "already_canceled", "subscription": subscription}
+
+        stripe_subscription_id = subscription.get("stripe_subscription_id")
+
+        if settings.STRIPE_MOCK or not settings.STRIPE_SECRET_KEY:
+            subscription["status"] = "canceled"
+            subscription["cancel_at_period_end"] = at_period_end
+            subscription["canceled_at"] = datetime.now(UTC).isoformat()
+            self.subscription_store.save(subscription)
+            if not at_period_end:
+                self.tenant_registry.update_tier(tenant_id, "starter")
+            return {
+                "mode": "mock",
+                "status": "canceled",
+                "at_period_end": at_period_end,
+                "subscription": subscription,
+            }
+
+        if not stripe_subscription_id:
+            raise ValueError("Subscription missing Stripe ID")
+
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            if at_period_end:
+                response = await client.post(
+                    f"https://api.stripe.com/v1/subscriptions/{stripe_subscription_id}",
+                    auth=(settings.STRIPE_SECRET_KEY, ""),
+                    data={"cancel_at_period_end": "true"},
+                )
+            else:
+                response = await client.delete(
+                    f"https://api.stripe.com/v1/subscriptions/{stripe_subscription_id}",
+                    auth=(settings.STRIPE_SECRET_KEY, ""),
+                )
+            response.raise_for_status()
+            payload = response.json()
+
+        subscription["status"] = payload.get("status", "canceled")
+        subscription["cancel_at_period_end"] = payload.get("cancel_at_period_end", at_period_end)
+        if subscription["status"] == "canceled":
+            subscription["canceled_at"] = datetime.now(UTC).isoformat()
+            self.tenant_registry.update_tier(tenant_id, "starter")
+        self.subscription_store.save(subscription)
+        return {
+            "mode": "stripe",
+            "status": subscription["status"],
+            "at_period_end": subscription.get("cancel_at_period_end", at_period_end),
+            "subscription": subscription,
+        }
+
     def list_invoices(self, tenant_id: str) -> dict[str, Any]:
         return {
             "tenant_id": tenant_id,
@@ -342,6 +446,7 @@ class StripeBillingService:
             "configured": bool(settings.STRIPE_SECRET_KEY) or settings.STRIPE_MOCK,
             "webhook_configured": bool(settings.STRIPE_WEBHOOK_SECRET) or settings.STRIPE_MOCK,
             "subscriptions_enabled": True,
+            "customer_portal_enabled": True,
             "price_ids": {
                 "pro": settings.STRIPE_PRO_PRICE_ID,
                 "enterprise": settings.STRIPE_ENTERPRISE_PRICE_ID,
@@ -471,6 +576,8 @@ class StripeBillingService:
         subscription["status"] = "canceled"
         subscription["canceled_at"] = datetime.now(UTC).isoformat()
         self.subscription_store.save(subscription)
+        tenant_id = subscription["tenant_id"]
+        self.tenant_registry.update_tier(tenant_id, "starter")
         return {
             "status": "processed",
             "event_type": "customer.subscription.deleted",

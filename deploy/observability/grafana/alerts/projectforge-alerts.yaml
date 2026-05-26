@@ -50,3 +50,27 @@ groups:
           summary: "ProjectForge metrics absent from Prometheus"
           description: "Prometheus is not scraping ProjectForge metrics."
           runbook_url: "https://github.com/jmiaie/ProjectForgeAi/blob/main/deploy/observability/RUNBOOK.md#metrics-missing"
+
+      - alert: ProjectForgeErrorBudgetBurn
+        expr: |
+          (projectforge_http_errors_total{service="projectforge-ai"} / clamp_min(projectforge_http_requests_total{service="projectforge-ai"}, 1)) > 0.001
+        for: 10m
+        labels:
+          severity: critical
+          service: projectforge-ai
+        annotations:
+          summary: "ProjectForge error budget burning"
+          description: "Error rate exceeds 99.9% availability SLO allowance (0.1% errors)."
+          runbook_url: "https://github.com/jmiaie/ProjectForgeAi/blob/main/deploy/observability/SLO.md#error-budget"
+
+      - alert: ProjectForgeSLOLatencyBreach
+        expr: |
+          projectforge_http_request_duration_ms_avg{service="projectforge-ai"} > 750
+        for: 15m
+        labels:
+          severity: warning
+          service: projectforge-ai
+        annotations:
+          summary: "ProjectForge latency SLO breach"
+          description: "Average latency exceeded 750ms SLO target for 15 minutes."
+          runbook_url: "https://github.com/jmiaie/ProjectForgeAi/blob/main/deploy/observability/SLO.md#latency-slo"

@@ -68,6 +68,33 @@ export function TenantBillingPanel({ tenantId = 'tenant_default' }: TenantBillin
     }
   };
 
+  const openCustomerPortal = async () => {
+    setMessage('');
+    try {
+      const result = await apiPost<{ portal_url?: string; mode: string }>(
+        `/api/v1/tenants/${tenantId}/billing/portal`,
+        {},
+      );
+      setMessage(result.portal_url ? `Customer portal ready (${result.mode})` : 'Portal session created');
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'Portal failed');
+    }
+  };
+
+  const cancelSubscription = async () => {
+    setMessage('');
+    try {
+      const result = await apiPost<{ status: string; at_period_end?: boolean }>(
+        `/api/v1/tenants/${tenantId}/billing/subscription/cancel`,
+        { at_period_end: false },
+      );
+      setMessage(`Subscription ${result.status}`);
+      await refresh();
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'Cancel failed');
+    }
+  };
+
   if (!quota) {
     return (
       <Card className="panel">
@@ -75,6 +102,8 @@ export function TenantBillingPanel({ tenantId = 'tenant_default' }: TenantBillin
       </Card>
     );
   }
+
+  const hasActiveSubscription = subscription && subscription.status === 'active';
 
   return (
     <Card className="panel">
@@ -93,6 +122,12 @@ export function TenantBillingPanel({ tenantId = 'tenant_default' }: TenantBillin
         <Button variant="outline" onClick={refresh}>Refresh</Button>
         <Button variant="outline" onClick={startCheckout}>One-time checkout</Button>
         <Button onClick={startSubscription}>Subscribe (pro)</Button>
+        {hasActiveSubscription ? (
+          <>
+            <Button variant="outline" onClick={openCustomerPortal}>Customer portal</Button>
+            <Button variant="outline" onClick={cancelSubscription}>Cancel subscription</Button>
+          </>
+        ) : null}
       </div>
       <div className="grid grid-3">
         <div className="stat">
