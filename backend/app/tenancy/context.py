@@ -18,7 +18,9 @@ class TenantContext:
 
 
 def get_tenant_registry() -> TenantRegistry:
-    return TenantRegistry()
+    registry = TenantRegistry()
+    registry._ensure_default_tenant()
+    return registry
 
 
 def get_tenant_context(
@@ -27,10 +29,9 @@ def get_tenant_context(
 ) -> TenantContext:
     tenant_id = x_projectforge_tenant or settings.DEFAULT_TENANT_ID
     record = registry.get(tenant_id)
-    if record is None and settings.TENANT_ISOLATION_ENABLED:
+    if record is None and tenant_id == settings.DEFAULT_TENANT_ID:
         registry._ensure_default_tenant()
-        record = registry.get(settings.DEFAULT_TENANT_ID)
-        tenant_id = settings.DEFAULT_TENANT_ID
+        record = registry.get(tenant_id)
     return TenantContext(tenant_id=tenant_id, name=record.name if record else None)
 
 

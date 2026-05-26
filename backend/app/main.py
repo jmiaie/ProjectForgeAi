@@ -14,7 +14,7 @@ from core.access_deps import get_actor_context, get_rbac_service, require_permis
 from core.build_info import build_info_status
 from core.config import settings
 from core.hardening import SecurityHeadersMiddleware, cors_allowed_origins
-from core.observability import ObservabilityMiddleware, metrics_collector, observability_status, recent_traces
+from core.otel_export import jaeger_trace_batch, otlp_trace_payload, otel_status, prometheus_metrics_text
 from core.integrations_manager import IntegrationsManager
 from core.llm_keys import LLMKeyStore
 from core.llm_router import LLMRouter
@@ -35,6 +35,8 @@ from projects.intelligence import PortfolioIntelligenceService
 from projects.registry import ProjectRegistry
 from spatial.service import SpatialService
 from storage.status import get_storage_status
+from core.observability import ObservabilityMiddleware, metrics_collector, observability_status, recent_traces
+from tenancy.billing import TenantBillingService
 from tenancy.context import TenantContext, get_tenant_context, get_tenant_registry
 from tenancy.isolation import TenantIsolation
 from tenancy.registry import TenantRegistry
@@ -237,6 +239,14 @@ def get_spatial_service() -> SpatialService:
     return SpatialService()
 
 
+def get_tenant_billing_service(
+    tenant: TenantContext = Depends(get_tenant_context),
+) -> TenantBillingService:
+    return TenantBillingService(
+        project_registry_factory=lambda tenant_id: ProjectRegistry(tenant_id=tenant_id),
+    )
+
+
 @app.get("/api/v1/tenants")
 async def list_tenants(registry: TenantRegistry = Depends(get_tenant_registry)):
     tenants = registry.list_tenants()
@@ -268,6 +278,46 @@ async def tenant_status(
         "isolation_enabled": settings.TENANT_ISOLATION_ENABLED,
         "project_registry_root": TenantIsolation.project_registry_root(tenant_id),
     }
+
+
+@app.get("/api/v1/tenants/{tenant_id}/billing/usage")
+async def tenant_billing_usage(
+    tenant_id: str,
+    billing: TenantBillingService = Depends(get_tenant_billing_service),
+):
+    from fastapi import HTTPException
+
+    try:
+        return billing.usage_summary(tenant_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.get("/api/v1/tenants/{tenant_id}/billing/quota")
+async def tenant_billing_quota(
+    tenant_id: str,
+    billing: TenantBillingService = Depends(get_tenant_billing_service),
+):
+    from fastapi import HTTPException
+
+    try:
+        return billing.quota_status(tenant_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.get("/api/v1/tenants/{tenant_id}/billing/check")
+async def tenant_billing_check(
+    tenant_id: str,
+    action: str,
+    billing: TenantBillingService = Depends(get_tenant_billing_service),
+):
+    from fastapi import HTTPException
+
+    try:
+        return billing.check_action(tenant_id, action)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @app.get("/api/v1/projects")
@@ -380,14 +430,21 @@ async def register_project(
     request: RegisterProjectRequest,
     actor: ActorContext = Depends(get_actor_context),
     rbac: RBACService = Depends(get_rbac_service),
+    tenant: TenantContext = Depends(get_tenant_context),
     portfolio: PortfolioService = Depends(get_portfolio_service),
+    billing: TenantBillingService = Depends(get_tenant_billing_service),
 ):
+    from fastapi import HTTPException
+
     try:
         rbac.require(settings.DEFAULT_PROJECT_ID, actor, "access.manage")
     except PermissionError as exc:
-        from fastapi import HTTPException
-
         raise HTTPException(status_code=403, detail=str(exc)) from exc
+
+    if settings.TENANT_BILLING_ENABLED:
+        decision = billing.check_action(tenant.tenant_id, "project_create")
+        if not decision["allowed"]:
+            raise HTTPException(status_code=402, detail=decision["reason"])
 
     record = portfolio.create_project(
         name=request.name,
@@ -763,7 +820,31 @@ async def observability_metrics(limit: int = 50):
         "status": observability_status(),
         "metrics": metrics_collector.snapshot() if settings.METRICS_ENABLED else {},
         "recent_traces": recent_traces(limit),
+        "otel": otel_status(),
     }
+
+
+@app.get("/api/v1/observability/prometheus")
+async def observability_prometheus():
+    from fastapi import Response
+
+    if not settings.OTEL_EXPORTER_ENABLED:
+        return {"enabled": False}
+    return Response(content=prometheus_metrics_text(), media_type="text/plain; version=0.0.4")
+
+
+@app.get("/api/v1/observability/traces/jaeger")
+async def observability_jaeger_export(limit: int = 50):
+    if not settings.OTEL_EXPORTER_ENABLED:
+        return {"enabled": False, "data": []}
+    return jaeger_trace_batch(limit)
+
+
+@app.get("/api/v1/observability/traces/otlp")
+async def observability_otlp_export(limit: int = 50):
+    if not settings.OTEL_EXPORTER_ENABLED:
+        return {"enabled": False, "resourceSpans": []}
+    return otlp_trace_payload(limit)
 
 
 @app.get("/api/v1/storage/{project_id}/status")

@@ -10,6 +10,9 @@ Base URL: `http://localhost:8000` (or `BACKEND_BASE_URL`).
 | GET | `/api/v1/deploy/status` | Deployment mode, hardening flags, build bundle info |
 | GET | `/api/v1/observability/status` | Metrics/tracing configuration |
 | GET | `/api/v1/observability/metrics` | Request counts, latency, recent traces |
+| GET | `/api/v1/observability/prometheus` | Prometheus text exposition format |
+| GET | `/api/v1/observability/traces/jaeger` | Jaeger-compatible trace batch export |
+| GET | `/api/v1/observability/traces/otlp` | OTLP JSON trace payload |
 | GET | `/api/v1/storage/{project_id}/status` | Per-project storage backends |
 
 ## Tenants (SaaS)
@@ -21,6 +24,12 @@ Base URL: `http://localhost:8000` (or `BACKEND_BASE_URL`).
 | GET | `/api/v1/tenants/{tenant_id}/status` | Tenant isolation status and roots |
 
 Pass `X-ProjectForge-Tenant` on requests when tenant isolation is enabled.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/v1/tenants/{tenant_id}/billing/usage` | Tenant usage summary |
+| GET | `/api/v1/tenants/{tenant_id}/billing/quota` | Quota limits and remaining capacity |
+| GET | `/api/v1/tenants/{tenant_id}/billing/check?action=` | Check quota for action (`project_create`, `llm_call`, etc.) |
 
 ## Projects & portfolio
 

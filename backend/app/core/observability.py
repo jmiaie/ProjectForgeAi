@@ -94,14 +94,25 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
             status_code=response.status_code,
             latency_ms=latency_ms,
         )
+        tenant_id = request.headers.get("X-ProjectForge-Tenant") or settings.DEFAULT_TENANT_ID
+        if settings.TENANT_BILLING_ENABLED and tenant_id:
+            try:
+                from tenancy.billing import TenantBillingService
+
+                TenantBillingService().record_event(tenant_id, "api_request")
+            except Exception:
+                pass
         response.headers.setdefault("X-Request-ID", trace_id)
         return response
 
 
 def observability_status() -> dict[str, Any]:
+    from core.otel_export import otel_status
+
     return {
         "enabled": settings.OBSERVABILITY_ENABLED,
         "metrics_enabled": settings.METRICS_ENABLED,
         "trace_requests": settings.TRACE_REQUESTS,
         "trace_buffer_size": settings.TRACE_BUFFER_SIZE,
+        "otel": otel_status(),
     }

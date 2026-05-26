@@ -179,6 +179,11 @@ export type ObservabilityMetrics = {
     enabled: boolean;
     metrics_enabled: boolean;
     trace_requests: boolean;
+    otel?: {
+      enabled: boolean;
+      exporter: string;
+      service_name: string;
+    };
   };
   metrics: {
     request_count?: number;
@@ -192,6 +197,20 @@ export type ObservabilityMetrics = {
     status_code: number;
     latency_ms: number;
   }>;
+};
+
+export type TenantBillingQuota = {
+  tenant_id: string;
+  tier: string;
+  usage: {
+    projects: number;
+    api_requests: number;
+    llm_tokens: number;
+    llm_calls: number;
+    orchestrator_runs: number;
+  };
+  quotas: Record<string, number | null>;
+  checks: Record<string, { current: number; limit: number | null; remaining: number | null; allowed: boolean }>;
 };
 
 export async function apiGet<T>(path: string): Promise<T> {

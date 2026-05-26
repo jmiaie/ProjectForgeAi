@@ -74,6 +74,8 @@ python3 scripts/apply_airgap_bundle.py dist/airgap/projectforge-airgap-14.0.0-ab
 
 Set `AIRGAP_REQUIRE_SIGNATURE=true` in production to enforce verification via the deploy API status flag.
 
+Key rotation runbook: [KEY_ROTATION.md](KEY_ROTATION.md)
+
 ## Related
 
 - [../onprem/README.md](../onprem/README.md) — Docker Compose on-prem

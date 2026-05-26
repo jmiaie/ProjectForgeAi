@@ -82,6 +82,13 @@ class Settings(BaseSettings):
     TRACE_BUFFER_SIZE: int = 200
     AIRGAP_REQUIRE_SIGNATURE: bool = False
     AIRGAP_GPG_PUBLIC_KEY_PATH: str | None = None
+    OTEL_EXPORTER_ENABLED: bool = True
+    OTEL_SERVICE_NAME: str = "projectforge-ai"
+    OTEL_EXPORTER: str = "prometheus"
+    OTEL_PROMETHEUS_PATH: str = "/api/v1/observability/prometheus"
+    OTEL_JAEGER_ENDPOINT: str = ""
+    TENANT_USAGE_ROOT: str = "./.tenant-usage"
+    TENANT_BILLING_ENABLED: bool = True
     PROJECT_TIER: str = "starter"
     PROJECT_REGISTRY_ROOT: str = "./.projects"
     DEFAULT_PROJECT_ID: str = "proj_123"

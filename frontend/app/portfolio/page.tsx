@@ -1,5 +1,6 @@
 import { ExecutiveDashboardPanel } from '@/components/ExecutiveDashboardPanel';
 import { PortfolioPanel } from '@/components/PortfolioPanel';
+import { TenantBillingPanel } from '@/components/TenantBillingPanel';
 import { ProjectSwitcher } from '@/components/ProjectSwitcher';
 import { apiGet, defaultProjectId } from '@/lib/api';
 
@@ -33,6 +34,7 @@ export default async function PortfolioPage({
             </p>
           ) : null}
           <ExecutiveDashboardPanel />
+          <TenantBillingPanel tenantId={process.env.NEXT_PUBLIC_TENANT_ID || 'tenant_default'} />
           <PortfolioPanel activeProjectId={projectId} />
         </div>
       </div>

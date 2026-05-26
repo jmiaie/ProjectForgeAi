@@ -32,6 +32,7 @@ export function ObservabilityPanel() {
           <p className="muted">
             Metrics {metrics.status.metrics_enabled ? 'enabled' : 'disabled'} · tracing{' '}
             {metrics.status.trace_requests ? 'on' : 'off'}
+            {metrics.status.otel?.enabled ? ` · OTel ${metrics.status.otel.exporter}` : ''}
           </p>
           <div className="grid grid-3">
             <div className="stat">
