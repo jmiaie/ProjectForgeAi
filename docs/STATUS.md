@@ -1,23 +1,25 @@
 # ProjectForge AI v14 — Status
 
-Last updated: Sprint 17 complete on branch `cursor/sprint17-portfolio-intelligence-ebb0`.
+Last updated: Sprint 18 complete on branch `cursor/sprint18-airgap-hardening-ebb0`.
 
 ## Verification
 
 ```bash
-PYTHONPATH=backend/app python3 -m unittest discover -s backend/app/tests   # 125 tests
+PYTHONPATH=backend/app python3 -m unittest discover -s backend/app/tests   # 128 tests
+python3 scripts/smoke_portfolio_intelligence.py
+python3 scripts/build_airgap_bundle.py --version 14.0.0 --skip-wheels
 python3 scripts/check_graph_schema_version.py
 helm template projectforge ./deploy/helm/projectforge
 cd frontend && npm run typecheck
 ```
 
-## New in Sprint 17
+## New in Sprint 18
 
-- **Compliance rollup** — cross-project profile counts, denied actions, restricted profile tracking
-- **Risk rollup** — graph Risk node aggregation by severity across projects
-- **Executive dashboard API** — portfolio health, compliance posture, and risk summary widgets
-- **Portfolio orchestrator** — multi-project risk/compliance review runs with linked artifacts
-- **ExecutiveDashboardPanel** — portfolio page widgets and run portfolio review action
+- **Air-gap bundles** — `build_airgap_bundle.py` / `apply_airgap_bundle.py` with manifest checksums
+- **Production hardening** — security headers, HSTS, restricted CORS when `PRODUCTION_HARDENING=true`
+- **Deploy status API** — `/api/v1/deploy/status` with build info and hardening flags
+- **Helm TLS defaults** — SSL redirect ingress annotations, OIDC + hardening enabled by default
+- **CI smoke** — portfolio intelligence smoke test and source-only bundle build
 
 ## Backend modules
 
@@ -27,22 +29,16 @@ cd frontend && npm run typecheck
 | Graph builder | Manifest projection, LLM enrich, mutations, rebuild + orphan cleanup |
 | Neo4j adapter | Versioned bootstrap (`SCHEMA_VERSION=2`), in-memory fallback |
 | Orchestrator | Specialist agents, per-step checkpoints, run history, resume |
-| LangGraph runner | Optional sequential + conditional branching (`USE_LANGGRAPH_ORCHESTRATOR`) |
-| Compliance | Profiles, redaction, memory/external-write gates, audit, SOC 2 export |
-| Auth / SSO | OIDC provider scaffolding, session tokens, group→role mapping |
+| LangGraph runner | Optional sequential + conditional branching |
+| Compliance | Profiles, redaction, audit, SOC 2 export |
+| Auth / SSO | OIDC scaffolding, session tokens |
 | Portfolio intelligence | Compliance/risk rollups, executive dashboard, portfolio orchestrator |
-| Integrations | OAuth PKCE, encrypted storage, MCP HTTP discovery |
-| Automations | Local store, scheduling, Temporal worker, dead letters |
-
-## Frontend panels
-
-Upload, graph build/enrich/edit, timeline/Gantt, workbench, orchestrator (artifacts + history), compliance (SOC 2 export), connections (live health), automations (approve/history/temporal), access (SSO status), map, executive portfolio dashboard.
+| Deploy ops | Air-gap bundles, production hardening middleware, deploy status |
 
 ## Resume development
 
 ```bash
-git checkout cursor/sprint17-portfolio-intelligence-ebb0
-git pull origin cursor/sprint17-portfolio-intelligence-ebb0
+git checkout cursor/sprint18-airgap-hardening-ebb0
 pip install -r requirements.txt
 PYTHONPATH=backend/app uvicorn main:app --reload --host 0.0.0.0 --port 8000
 cd frontend && npm install && npm run dev

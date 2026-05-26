@@ -7,6 +7,7 @@ Base URL: `http://localhost:8000` (or `BACKEND_BASE_URL`).
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/health` | Service health, LLM default, native Locus/OMPA status |
+| GET | `/api/v1/deploy/status` | Deployment mode, hardening flags, build bundle info |
 | GET | `/api/v1/storage/{project_id}/status` | Per-project storage backends |
 
 ## Projects & portfolio

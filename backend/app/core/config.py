@@ -69,6 +69,10 @@ class Settings(BaseSettings):
     OIDC_DEFAULT_ROLE: str = "viewer"
     AUTH_SESSION_ROOT: str = "./.auth-sessions"
     AUTH_SESSION_TTL_SECONDS: int = 86400
+    PRODUCTION_HARDENING: bool = False
+    SECURITY_HEADERS_ENABLED: bool = False
+    STRICT_TRANSPORT_SECURITY: bool = False
+    CORS_ALLOWED_ORIGINS: str = ""
     PROJECT_TIER: str = "starter"
     PROJECT_REGISTRY_ROOT: str = "./.projects"
     DEFAULT_PROJECT_ID: str = "proj_123"

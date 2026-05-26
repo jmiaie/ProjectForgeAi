@@ -7,14 +7,20 @@ global:
 deploymentMode: onprem
 projectTier: enterprise
 rbacEnforce: true
-oidcEnabled: false
+oidcEnabled: true
 oidcMock: false
+productionHardening: true
 
 ingress:
   enabled: true
   className: nginx
   host: projectforge.internal
   tlsSecretName: projectforge-tls
+  forceSsl: true
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
 
 backend:
   replicaCount: 2

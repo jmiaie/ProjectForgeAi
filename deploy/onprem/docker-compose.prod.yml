@@ -16,6 +16,9 @@ services:
       OAUTH_MOCK_TOKEN_EXCHANGE: "false"
       OIDC_ENABLED: "true"
       OIDC_MOCK: "false"
+      PRODUCTION_HARDENING: "true"
+      STRICT_TRANSPORT_SECURITY: "true"
+      SECURITY_HEADERS_ENABLED: "true"
       REQUIRE_NATIVE_NEO4J: "false"
       NEO4J_BOOTSTRAP_ON_CONNECT: "true"
     command: >

@@ -5,6 +5,10 @@ metadata:
   name: {{ include "projectforge.fullname" . }}
   labels:
     {{- include "projectforge.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   ingressClassName: {{ .Values.ingress.className }}
   {{- if .Values.ingress.tlsSecretName }}

@@ -15,6 +15,9 @@ __pycache__/
 .automations/
 .projects/
 .auth-sessions/
+dist/
+BUILD_INFO.json
+AIRGAP_APPLY.json
 .rbac/
 .llm-keys/
 .llm-usage/

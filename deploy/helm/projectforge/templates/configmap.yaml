@@ -23,6 +23,9 @@ data:
   RBAC_ENFORCE: {{ .Values.rbacEnforce | quote }}
   OIDC_ENABLED: {{ .Values.oidcEnabled | quote }}
   OIDC_MOCK: {{ .Values.oidcMock | quote }}
+  PRODUCTION_HARDENING: {{ .Values.productionHardening | quote }}
+  STRICT_TRANSPORT_SECURITY: {{ .Values.productionHardening | quote }}
+  SECURITY_HEADERS_ENABLED: {{ .Values.productionHardening | quote }}
   OAUTH_MOCK_TOKEN_EXCHANGE: {{ .Values.env.oauthMockTokenExchange | quote }}
   REQUIRE_NATIVE_LOCUS_OMPA: {{ .Values.env.requireNativeLocusOmpa | quote }}
   TEMPORAL_SYNC_SCHEDULES: {{ .Values.env.temporalSyncSchedules | quote }}

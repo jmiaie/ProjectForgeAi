@@ -11,7 +11,9 @@ from automations.temporal_worker import run_due_automations, temporal_worker_set
 from compliance.enforcer import ComplianceEnforcer
 from compliance.soc2_export import SOC2ExportService
 from core.access_deps import get_actor_context, get_rbac_service, require_permission
+from core.build_info import build_info_status
 from core.config import settings
+from core.hardening import SecurityHeadersMiddleware, cors_allowed_origins
 from core.integrations_manager import IntegrationsManager
 from core.llm_keys import LLMKeyStore
 from core.llm_router import LLMRouter
@@ -38,11 +40,12 @@ app = FastAPI(title=settings.PROJECT_NAME)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=cors_allowed_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(SecurityHeadersMiddleware)
 
 app.include_router(intake_router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/api/v1")
@@ -668,7 +671,25 @@ async def health():
         "rbac_enforce": settings.RBAC_ENFORCE,
         "oidc_enabled": settings.OIDC_ENABLED,
         "oidc_mock": settings.OIDC_MOCK,
+        "production_hardening": settings.PRODUCTION_HARDENING,
+        "build_info": build_info_status(),
         "storage": storage,
+    }
+
+
+@app.get("/api/v1/deploy/status")
+async def deploy_status():
+    return {
+        "deployment_mode": settings.DEPLOYMENT_MODE,
+        "project_tier": settings.PROJECT_TIER,
+        "production_hardening": settings.PRODUCTION_HARDENING,
+        "security_headers_enabled": settings.SECURITY_HEADERS_ENABLED or settings.PRODUCTION_HARDENING,
+        "strict_transport_security": settings.STRICT_TRANSPORT_SECURITY or settings.PRODUCTION_HARDENING,
+        "rbac_enforce": settings.RBAC_ENFORCE,
+        "oidc_enabled": settings.OIDC_ENABLED,
+        "oidc_mock": settings.OIDC_MOCK,
+        "cors_allowed_origins": cors_allowed_origins(),
+        "build_info": build_info_status(),
     }
 
 

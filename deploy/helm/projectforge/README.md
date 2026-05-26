@@ -32,7 +32,9 @@ helm upgrade projectforge ./deploy/helm/projectforge \
 | `deploymentMode` | `onprem` | Deployment mode passed to backend |
 | `projectTier` | `enterprise` | Feature tier |
 | `rbacEnforce` | `true` | Enable RBAC enforcement |
-| `oidcEnabled` | `false` | Enable SSO/OIDC |
+| `oidcEnabled` | `true` | Enable SSO/OIDC |
+| `productionHardening` | `true` | Security headers, HSTS, restricted CORS |
+| `ingress.forceSsl` | `true` | Ingress TLS + SSL redirect annotations |
 | `ingress.host` | `projectforge.internal` | Public hostname |
 | `env.encryptionKey` | — | Replace before production |
 | `postgres.password` | — | Replace before production |

@@ -42,6 +42,12 @@ Authorization: Bearer <session-token>
 
 Configure OIDC in `.env` (`OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_REDIRECT_URI`).
 
+Production hardening flags (`PRODUCTION_HARDENING`, `SECURITY_HEADERS_ENABLED`, `STRICT_TRANSPORT_SECURITY`) are enabled in the overlay. Restrict CORS with `CORS_ALLOWED_ORIGINS`.
+
+## Air-gapped updates
+
+Build bundles on a connected machine and apply offline. See [../airgap/README.md](../airgap/README.md).
+
 ## Kubernetes (Helm)
 
 For Kubernetes deployments, use the Helm chart at `deploy/helm/projectforge/`. See [../helm/projectforge/README.md](../helm/projectforge/README.md).
