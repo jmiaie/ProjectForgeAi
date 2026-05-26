@@ -1,4 +1,4 @@
-from fastapi import Depends, FastAPI, File, Form, UploadFile
+from fastapi import Depends, FastAPI, File, Form, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -143,6 +143,7 @@ class RegisterTenantRequest(BaseModel):
 
 class BillingCheckoutRequest(BaseModel):
     success_url: str | None = None
+    target_tier: str | None = None
 
 
 class CreateGraphNodeRequest(BaseModel):
@@ -310,9 +311,28 @@ async def tenant_billing_checkout(
     from fastapi import HTTPException
 
     try:
-        return await stripe_billing.create_checkout(tenant_id, success_url=request.success_url)
+        return await stripe_billing.create_checkout(
+            tenant_id,
+            success_url=request.success_url,
+            target_tier=request.target_tier,
+        )
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.post("/api/v1/billing/webhook")
+async def stripe_billing_webhook(
+    request: Request,
+    stripe_billing: StripeBillingService = Depends(get_stripe_billing_service),
+):
+    from fastapi import HTTPException
+
+    payload = await request.body()
+    signature = request.headers.get("stripe-signature")
+    try:
+        return stripe_billing.handle_webhook(payload, signature)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.get("/api/v1/billing/status")

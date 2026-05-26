@@ -15,12 +15,15 @@ MIGRATIONS: dict[int, list[str]] = {
 }
 
 
-def bootstrap_neo4j(driver) -> dict[str, Any]:
+def bootstrap_neo4j(driver, database: str | None = None) -> dict[str, Any]:
     applied: list[str] = []
     warnings: list[str] = []
     current_version = 0
+    session_kwargs: dict[str, Any] = {}
+    if database:
+        session_kwargs["database"] = database
 
-    with driver.session() as session:
+    with driver.session(**session_kwargs) as session:
         record = session.run(
             "MERGE (meta:ProjectForgeMeta {id: 'schema'}) "
             "ON CREATE SET meta.version = 0 "
@@ -45,6 +48,7 @@ def bootstrap_neo4j(driver) -> dict[str, Any]:
     return {
         "status": "bootstrapped",
         "uri": settings.NEO4J_URI,
+        "database": database,
         "schema_version": current_version,
         "target_version": SCHEMA_VERSION,
         "applied": len(applied),

@@ -76,3 +76,7 @@ GET /api/v1/observability/traces/jaeger
 ```
 
 Wire Jaeger collector to ingest OTLP/JSON batches in production.
+
+## Grafana Cloud
+
+For managed Prometheus / Grafana Cloud remote-write, see [GRAFANA_CLOUD.md](GRAFANA_CLOUD.md).

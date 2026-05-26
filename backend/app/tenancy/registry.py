@@ -50,6 +50,16 @@ class TenantRegistry:
             return None
         return TenantRecord.model_validate(json.loads(path.read_text()))
 
+    def update_tier(self, tenant_id: str, tier: str) -> TenantRecord:
+        record = self.get(tenant_id)
+        if record is None:
+            raise ValueError(f"Unknown tenant: {tenant_id}")
+        record.tier = tier.lower()
+        record.updated_at = datetime.now(UTC).isoformat()
+        self._write(record)
+        self._refresh_index()
+        return record
+
     def list_tenants(self) -> list[TenantRecord]:
         self._ensure_default_tenant()
         records = []

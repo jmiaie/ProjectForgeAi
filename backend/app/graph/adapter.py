@@ -153,7 +153,7 @@ class Neo4jGraphAdapter:
             return {"status": "skipped", "backend": "memory", "warning": self.warning}
         from graph.bootstrap import bootstrap_neo4j
 
-        result = bootstrap_neo4j(self._driver)
+        result = bootstrap_neo4j(self._driver, database=self.database)
         self._bootstrapped = True
         return result
 
