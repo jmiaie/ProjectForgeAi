@@ -83,13 +83,15 @@ class InMemoryGraphStore:
 class Neo4jGraphAdapter:
     _native_disabled_warning: str | None = None
 
-    def __init__(self, tenant_id: str | None = None, database: str | None = None):
+    def __init__(self, tenant_id: str | None = None, database: str | None = None, read_uri: str | None = None):
         self.tenant_id = tenant_id
         self.database = database
+        self.read_uri = read_uri
         self.native = True
         self.warning: str | None = self.__class__._native_disabled_warning
         self._memory = InMemoryGraphStore()
         self._driver = None
+        self._read_driver = None
         self._bootstrapped = False
 
         if self.warning and not settings.REQUIRE_NATIVE_NEO4J:
@@ -105,12 +107,22 @@ class Neo4jGraphAdapter:
                 connection_timeout=settings.NEO4J_CONNECTION_TIMEOUT,
             )
             self._driver.verify_connectivity()
+            if read_uri and read_uri != settings.NEO4J_URI:
+                self._read_driver = GraphDatabase.driver(
+                    read_uri,
+                    auth=(settings.NEO4J_USER, settings.NEO4J_PASSWORD),
+                    connection_timeout=settings.NEO4J_CONNECTION_TIMEOUT,
+                )
+                self._read_driver.verify_connectivity()
             if settings.NEO4J_BOOTSTRAP_ON_CONNECT:
                 self.bootstrap()
         except Exception as exc:
             if self._driver is not None:
                 self._driver.close()
                 self._driver = None
+            if self._read_driver is not None:
+                self._read_driver.close()
+                self._read_driver = None
             if settings.REQUIRE_NATIVE_NEO4J:
                 raise GraphAdapterError(f"Neo4j unavailable: {exc}") from exc
             self.native = False
@@ -118,18 +130,21 @@ class Neo4jGraphAdapter:
             self.__class__._native_disabled_warning = self.warning
 
     def close(self) -> None:
+        if self._read_driver is not None:
+            self._read_driver.close()
         if self._driver is not None:
             self._driver.close()
 
-    def _session(self):
-        if self._driver is None:
+    def _session(self, *, read_only: bool = False):
+        driver = self._read_driver if read_only and self._read_driver is not None else self._driver
+        if driver is None:
             raise GraphAdapterError("Neo4j driver unavailable")
         if self.database and settings.NEO4J_TENANT_ISOLATION_ENABLED:
             try:
-                return self._driver.session(database=self.database)
+                return driver.session(database=self.database)
             except Exception:
-                return self._driver.session()
-        return self._driver.session()
+                return driver.session()
+        return driver.session()
 
     def _node_with_tenant(self, node: GraphNode) -> GraphNode:
         if not self.tenant_id:
@@ -253,7 +268,7 @@ class Neo4jGraphAdapter:
             return memory_graph
 
         try:
-            with self._session() as session:
+            with self._session(read_only=True) as session:
                 return session.execute_read(self._read_graph_tx, project_id, self.tenant_id)
         except Exception as exc:
             if settings.REQUIRE_NATIVE_NEO4J:
@@ -273,6 +288,8 @@ class Neo4jGraphAdapter:
             "backend": "neo4j",
             "native": self.native,
             "uri": settings.NEO4J_URI,
+            "read_uri": self.read_uri,
+            "read_replica_active": self._read_driver is not None,
             "database": self.database,
             "tenant_id": self.tenant_id,
             "warning": self.warning,

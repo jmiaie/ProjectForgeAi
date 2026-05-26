@@ -144,6 +144,12 @@ class RegisterTenantRequest(BaseModel):
 class BillingCheckoutRequest(BaseModel):
     success_url: str | None = None
     target_tier: str | None = None
+    billing_mode: str = "payment"
+
+
+class BillingSubscribeRequest(BaseModel):
+    success_url: str | None = None
+    target_tier: str | None = None
 
 
 class CreateGraphNodeRequest(BaseModel):
@@ -315,9 +321,36 @@ async def tenant_billing_checkout(
             tenant_id,
             success_url=request.success_url,
             target_tier=request.target_tier,
+            billing_mode=request.billing_mode,
         )
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.post("/api/v1/tenants/{tenant_id}/billing/subscribe")
+async def tenant_billing_subscribe(
+    tenant_id: str,
+    request: BillingSubscribeRequest,
+    stripe_billing: StripeBillingService = Depends(get_stripe_billing_service),
+):
+    from fastapi import HTTPException
+
+    try:
+        return await stripe_billing.create_subscription(
+            tenant_id,
+            success_url=request.success_url,
+            target_tier=request.target_tier,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/api/v1/tenants/{tenant_id}/billing/subscription")
+async def tenant_billing_subscription(
+    tenant_id: str,
+    stripe_billing: StripeBillingService = Depends(get_stripe_billing_service),
+):
+    return stripe_billing.get_subscription(tenant_id)
 
 
 @app.post("/api/v1/billing/webhook")

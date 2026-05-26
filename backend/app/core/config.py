@@ -92,9 +92,14 @@ class Settings(BaseSettings):
     TENANT_BILLING_ROOT: str = "./.tenant-billing"
     NEO4J_TENANT_ISOLATION_ENABLED: bool = False
     NEO4J_AUTO_PROVISION_DATABASES: bool = False
+    NEO4J_READ_REPLICA_ENABLED: bool = False
+    NEO4J_READ_REPLICA_URI: str | None = None
+    NEO4J_READ_REPLICA_TIERS: str = "enterprise"
     STRIPE_MOCK: bool = True
     STRIPE_SECRET_KEY: str | None = None
     STRIPE_WEBHOOK_SECRET: str | None = None
+    STRIPE_PRO_PRICE_ID: str | None = None
+    STRIPE_ENTERPRISE_PRICE_ID: str | None = None
     PROJECT_TIER: str = "starter"
     PROJECT_REGISTRY_ROOT: str = "./.projects"
     DEFAULT_PROJECT_ID: str = "proj_123"

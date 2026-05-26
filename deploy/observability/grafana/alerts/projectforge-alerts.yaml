@@ -1,0 +1,52 @@
+groups:
+  - name: projectforge
+    interval: 1m
+    rules:
+      - alert: ProjectForgeHighErrorRate
+        expr: |
+          rate(projectforge_http_errors_total{service="projectforge-ai"}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          service: projectforge-ai
+        annotations:
+          summary: "ProjectForge 5xx error rate elevated"
+          description: "More than 0.05 errors/s over the last 5 minutes."
+          runbook_url: "https://github.com/jmiaie/ProjectForgeAi/blob/main/deploy/observability/RUNBOOK.md#high-error-rate"
+
+      - alert: ProjectForgeHighLatency
+        expr: |
+          projectforge_http_request_duration_ms_avg{service="projectforge-ai"} > 750
+        for: 10m
+        labels:
+          severity: warning
+          service: projectforge-ai
+        annotations:
+          summary: "ProjectForge average latency above 750ms"
+          description: "Average request latency has exceeded 750ms for 10 minutes."
+          runbook_url: "https://github.com/jmiaie/ProjectForgeAi/blob/main/deploy/observability/RUNBOOK.md#high-latency"
+
+      - alert: ProjectForgeNoTraffic
+        expr: |
+          absent(projectforge_http_requests_total{service="projectforge-ai"})
+          or increase(projectforge_http_requests_total{service="projectforge-ai"}[15m]) == 0
+        for: 15m
+        labels:
+          severity: warning
+          service: projectforge-ai
+        annotations:
+          summary: "ProjectForge received no HTTP traffic"
+          description: "No requests recorded in the last 15 minutes — check scraper and backend health."
+          runbook_url: "https://github.com/jmiaie/ProjectForgeAi/blob/main/deploy/observability/RUNBOOK.md#no-traffic"
+
+      - alert: ProjectForgeMetricsMissing
+        expr: |
+          absent(projectforge_http_requests_total{service="projectforge-ai"})
+        for: 5m
+        labels:
+          severity: critical
+          service: projectforge-ai
+        annotations:
+          summary: "ProjectForge metrics absent from Prometheus"
+          description: "Prometheus is not scraping ProjectForge metrics."
+          runbook_url: "https://github.com/jmiaie/ProjectForgeAi/blob/main/deploy/observability/RUNBOOK.md#metrics-missing"

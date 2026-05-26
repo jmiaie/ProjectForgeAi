@@ -88,14 +88,51 @@ class InvoiceStore:
         return [json.loads(path.read_text()) for path in sorted(tenant_dir.glob("inv_*.json"))]
 
 
+class SubscriptionStore:
+    def __init__(self, root: str | None = None):
+        self.root = Path(root or settings.TENANT_BILLING_ROOT)
+
+    def _path(self, tenant_id: str) -> Path:
+        tenant_dir = self.root / tenant_id
+        os.makedirs(tenant_dir, exist_ok=True)
+        return tenant_dir / "subscription.json"
+
+    def get(self, tenant_id: str) -> dict[str, Any] | None:
+        path = self._path(tenant_id)
+        if not path.exists():
+            return None
+        return json.loads(path.read_text())
+
+    def save(self, subscription: dict[str, Any]) -> dict[str, Any]:
+        path = self._path(subscription["tenant_id"])
+        path.write_text(json.dumps(subscription, indent=2, sort_keys=True))
+        return subscription
+
+    def find_by_stripe_id(self, stripe_subscription_id: str) -> dict[str, Any] | None:
+        if not self.root.exists():
+            return None
+        for tenant_dir in self.root.iterdir():
+            if not tenant_dir.is_dir():
+                continue
+            path = tenant_dir / "subscription.json"
+            if not path.exists():
+                continue
+            subscription = json.loads(path.read_text())
+            if subscription.get("stripe_subscription_id") == stripe_subscription_id:
+                return subscription
+        return None
+
+
 class StripeBillingService:
     def __init__(
         self,
         tenant_registry: TenantRegistry | None = None,
         invoice_store: InvoiceStore | None = None,
+        subscription_store: SubscriptionStore | None = None,
     ):
         self.tenant_registry = tenant_registry or TenantRegistry()
         self.invoice_store = invoice_store or InvoiceStore()
+        self.subscription_store = subscription_store or SubscriptionStore()
 
     def _tier_price_cents(self, tier: str) -> int:
         return {
@@ -110,13 +147,13 @@ class StripeBillingService:
                 return tier
         return None
 
-    async def create_checkout(
-        self,
-        tenant_id: str,
-        *,
-        success_url: str | None = None,
-        target_tier: str | None = None,
-    ) -> dict[str, Any]:
+    def _stripe_price_id(self, tier: str) -> str | None:
+        return {
+            "pro": settings.STRIPE_PRO_PRICE_ID,
+            "enterprise": settings.STRIPE_ENTERPRISE_PRICE_ID,
+        }.get(tier.lower())
+
+    def _resolve_tenant(self, tenant_id: str):
         tenant = self.tenant_registry.get(tenant_id)
         if tenant is None:
             if tenant_id == settings.DEFAULT_TENANT_ID:
@@ -124,6 +161,20 @@ class StripeBillingService:
                 tenant = self.tenant_registry.get(tenant_id)
             if tenant is None:
                 raise ValueError(f"Unknown tenant: {tenant_id}")
+        return tenant
+
+    async def create_checkout(
+        self,
+        tenant_id: str,
+        *,
+        success_url: str | None = None,
+        target_tier: str | None = None,
+        billing_mode: str = "payment",
+    ) -> dict[str, Any]:
+        if billing_mode == "subscription":
+            return await self.create_subscription(tenant_id, success_url=success_url, target_tier=target_tier)
+
+        tenant = self._resolve_tenant(tenant_id)
 
         checkout_tier = (target_tier or tenant.tier).lower()
         amount = self._tier_price_cents(checkout_tier)
@@ -181,6 +232,102 @@ class StripeBillingService:
             "invoice": invoice,
         }
 
+    async def create_subscription(
+        self,
+        tenant_id: str,
+        *,
+        success_url: str | None = None,
+        target_tier: str | None = None,
+    ) -> dict[str, Any]:
+        tenant = self._resolve_tenant(tenant_id)
+        checkout_tier = (target_tier or tenant.tier).lower()
+        if checkout_tier == "starter":
+            raise ValueError("Starter tier has no subscription plan; choose pro or enterprise")
+
+        amount = self._tier_price_cents(checkout_tier)
+        description = f"ProjectForge {checkout_tier} subscription — {tenant.name}"
+        redirect = success_url or settings.FRONTEND_BASE_URL
+
+        if settings.STRIPE_MOCK or not settings.STRIPE_SECRET_KEY:
+            subscription = {
+                "subscription_id": f"sub_{uuid4().hex}",
+                "tenant_id": tenant_id,
+                "target_tier": checkout_tier,
+                "amount_cents": amount,
+                "currency": "usd",
+                "status": "active",
+                "billing_mode": "subscription",
+                "provider": "mock",
+                "created_at": datetime.now(UTC).isoformat(),
+                "current_period_end": datetime.now(UTC).isoformat(),
+            }
+            self.subscription_store.save(subscription)
+            self.tenant_registry.update_tier(tenant_id, checkout_tier)
+            return {
+                "mode": "mock",
+                "billing_mode": "subscription",
+                "checkout_url": f"{redirect}/portfolio?billing=subscription&subscription_id={subscription['subscription_id']}",
+                "subscription": subscription,
+            }
+
+        price_id = self._stripe_price_id(checkout_tier)
+        data: dict[str, str] = {
+            "mode": "subscription",
+            "success_url": redirect,
+            "cancel_url": redirect,
+            "metadata[tenant_id]": tenant_id,
+            "metadata[target_tier]": checkout_tier,
+            "subscription_data[metadata][tenant_id]": tenant_id,
+            "subscription_data[metadata][target_tier]": checkout_tier,
+        }
+        if price_id:
+            data["line_items[0][price]"] = price_id
+            data["line_items[0][quantity]"] = "1"
+        else:
+            data["line_items[0][price_data][currency]"] = "usd"
+            data["line_items[0][price_data][unit_amount]"] = str(amount)
+            data["line_items[0][price_data][recurring][interval]"] = "month"
+            data["line_items[0][price_data][product_data][name]"] = description
+            data["line_items[0][quantity]"] = "1"
+
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            response = await client.post(
+                "https://api.stripe.com/v1/checkout/sessions",
+                auth=(settings.STRIPE_SECRET_KEY, ""),
+                data=data,
+            )
+            response.raise_for_status()
+            payload = response.json()
+
+        subscription = {
+            "subscription_id": f"sub_{uuid4().hex}",
+            "tenant_id": tenant_id,
+            "target_tier": checkout_tier,
+            "amount_cents": amount,
+            "currency": "usd",
+            "status": "pending",
+            "billing_mode": "subscription",
+            "provider": "stripe",
+            "stripe_session_id": payload.get("id"),
+            "created_at": datetime.now(UTC).isoformat(),
+        }
+        self.subscription_store.save(subscription)
+        return {
+            "mode": "stripe",
+            "billing_mode": "subscription",
+            "checkout_url": payload.get("url"),
+            "session_id": payload.get("id"),
+            "subscription": subscription,
+        }
+
+    def get_subscription(self, tenant_id: str) -> dict[str, Any]:
+        subscription = self.subscription_store.get(tenant_id)
+        return {
+            "tenant_id": tenant_id,
+            "subscription": subscription,
+            "mock_mode": settings.STRIPE_MOCK,
+        }
+
     def list_invoices(self, tenant_id: str) -> dict[str, Any]:
         return {
             "tenant_id": tenant_id,
@@ -194,6 +341,11 @@ class StripeBillingService:
             "mock_mode": settings.STRIPE_MOCK,
             "configured": bool(settings.STRIPE_SECRET_KEY) or settings.STRIPE_MOCK,
             "webhook_configured": bool(settings.STRIPE_WEBHOOK_SECRET) or settings.STRIPE_MOCK,
+            "subscriptions_enabled": True,
+            "price_ids": {
+                "pro": settings.STRIPE_PRO_PRICE_ID,
+                "enterprise": settings.STRIPE_ENTERPRISE_PRICE_ID,
+            },
         }
 
     def _verify_webhook_signature(self, payload: bytes, signature_header: str) -> None:
@@ -239,10 +391,112 @@ class StripeBillingService:
             return self._handle_checkout_completed(data_object, event_id)
         if event_type == "invoice.paid":
             return self._handle_invoice_paid(data_object, event_id)
+        if event_type == "customer.subscription.updated":
+            return self._handle_subscription_updated(data_object, event_id)
+        if event_type == "customer.subscription.deleted":
+            return self._handle_subscription_deleted(data_object, event_id)
 
         return {"status": "ignored", "event_type": event_type}
 
+    def _activate_subscription(
+        self,
+        *,
+        tenant_id: str,
+        stripe_subscription_id: str | None = None,
+        target_tier: str | None = None,
+        status: str = "active",
+        current_period_end: str | None = None,
+    ) -> dict[str, Any]:
+        subscription = self.subscription_store.get(tenant_id) or {
+            "subscription_id": f"sub_{uuid4().hex}",
+            "tenant_id": tenant_id,
+            "billing_mode": "subscription",
+            "provider": "stripe" if not settings.STRIPE_MOCK else "mock",
+            "created_at": datetime.now(UTC).isoformat(),
+        }
+        subscription["status"] = status
+        if stripe_subscription_id:
+            subscription["stripe_subscription_id"] = stripe_subscription_id
+        if target_tier:
+            subscription["target_tier"] = target_tier
+        if current_period_end:
+            subscription["current_period_end"] = current_period_end
+        self.subscription_store.save(subscription)
+        tier_update = None
+        if target_tier and status == "active":
+            tier_update = self._apply_tier_upgrade(tenant_id, {"target_tier": target_tier})
+        return {"subscription": subscription, "tier_update": tier_update}
+
+    def _handle_subscription_updated(self, stripe_sub: dict[str, Any], event_id: str | None) -> dict[str, Any]:
+        stripe_subscription_id = stripe_sub.get("id")
+        subscription = self.subscription_store.find_by_stripe_id(stripe_subscription_id or "")
+        metadata = stripe_sub.get("metadata") or {}
+        tenant_id = metadata.get("tenant_id") or (subscription or {}).get("tenant_id")
+        if not tenant_id:
+            return {"status": "ignored", "reason": "tenant not found"}
+
+        status_map = {
+            "active": "active",
+            "past_due": "past_due",
+            "canceled": "canceled",
+            "unpaid": "past_due",
+            "trialing": "trialing",
+        }
+        status = status_map.get(stripe_sub.get("status", "active"), stripe_sub.get("status", "active"))
+        target_tier = metadata.get("target_tier") or (subscription or {}).get("target_tier")
+        period_end = stripe_sub.get("current_period_end")
+        current_period_end = (
+            datetime.fromtimestamp(int(period_end), UTC).isoformat() if period_end else None
+        )
+        result = self._activate_subscription(
+            tenant_id=tenant_id,
+            stripe_subscription_id=stripe_subscription_id,
+            target_tier=target_tier,
+            status=status,
+            current_period_end=current_period_end,
+        )
+        return {
+            "status": "processed",
+            "event_type": "customer.subscription.updated",
+            "stripe_event_id": event_id,
+            **result,
+        }
+
+    def _handle_subscription_deleted(self, stripe_sub: dict[str, Any], event_id: str | None) -> dict[str, Any]:
+        stripe_subscription_id = stripe_sub.get("id")
+        subscription = self.subscription_store.find_by_stripe_id(stripe_subscription_id or "")
+        if subscription is None:
+            return {"status": "ignored", "reason": "subscription not found"}
+
+        subscription["status"] = "canceled"
+        subscription["canceled_at"] = datetime.now(UTC).isoformat()
+        self.subscription_store.save(subscription)
+        return {
+            "status": "processed",
+            "event_type": "customer.subscription.deleted",
+            "stripe_event_id": event_id,
+            "subscription": subscription,
+        }
+
     def _handle_checkout_completed(self, session: dict[str, Any], event_id: str | None) -> dict[str, Any]:
+        if session.get("mode") == "subscription":
+            tenant_id = (session.get("metadata") or {}).get("tenant_id")
+            target_tier = (session.get("metadata") or {}).get("target_tier")
+            stripe_subscription_id = session.get("subscription")
+            if tenant_id:
+                result = self._activate_subscription(
+                    tenant_id=tenant_id,
+                    stripe_subscription_id=stripe_subscription_id,
+                    target_tier=target_tier,
+                    status="active",
+                )
+                return {
+                    "status": "processed",
+                    "event_type": "checkout.session.completed",
+                    "billing_mode": "subscription",
+                    **result,
+                }
+
         if session.get("payment_status") not in {None, "paid", "no_payment_required"}:
             return {"status": "ignored", "reason": "payment not completed"}
 
