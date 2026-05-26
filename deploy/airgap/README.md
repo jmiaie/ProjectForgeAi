@@ -54,6 +54,26 @@ curl https://projectforge.internal/api/v1/deploy/status
 
 `build_info` in the health response confirms the applied bundle version.
 
+## GPG signed bundles
+
+Sign after build (requires GPG private key):
+
+```bash
+python3 scripts/build_airgap_bundle.py --version 14.0.0 --sign-key-id release@projectforge.internal
+# or
+python3 scripts/sign_airgap_bundle.py dist/airgap/projectforge-airgap-14.0.0-abc1234.tar.gz --key-id release@projectforge.internal
+```
+
+Apply with signature verification:
+
+```bash
+python3 scripts/apply_airgap_bundle.py dist/airgap/projectforge-airgap-14.0.0-abc1234.tar.gz \
+  --public-key deploy/airgap/keys/release.pub.asc \
+  --require-signature
+```
+
+Set `AIRGAP_REQUIRE_SIGNATURE=true` in production to enforce verification via the deploy API status flag.
+
 ## Related
 
 - [../onprem/README.md](../onprem/README.md) — Docker Compose on-prem

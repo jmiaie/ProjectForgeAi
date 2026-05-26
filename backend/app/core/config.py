@@ -73,6 +73,15 @@ class Settings(BaseSettings):
     SECURITY_HEADERS_ENABLED: bool = False
     STRICT_TRANSPORT_SECURITY: bool = False
     CORS_ALLOWED_ORIGINS: str = ""
+    TENANT_ISOLATION_ENABLED: bool = False
+    TENANT_REGISTRY_ROOT: str = "./.tenants"
+    DEFAULT_TENANT_ID: str = "tenant_default"
+    OBSERVABILITY_ENABLED: bool = True
+    METRICS_ENABLED: bool = True
+    TRACE_REQUESTS: bool = True
+    TRACE_BUFFER_SIZE: int = 200
+    AIRGAP_REQUIRE_SIGNATURE: bool = False
+    AIRGAP_GPG_PUBLIC_KEY_PATH: str | None = None
     PROJECT_TIER: str = "starter"
     PROJECT_REGISTRY_ROOT: str = "./.projects"
     DEFAULT_PROJECT_ID: str = "proj_123"

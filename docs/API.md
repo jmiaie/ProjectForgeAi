@@ -8,7 +8,19 @@ Base URL: `http://localhost:8000` (or `BACKEND_BASE_URL`).
 |--------|------|-------------|
 | GET | `/health` | Service health, LLM default, native Locus/OMPA status |
 | GET | `/api/v1/deploy/status` | Deployment mode, hardening flags, build bundle info |
+| GET | `/api/v1/observability/status` | Metrics/tracing configuration |
+| GET | `/api/v1/observability/metrics` | Request counts, latency, recent traces |
 | GET | `/api/v1/storage/{project_id}/status` | Per-project storage backends |
+
+## Tenants (SaaS)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/v1/tenants` | List registered tenants |
+| POST | `/api/v1/tenants/register` | Create tenant workspace |
+| GET | `/api/v1/tenants/{tenant_id}/status` | Tenant isolation status and roots |
+
+Pass `X-ProjectForge-Tenant` on requests when tenant isolation is enabled.
 
 ## Projects & portfolio
 

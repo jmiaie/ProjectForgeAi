@@ -114,7 +114,7 @@ def _copy_deploy_assets(staging: Path) -> None:
     shutil.copy2(ROOT / "scripts" / "apply_airgap_bundle.py", staging / "apply_airgap_bundle.py")
 
 
-def build_bundle(*, output_dir: Path, version: str, skip_wheels: bool) -> Path:
+def build_bundle(*, output_dir: Path, version: str, skip_wheels: bool, sign_key_id: str | None = None) -> Path:
     git_sha = _git_sha()
     bundle_id = f"projectforge-airgap-{version}-{git_sha}"
     staging = output_dir / bundle_id
@@ -151,6 +151,31 @@ def build_bundle(*, output_dir: Path, version: str, skip_wheels: bool) -> Path:
         archive.add(staging, arcname=bundle_id)
 
     shutil.rmtree(staging)
+
+    signature_path = None
+    if sign_key_id:
+        import sys
+
+        sys.path.insert(0, str(ROOT / "backend" / "app"))
+        from core.bundle_gpg import sign_file
+
+        signature_path = sign_file(path=archive_path, key_id=sign_key_id)
+
+    if signature_path:
+        manifest_sidecar = output_dir / f"{bundle_id}.manifest.json"
+        manifest_sidecar.write_text(
+            json.dumps(
+                {
+                    "bundle_id": bundle_id,
+                    "archive": str(archive_path),
+                    "signature": str(signature_path),
+                    "signed": True,
+                },
+                indent=2,
+                sort_keys=True,
+            )
+        )
+
     return archive_path
 
 
@@ -159,11 +184,17 @@ def main() -> None:
     parser.add_argument("--version", default="14.0.0")
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT))
     parser.add_argument("--skip-wheels", action="store_true")
+    parser.add_argument("--sign-key-id", help="Optional GPG key id to detach-sign the bundle")
     args = parser.parse_args()
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    archive = build_bundle(output_dir=output_dir, version=args.version, skip_wheels=args.skip_wheels)
+    archive = build_bundle(
+        output_dir=output_dir,
+        version=args.version,
+        skip_wheels=args.skip_wheels,
+        sign_key_id=args.sign_key_id,
+    )
     print(json.dumps({"archive": str(archive), "size_bytes": archive.stat().st_size}, indent=2))
 
 

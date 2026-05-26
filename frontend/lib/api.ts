@@ -84,6 +84,10 @@ function actorHeaders(extra: HeadersInit = {}): HeadersInit {
       headers.set('Authorization', `Bearer ${token}`);
     }
   }
+  const tenant = process.env.NEXT_PUBLIC_TENANT_ID;
+  if (tenant) {
+    headers.set('X-ProjectForge-Tenant', tenant);
+  }
   if (actor) {
     headers.set('X-ProjectForge-Actor', actor);
   }
@@ -168,6 +172,26 @@ export type PortfolioOrchestratorRun = {
   status: string;
   project_runs: Array<{ project_id: string; run_id: string; status: string; summary: string }>;
   artifacts: Record<string, unknown>;
+};
+
+export type ObservabilityMetrics = {
+  status: {
+    enabled: boolean;
+    metrics_enabled: boolean;
+    trace_requests: boolean;
+  };
+  metrics: {
+    request_count?: number;
+    error_count?: number;
+    average_latency_ms?: number;
+  };
+  recent_traces: Array<{
+    trace_id: string;
+    route: string;
+    method: string;
+    status_code: number;
+    latency_ms: number;
+  }>;
 };
 
 export async function apiGet<T>(path: string): Promise<T> {

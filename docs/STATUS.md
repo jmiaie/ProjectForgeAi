@@ -1,44 +1,38 @@
 # ProjectForge AI v14 — Status
 
-Last updated: Sprint 18 complete on branch `cursor/sprint18-airgap-hardening-ebb0`.
+Last updated: Sprint 19 complete on branch `cursor/sprint19-saas-observability-ebb0`.
 
 ## Verification
 
 ```bash
-PYTHONPATH=backend/app python3 -m unittest discover -s backend/app/tests   # 128 tests
+PYTHONPATH=backend/app python3 -m unittest discover -s backend/app/tests   # 133 tests
 python3 scripts/smoke_portfolio_intelligence.py
 python3 scripts/build_airgap_bundle.py --version 14.0.0 --skip-wheels
-python3 scripts/check_graph_schema_version.py
-helm template projectforge ./deploy/helm/projectforge
 cd frontend && npm run typecheck
 ```
 
-## New in Sprint 18
+## New in Sprint 19
 
-- **Air-gap bundles** — `build_airgap_bundle.py` / `apply_airgap_bundle.py` with manifest checksums
-- **Production hardening** — security headers, HSTS, restricted CORS when `PRODUCTION_HARDENING=true`
-- **Deploy status API** — `/api/v1/deploy/status` with build info and hardening flags
-- **Helm TLS defaults** — SSL redirect ingress annotations, OIDC + hardening enabled by default
-- **CI smoke** — portfolio intelligence smoke test and source-only bundle build
+- **GPG bundle signing** — sign/verify air-gap bundles with detached `.asc` signatures
+- **Multi-tenant isolation** — tenant registry, header-scoped project stores when `TENANT_ISOLATION_ENABLED=true`
+- **Observability** — request metrics, trace buffer, `X-Request-ID`, `/api/v1/observability/*`
+- **ObservabilityPanel** — dashboard widget for request/error/latency stats
 
 ## Backend modules
 
 | Module | Status |
 |--------|--------|
-| Ingestion pipeline | PDF, EML, mbox, Office, OCR, nested attachments, manifest |
-| Graph builder | Manifest projection, LLM enrich, mutations, rebuild + orphan cleanup |
-| Neo4j adapter | Versioned bootstrap (`SCHEMA_VERSION=2`), in-memory fallback |
-| Orchestrator | Specialist agents, per-step checkpoints, run history, resume |
-| LangGraph runner | Optional sequential + conditional branching |
-| Compliance | Profiles, redaction, audit, SOC 2 export |
+| Tenancy | Registry, context header, scoped data roots |
+| Observability | Metrics collector, trace buffer, middleware |
+| Deploy ops | Air-gap bundles with optional GPG verification |
+| Portfolio intelligence | Rollups, executive dashboard, portfolio orchestrator |
 | Auth / SSO | OIDC scaffolding, session tokens |
-| Portfolio intelligence | Compliance/risk rollups, executive dashboard, portfolio orchestrator |
-| Deploy ops | Air-gap bundles, production hardening middleware, deploy status |
+| Compliance | Profiles, audit, SOC 2 export |
 
 ## Resume development
 
 ```bash
-git checkout cursor/sprint18-airgap-hardening-ebb0
+git checkout cursor/sprint19-saas-observability-ebb0
 pip install -r requirements.txt
 PYTHONPATH=backend/app uvicorn main:app --reload --host 0.0.0.0 --port 8000
 cd frontend && npm install && npm run dev

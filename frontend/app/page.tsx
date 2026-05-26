@@ -6,6 +6,7 @@ import { GraphPanel } from '@/components/GraphPanel';
 import { IngestionPanel } from '@/components/IngestionPanel';
 import { LLMPanel } from '@/components/LLMPanel';
 import { MapPanel } from '@/components/MapPanel';
+import { ObservabilityPanel } from '@/components/ObservabilityPanel';
 import { OrchestratorPanel } from '@/components/OrchestratorPanel';
 import { PortfolioPanel } from '@/components/PortfolioPanel';
 import { ProjectSummaryCards } from '@/components/ProjectSummaryCards';
@@ -75,6 +76,7 @@ export default async function Home({
             <CompliancePanel projectId={projectId} initialProfile={compliance} />
           </div>
           <AccessPanel projectId={projectId} />
+          <ObservabilityPanel />
           <LLMPanel projectId={projectId} />
           <MapPanel projectId={projectId} />
           <WorkbenchPanel projectId={projectId} />

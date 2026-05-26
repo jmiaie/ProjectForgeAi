@@ -14,6 +14,7 @@ from core.access_deps import get_actor_context, get_rbac_service, require_permis
 from core.build_info import build_info_status
 from core.config import settings
 from core.hardening import SecurityHeadersMiddleware, cors_allowed_origins
+from core.observability import ObservabilityMiddleware, metrics_collector, observability_status, recent_traces
 from core.integrations_manager import IntegrationsManager
 from core.llm_keys import LLMKeyStore
 from core.llm_router import LLMRouter
@@ -31,8 +32,12 @@ from integrations.intake_form import router as intake_router
 from projects.portfolio_orchestrator import PortfolioOrchestratorService
 from projects.service import PortfolioService
 from projects.intelligence import PortfolioIntelligenceService
+from projects.registry import ProjectRegistry
 from spatial.service import SpatialService
 from storage.status import get_storage_status
+from tenancy.context import TenantContext, get_tenant_context, get_tenant_registry
+from tenancy.isolation import TenantIsolation
+from tenancy.registry import TenantRegistry
 from workbench.service import WorkbenchService
 
 
@@ -46,6 +51,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(ObservabilityMiddleware)
 
 app.include_router(intake_router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/api/v1")
@@ -126,6 +132,11 @@ class PortfolioOrchestratorRunRequest(BaseModel):
     requested_agents: list[str] = Field(default_factory=list)
 
 
+class RegisterTenantRequest(BaseModel):
+    name: str
+    tier: str | None = None
+
+
 class CreateGraphNodeRequest(BaseModel):
     label: NodeLabel
     properties: dict = Field(default_factory=dict)
@@ -190,18 +201,28 @@ def get_upgrade_manager() -> UpgradeManager:
     return UpgradeManager()
 
 
-def get_portfolio_service() -> PortfolioService:
-    return PortfolioService()
+def get_portfolio_service(tenant: TenantContext = Depends(get_tenant_context)) -> PortfolioService:
+    TenantIsolation.ensure_tenant_dirs(tenant.tenant_id)
+    return PortfolioService(registry=ProjectRegistry(tenant_id=tenant.tenant_id))
 
 
-def get_portfolio_intelligence_service() -> PortfolioIntelligenceService:
-    return PortfolioIntelligenceService()
+def get_portfolio_intelligence_service(
+    tenant: TenantContext = Depends(get_tenant_context),
+) -> PortfolioIntelligenceService:
+    TenantIsolation.ensure_tenant_dirs(tenant.tenant_id)
+    registry = ProjectRegistry(tenant_id=tenant.tenant_id)
+    return PortfolioIntelligenceService(registry=registry)
 
 
 def get_portfolio_orchestrator_service(
     orchestrator: OrchestratorAgent = Depends(get_orchestrator_agent),
+    tenant: TenantContext = Depends(get_tenant_context),
 ) -> PortfolioOrchestratorService:
-    return PortfolioOrchestratorService(orchestrator=orchestrator)
+    TenantIsolation.ensure_tenant_dirs(tenant.tenant_id)
+    return PortfolioOrchestratorService(
+        orchestrator=orchestrator,
+        registry=ProjectRegistry(tenant_id=tenant.tenant_id),
+    )
 
 
 def get_llm_key_store() -> LLMKeyStore:
@@ -214,6 +235,39 @@ def get_llm_usage_meter() -> LLMUsageMeter:
 
 def get_spatial_service() -> SpatialService:
     return SpatialService()
+
+
+@app.get("/api/v1/tenants")
+async def list_tenants(registry: TenantRegistry = Depends(get_tenant_registry)):
+    tenants = registry.list_tenants()
+    return {"count": len(tenants), "tenants": [tenant.as_dict() for tenant in tenants]}
+
+
+@app.post("/api/v1/tenants/register")
+async def register_tenant(
+    request: RegisterTenantRequest,
+    registry: TenantRegistry = Depends(get_tenant_registry),
+):
+    record = registry.create(name=request.name, tier=request.tier)
+    TenantIsolation.ensure_tenant_dirs(record.tenant_id)
+    return {"status": "created", "tenant": record.as_dict()}
+
+
+@app.get("/api/v1/tenants/{tenant_id}/status")
+async def tenant_status(
+    tenant_id: str,
+    registry: TenantRegistry = Depends(get_tenant_registry),
+):
+    from fastapi import HTTPException
+
+    record = registry.get(tenant_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail=f"Unknown tenant: {tenant_id}")
+    return {
+        "tenant": record.as_dict(),
+        "isolation_enabled": settings.TENANT_ISOLATION_ENABLED,
+        "project_registry_root": TenantIsolation.project_registry_root(tenant_id),
+    }
 
 
 @app.get("/api/v1/projects")
@@ -673,6 +727,8 @@ async def health():
         "oidc_mock": settings.OIDC_MOCK,
         "production_hardening": settings.PRODUCTION_HARDENING,
         "build_info": build_info_status(),
+        "tenant_isolation_enabled": settings.TENANT_ISOLATION_ENABLED,
+        "observability": observability_status(),
         "storage": storage,
     }
 
@@ -688,8 +744,25 @@ async def deploy_status():
         "rbac_enforce": settings.RBAC_ENFORCE,
         "oidc_enabled": settings.OIDC_ENABLED,
         "oidc_mock": settings.OIDC_MOCK,
+        "tenant_isolation_enabled": settings.TENANT_ISOLATION_ENABLED,
+        "airgap_require_signature": settings.AIRGAP_REQUIRE_SIGNATURE,
         "cors_allowed_origins": cors_allowed_origins(),
         "build_info": build_info_status(),
+        "observability": observability_status(),
+    }
+
+
+@app.get("/api/v1/observability/status")
+async def observability_status_endpoint():
+    return observability_status()
+
+
+@app.get("/api/v1/observability/metrics")
+async def observability_metrics(limit: int = 50):
+    return {
+        "status": observability_status(),
+        "metrics": metrics_collector.snapshot() if settings.METRICS_ENABLED else {},
+        "recent_traces": recent_traces(limit),
     }
 
 

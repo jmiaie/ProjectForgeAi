@@ -20,6 +20,7 @@ class ProjectStatus(StrEnum):
 class ProjectRecord(BaseModel):
     project_id: str
     name: str
+    tenant_id: str = Field(default_factory=lambda: settings.DEFAULT_TENANT_ID)
     compliance: str = "standard"
     tier: str = "starter"
     status: ProjectStatus = ProjectStatus.ACTIVE
@@ -31,8 +32,14 @@ class ProjectRecord(BaseModel):
 
 
 class ProjectRegistry:
-    def __init__(self, root: str | None = None):
-        self.root = Path(root or settings.PROJECT_REGISTRY_ROOT)
+    def __init__(self, root: str | None = None, tenant_id: str | None = None):
+        self.tenant_id = tenant_id or settings.DEFAULT_TENANT_ID
+        base_root = root or settings.PROJECT_REGISTRY_ROOT
+        if settings.TENANT_ISOLATION_ENABLED and root is None:
+            from tenancy.context import tenant_scoped_root
+
+            base_root = tenant_scoped_root(base_root, self.tenant_id)
+        self.root = Path(base_root)
         os.makedirs(self.root, exist_ok=True)
 
     def create(
@@ -46,6 +53,7 @@ class ProjectRegistry:
         record = ProjectRecord(
             project_id=project_id or _generate_project_id(name),
             name=name.strip() or "Untitled project",
+            tenant_id=self.tenant_id,
             compliance=compliance.lower(),
             tier=(tier or settings.PROJECT_TIER).lower(),
         )
@@ -64,6 +72,8 @@ class ProjectRegistry:
         records: list[ProjectRecord] = []
         for path in sorted(self.root.glob("proj_*.json")):
             record = ProjectRecord.model_validate(json.loads(path.read_text()))
+            if settings.TENANT_ISOLATION_ENABLED and record.tenant_id != self.tenant_id:
+                continue
             if include_archived or record.status == ProjectStatus.ACTIVE:
                 records.append(record)
         records.sort(key=lambda item: item.updated_at, reverse=True)

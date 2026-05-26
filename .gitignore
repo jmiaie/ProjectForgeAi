@@ -15,6 +15,7 @@ __pycache__/
 .automations/
 .projects/
 .auth-sessions/
+.tenants/
 dist/
 BUILD_INFO.json
 AIRGAP_APPLY.json

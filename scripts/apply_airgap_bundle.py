@@ -49,7 +49,27 @@ def _verify_manifest(bundle_dir: Path) -> dict:
     return manifest
 
 
-def apply_bundle(*, archive: Path, target_dir: Path, install_wheels: bool) -> dict:
+def apply_bundle(
+    *,
+    archive: Path,
+    target_dir: Path,
+    install_wheels: bool,
+    require_signature: bool = False,
+    public_key_path: Path | None = None,
+    signature_path: Path | None = None,
+) -> dict:
+    if require_signature or public_key_path:
+        import sys
+
+        sys.path.insert(0, str(ROOT / "backend" / "app"))
+        from core.bundle_gpg import verify_signature
+
+        verify_signature(
+            archive=archive,
+            signature_path=signature_path,
+            public_key_path=public_key_path,
+        )
+
     work_dir = target_dir / ".airgap-work"
     if work_dir.exists():
         shutil.rmtree(work_dir)
@@ -91,6 +111,7 @@ def apply_bundle(*, archive: Path, target_dir: Path, install_wheels: bool) -> di
         "version": manifest.get("version"),
         "git_sha": manifest.get("git_sha"),
         "target_dir": str(target_dir),
+        "signature_verified": bool(require_signature or public_key_path),
         "next_steps": [
             "Review .env / deploy/onprem/.env.prod.example before restart",
             "Docker: docker compose -f docker-compose.yml -f deploy/onprem/docker-compose.prod.yml up -d --build",
@@ -107,12 +128,18 @@ def main() -> None:
     parser.add_argument("archive", help="Path to projectforge-airgap-*.tar.gz")
     parser.add_argument("--target-dir", default=str(ROOT))
     parser.add_argument("--skip-pip", action="store_true")
+    parser.add_argument("--require-signature", action="store_true")
+    parser.add_argument("--public-key", help="Path to GPG public key for bundle verification")
+    parser.add_argument("--signature", help="Path to detached .asc signature")
     args = parser.parse_args()
 
     result = apply_bundle(
         archive=Path(args.archive),
         target_dir=Path(args.target_dir),
         install_wheels=not args.skip_pip,
+        require_signature=args.require_signature,
+        public_key_path=Path(args.public_key) if args.public_key else None,
+        signature_path=Path(args.signature) if args.signature else None,
     )
     print(json.dumps(result, indent=2))
 
