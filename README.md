@@ -25,7 +25,7 @@ PYTHONPATH=backend/app uvicorn main:app --reload --host 0.0.0.0 --port 8000
 cd frontend && npm install && npm run dev
 ```
 
-Tests: `PYTHONPATH=backend/app python3 -m unittest discover -s backend/app/tests` (139 tests)
+Tests: `PYTHONPATH=backend/app python3 -m unittest discover -s backend/app/tests` (146 tests)
 
 ## What ships today
 
@@ -35,7 +35,7 @@ Tests: `PYTHONPATH=backend/app python3 -m unittest discover -s backend/app/tests
 - **Compliance** — standard/HIPAA/legal/SOC2/GDPR profiles, redaction, audit trail
 - **Integrations** — OAuth PKCE (production credential gate), encrypted API keys, MCP HTTP/SSE/stdio discovery, webhook connector, connection health UI
 - **Enterprise** — RBAC, Helm, SSO/OIDC, SOC 2 export, air-gap bundles, production hardening
-- **SaaS platform** — multi-tenant isolation, observability metrics/traces, GPG-signed bundles, tenant billing quotas, OTel export
+- **SaaS platform** — multi-tenant isolation, observability, GPG bundles, billing quotas, Stripe checkout, Neo4j tenant DBs, Grafana dashboards
 - **Portfolio** — multi-project registry, cross-project summaries, compliance/risk rollups, executive dashboard, portfolio orchestrator
 - **Ingestion expansion** — IFC/DWG CAD stubs, codebase archives, PostgreSQL schema snapshots
 - **LLM billing** — flagship upsell routing, BYO keys, per-project usage metering
@@ -101,5 +101,6 @@ main
                                                              └── cursor/sprint17-portfolio-intelligence-ebb0
                                                                   └── cursor/sprint18-airgap-hardening-ebb0
                                                                        └── cursor/sprint19-saas-observability-ebb0
-                                                                            └── cursor/sprint20-otel-billing-ebb0   ← active
+                                                                            └── cursor/sprint20-otel-billing-ebb0
+                                                                                 └── cursor/sprint21-grafana-stripe-neo4j-ebb0   ← active
 ```

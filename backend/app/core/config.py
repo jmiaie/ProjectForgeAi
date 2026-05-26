@@ -89,6 +89,11 @@ class Settings(BaseSettings):
     OTEL_JAEGER_ENDPOINT: str = ""
     TENANT_USAGE_ROOT: str = "./.tenant-usage"
     TENANT_BILLING_ENABLED: bool = True
+    TENANT_BILLING_ROOT: str = "./.tenant-billing"
+    NEO4J_TENANT_ISOLATION_ENABLED: bool = False
+    STRIPE_MOCK: bool = True
+    STRIPE_SECRET_KEY: str | None = None
+    STRIPE_WEBHOOK_SECRET: str | None = None
     PROJECT_TIER: str = "starter"
     PROJECT_REGISTRY_ROOT: str = "./.projects"
     DEFAULT_PROJECT_ID: str = "proj_123"

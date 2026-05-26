@@ -30,6 +30,10 @@ Pass `X-ProjectForge-Tenant` on requests when tenant isolation is enabled.
 | GET | `/api/v1/tenants/{tenant_id}/billing/usage` | Tenant usage summary |
 | GET | `/api/v1/tenants/{tenant_id}/billing/quota` | Quota limits and remaining capacity |
 | GET | `/api/v1/tenants/{tenant_id}/billing/check?action=` | Check quota for action (`project_create`, `llm_call`, etc.) |
+| POST | `/api/v1/tenants/{tenant_id}/billing/checkout` | Create Stripe/mock checkout session |
+| GET | `/api/v1/tenants/{tenant_id}/billing/invoices` | List tenant invoices |
+| GET | `/api/v1/billing/status` | Billing provider configuration status |
+| GET | `/api/v1/tenants/{tenant_id}/status` | Includes Neo4j tenant database routing metadata |
 
 ## Projects & portfolio
 

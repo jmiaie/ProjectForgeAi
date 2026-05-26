@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { apiGet, type TenantBillingQuota } from '@/lib/api';
+import { apiGet, apiPost, type TenantBillingQuota } from '@/lib/api';
 
 type TenantBillingPanelProps = {
   tenantId?: string;
@@ -11,6 +11,7 @@ type TenantBillingPanelProps = {
 
 export function TenantBillingPanel({ tenantId = 'tenant_default' }: TenantBillingPanelProps) {
   const [quota, setQuota] = useState<TenantBillingQuota | undefined>();
+  const [message, setMessage] = useState('');
 
   const refresh = async () => {
     const result = await apiGet<TenantBillingQuota>(`/api/v1/tenants/${tenantId}/billing/quota`);
@@ -20,6 +21,19 @@ export function TenantBillingPanel({ tenantId = 'tenant_default' }: TenantBillin
   useEffect(() => {
     refresh().catch(() => undefined);
   }, [tenantId]);
+
+  const startCheckout = async () => {
+    setMessage('');
+    try {
+      const result = await apiPost<{ checkout_url?: string; mode: string }>(
+        `/api/v1/tenants/${tenantId}/billing/checkout`,
+        {},
+      );
+      setMessage(result.checkout_url ? `Checkout ready (${result.mode})` : 'Checkout created');
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'Checkout failed');
+    }
+  };
 
   if (!quota) {
     return (
@@ -38,6 +52,7 @@ export function TenantBillingPanel({ tenantId = 'tenant_default' }: TenantBillin
           <p className="muted">Usage and limits for {tenantId} ({quota.tier} tier).</p>
         </div>
         <Button variant="outline" onClick={refresh}>Refresh</Button>
+        <Button onClick={startCheckout}>Start checkout</Button>
       </div>
       <div className="grid grid-3">
         <div className="stat">
@@ -62,6 +77,7 @@ export function TenantBillingPanel({ tenantId = 'tenant_default' }: TenantBillin
           </li>
         ))}
       </ul>
+      {message ? <p className="muted">{message}</p> : null}
     </Card>
   );
 }

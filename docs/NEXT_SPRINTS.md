@@ -1,6 +1,6 @@
 # ProjectForge AI — Roadmap
 
-Phases 1–6 through Sprint 19 are **complete**. Sprint 20 is **complete**.
+Phases 1–6 through Sprint 20 are **complete**. Sprint 21 is **complete**.
 
 ## Phase 6 — SaaS platform (complete)
 
@@ -8,13 +8,14 @@ Phases 1–6 through Sprint 19 are **complete**. Sprint 20 is **complete**.
 |--------|-------|--------|
 | 19 SaaS platform | GPG bundles, tenant isolation, observability | Done |
 | 20 SaaS ops | OTel export, tenant billing quotas, GPG rotation | Done |
+| 21 SaaS scale | Grafana dashboards, Stripe billing, Neo4j tenant DBs | Done |
 
 ---
 
 ## Immediate next actions
 
-1. Prometheus/Grafana dashboard templates
-2. Stripe or invoice billing connector
-3. Per-tenant Neo4j database isolation
+1. Grafana Cloud / managed Prometheus wiring guide
+2. Stripe webhook handler for invoice paid events
+3. Neo4j Enterprise multi-database auto-provisioning
 
 See [STATUS.md](STATUS.md) and [API.md](API.md).

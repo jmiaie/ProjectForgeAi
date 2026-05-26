@@ -39,7 +39,9 @@ from core.observability import ObservabilityMiddleware, metrics_collector, obser
 from tenancy.billing import TenantBillingService
 from tenancy.context import TenantContext, get_tenant_context, get_tenant_registry
 from tenancy.isolation import TenantIsolation
+from tenancy.neo4j_isolation import TenantNeo4jRegistry, create_graph_adapter
 from tenancy.registry import TenantRegistry
+from tenancy.stripe_billing import StripeBillingService
 from workbench.service import WorkbenchService
 
 
@@ -139,6 +141,10 @@ class RegisterTenantRequest(BaseModel):
     tier: str | None = None
 
 
+class BillingCheckoutRequest(BaseModel):
+    success_url: str | None = None
+
+
 class CreateGraphNodeRequest(BaseModel):
     label: NodeLabel
     properties: dict = Field(default_factory=dict)
@@ -175,8 +181,8 @@ def get_ingestion_pipeline() -> IngestionPipeline:
     return IngestionPipeline()
 
 
-def get_graph_builder() -> ProjectGraphBuilder:
-    return ProjectGraphBuilder()
+def get_graph_builder(tenant: TenantContext = Depends(get_tenant_context)) -> ProjectGraphBuilder:
+    return ProjectGraphBuilder(adapter=create_graph_adapter(tenant.tenant_id))
 
 
 def get_orchestrator_agent() -> OrchestratorAgent:
@@ -191,12 +197,12 @@ def get_workbench_service() -> WorkbenchService:
     return WorkbenchService()
 
 
-def get_graph_enrichment_service() -> GraphEnrichmentService:
-    return GraphEnrichmentService()
+def get_graph_enrichment_service(tenant: TenantContext = Depends(get_tenant_context)) -> GraphEnrichmentService:
+    return GraphEnrichmentService(builder=ProjectGraphBuilder(adapter=create_graph_adapter(tenant.tenant_id)))
 
 
-def get_graph_mutation_service() -> GraphMutationService:
-    return GraphMutationService()
+def get_graph_mutation_service(tenant: TenantContext = Depends(get_tenant_context)) -> GraphMutationService:
+    return GraphMutationService(builder=ProjectGraphBuilder(adapter=create_graph_adapter(tenant.tenant_id)))
 
 
 def get_upgrade_manager() -> UpgradeManager:
@@ -247,6 +253,10 @@ def get_tenant_billing_service(
     )
 
 
+def get_stripe_billing_service() -> StripeBillingService:
+    return StripeBillingService()
+
+
 @app.get("/api/v1/tenants")
 async def list_tenants(registry: TenantRegistry = Depends(get_tenant_registry)):
     tenants = registry.list_tenants()
@@ -260,6 +270,8 @@ async def register_tenant(
 ):
     record = registry.create(name=request.name, tier=request.tier)
     TenantIsolation.ensure_tenant_dirs(record.tenant_id)
+    if settings.NEO4J_TENANT_ISOLATION_ENABLED:
+        TenantNeo4jRegistry().ensure_database(record.tenant_id)
     return {"status": "created", "tenant": record.as_dict()}
 
 
@@ -277,7 +289,37 @@ async def tenant_status(
         "tenant": record.as_dict(),
         "isolation_enabled": settings.TENANT_ISOLATION_ENABLED,
         "project_registry_root": TenantIsolation.project_registry_root(tenant_id),
+        "neo4j": TenantNeo4jRegistry().status(tenant_id),
     }
+
+
+@app.get("/api/v1/tenants/{tenant_id}/billing/invoices")
+async def tenant_billing_invoices(
+    tenant_id: str,
+    stripe_billing: StripeBillingService = Depends(get_stripe_billing_service),
+):
+    return stripe_billing.list_invoices(tenant_id)
+
+
+@app.post("/api/v1/tenants/{tenant_id}/billing/checkout")
+async def tenant_billing_checkout(
+    tenant_id: str,
+    request: BillingCheckoutRequest,
+    stripe_billing: StripeBillingService = Depends(get_stripe_billing_service),
+):
+    from fastapi import HTTPException
+
+    try:
+        return await stripe_billing.create_checkout(tenant_id, success_url=request.success_url)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.get("/api/v1/billing/status")
+async def billing_provider_status(
+    stripe_billing: StripeBillingService = Depends(get_stripe_billing_service),
+):
+    return stripe_billing.billing_status()
 
 
 @app.get("/api/v1/tenants/{tenant_id}/billing/usage")

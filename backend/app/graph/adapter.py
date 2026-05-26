@@ -83,7 +83,9 @@ class InMemoryGraphStore:
 class Neo4jGraphAdapter:
     _native_disabled_warning: str | None = None
 
-    def __init__(self):
+    def __init__(self, tenant_id: str | None = None, database: str | None = None):
+        self.tenant_id = tenant_id
+        self.database = database
         self.native = True
         self.warning: str | None = self.__class__._native_disabled_warning
         self._memory = InMemoryGraphStore()
@@ -119,6 +121,33 @@ class Neo4jGraphAdapter:
         if self._driver is not None:
             self._driver.close()
 
+    def _session(self):
+        if self._driver is None:
+            raise GraphAdapterError("Neo4j driver unavailable")
+        if self.database and settings.NEO4J_TENANT_ISOLATION_ENABLED:
+            try:
+                return self._driver.session(database=self.database)
+            except Exception:
+                return self._driver.session()
+        return self._driver.session()
+
+    def _node_with_tenant(self, node: GraphNode) -> GraphNode:
+        if not self.tenant_id:
+            return node
+        properties = dict(node.properties)
+        properties.setdefault("tenant_id", self.tenant_id)
+        return GraphNode(id=node.id, label=node.label, properties=properties)
+
+    def _graph_with_tenant(self, graph: ProjectGraph) -> ProjectGraph:
+        if not self.tenant_id:
+            return graph
+        return ProjectGraph(
+            project_id=graph.project_id,
+            nodes=[self._node_with_tenant(node) for node in graph.nodes],
+            edges=graph.edges,
+            warnings=graph.warnings,
+        )
+
     def bootstrap(self) -> dict[str, Any]:
         if self._driver is None:
             return {"status": "skipped", "backend": "memory", "warning": self.warning}
@@ -129,12 +158,13 @@ class Neo4jGraphAdapter:
         return result
 
     def upsert_graph(self, graph: ProjectGraph) -> dict[str, Any]:
+        graph = self._graph_with_tenant(graph)
         if self._driver is None:
             self._memory.upsert_graph(graph)
             return self.status() | {"node_count": graph.node_count, "edge_count": graph.edge_count}
 
         try:
-            with self._driver.session() as session:
+            with self._session() as session:
                 session.execute_write(self._upsert_graph_tx, graph)
         except Exception as exc:
             if settings.REQUIRE_NATIVE_NEO4J:
@@ -147,6 +177,7 @@ class Neo4jGraphAdapter:
         return self.status() | {"node_count": graph.node_count, "edge_count": graph.edge_count}
 
     def rebuild_graph(self, graph: ProjectGraph) -> dict[str, Any]:
+        graph = self._graph_with_tenant(graph)
         if self._driver is None:
             self._memory.upsert_graph(graph)
             return self.status() | {
@@ -156,7 +187,7 @@ class Neo4jGraphAdapter:
             }
 
         try:
-            with self._driver.session() as session:
+            with self._session() as session:
                 removed = session.execute_write(self._rebuild_graph_tx, graph)
         except Exception as exc:
             if settings.REQUIRE_NATIVE_NEO4J:
@@ -174,11 +205,12 @@ class Neo4jGraphAdapter:
         }
 
     def upsert_node(self, project_id: str, node: GraphNode) -> dict[str, Any]:
+        node = self._node_with_tenant(node)
         if self._driver is None:
             self._memory.upsert_node(project_id, node)
             return self.status()
 
-        with self._driver.session() as session:
+        with self._session() as session:
             session.execute_write(self._upsert_node_tx, node)
         return self.status()
 
@@ -187,8 +219,8 @@ class Neo4jGraphAdapter:
             self._memory.delete_node(project_id, node_id)
             return self.status()
 
-        with self._driver.session() as session:
-            session.execute_write(self._delete_node_tx, project_id, node_id)
+        with self._session() as session:
+            session.execute_write(self._delete_node_tx, project_id, node_id, self.tenant_id)
         return self.status()
 
     def upsert_edge(self, project_id: str, edge: GraphEdge) -> dict[str, Any]:
@@ -196,7 +228,7 @@ class Neo4jGraphAdapter:
             self._memory.upsert_edge(project_id, edge)
             return self.status()
 
-        with self._driver.session() as session:
+        with self._session() as session:
             session.execute_write(self._upsert_edge_tx, edge)
         return self.status()
 
@@ -211,7 +243,7 @@ class Neo4jGraphAdapter:
             self._memory.delete_edge(project_id, source_id, target_id, edge_type)
             return self.status()
 
-        with self._driver.session() as session:
+        with self._session() as session:
             session.execute_write(self._delete_edge_tx, source_id, target_id, edge_type.value)
         return self.status()
 
@@ -221,8 +253,8 @@ class Neo4jGraphAdapter:
             return memory_graph
 
         try:
-            with self._driver.session() as session:
-                return session.execute_read(self._read_graph_tx, project_id)
+            with self._session() as session:
+                return session.execute_read(self._read_graph_tx, project_id, self.tenant_id)
         except Exception as exc:
             if settings.REQUIRE_NATIVE_NEO4J:
                 raise GraphAdapterError(f"Neo4j read failed: {exc}") from exc
@@ -241,6 +273,8 @@ class Neo4jGraphAdapter:
             "backend": "neo4j",
             "native": self.native,
             "uri": settings.NEO4J_URI,
+            "database": self.database,
+            "tenant_id": self.tenant_id,
             "warning": self.warning,
             "bootstrapped": self._bootstrapped,
         }
@@ -295,7 +329,18 @@ class Neo4jGraphAdapter:
         )
 
     @staticmethod
-    def _delete_node_tx(tx, project_id: str, node_id: str) -> None:
+    def _delete_node_tx(tx, project_id: str, node_id: str, tenant_id: str | None = None) -> None:
+        if tenant_id:
+            tx.run(
+                """
+                MATCH (n {project_id: $project_id, tenant_id: $tenant_id, id: $node_id})
+                DETACH DELETE n
+                """,
+                project_id=project_id,
+                tenant_id=tenant_id,
+                node_id=node_id,
+            )
+            return
         tx.run(
             """
             MATCH (n {project_id: $project_id, id: $node_id})
@@ -317,14 +362,24 @@ class Neo4jGraphAdapter:
         )
 
     @staticmethod
-    def _read_graph_tx(tx, project_id: str) -> ProjectGraph:
-        node_records = tx.run(
-            """
-            MATCH (n {project_id: $project_id})
-            RETURN DISTINCT labels(n) AS labels, properties(n) AS properties
-            """,
-            project_id=project_id,
-        )
+    def _read_graph_tx(tx, project_id: str, tenant_id: str | None = None) -> ProjectGraph:
+        if tenant_id:
+            node_records = tx.run(
+                """
+                MATCH (n {project_id: $project_id, tenant_id: $tenant_id})
+                RETURN DISTINCT labels(n) AS labels, properties(n) AS properties
+                """,
+                project_id=project_id,
+                tenant_id=tenant_id,
+            )
+        else:
+            node_records = tx.run(
+                """
+                MATCH (n {project_id: $project_id})
+                RETURN DISTINCT labels(n) AS labels, properties(n) AS properties
+                """,
+                project_id=project_id,
+            )
         nodes = []
         for record in node_records:
             labels = record["labels"]
@@ -335,13 +390,23 @@ class Neo4jGraphAdapter:
                 continue
             nodes.append(GraphNode(id=node_id, label=label_value, properties=properties))
 
-        edge_records = tx.run(
-            """
-            MATCH (source {project_id: $project_id})-[r]->(target {project_id: $project_id})
-            RETURN DISTINCT source.id AS source_id, target.id AS target_id, type(r) AS type, properties(r) AS properties
-            """,
-            project_id=project_id,
-        )
+        if tenant_id:
+            edge_records = tx.run(
+                """
+                MATCH (source {project_id: $project_id, tenant_id: $tenant_id})-[r]->(target {project_id: $project_id, tenant_id: $tenant_id})
+                RETURN DISTINCT source.id AS source_id, target.id AS target_id, type(r) AS type, properties(r) AS properties
+                """,
+                project_id=project_id,
+                tenant_id=tenant_id,
+            )
+        else:
+            edge_records = tx.run(
+                """
+                MATCH (source {project_id: $project_id})-[r]->(target {project_id: $project_id})
+                RETURN DISTINCT source.id AS source_id, target.id AS target_id, type(r) AS type, properties(r) AS properties
+                """,
+                project_id=project_id,
+            )
         edges = [
             GraphEdge(
                 source_id=record["source_id"],

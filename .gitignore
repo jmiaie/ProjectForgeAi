@@ -17,6 +17,7 @@ __pycache__/
 .auth-sessions/
 .tenants/
 .tenant-usage/
+.tenant-billing/
 dist/
 BUILD_INFO.json
 AIRGAP_APPLY.json
