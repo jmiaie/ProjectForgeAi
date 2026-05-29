@@ -88,3 +88,5 @@ Import Prometheus alert rules from `grafana/alerts/projectforge-alerts.yaml` int
 On-call procedures: [RUNBOOK.md](RUNBOOK.md).
 
 SLO definitions and error-budget alerting: [SLO.md](SLO.md). Import `grafana/dashboards/projectforge-slo.json` for the SLO dashboard.
+
+Capacity planning: `GET /api/v1/observability/capacity` and `grafana/dashboards/projectforge-capacity.json`.

@@ -35,11 +35,13 @@ from projects.intelligence import PortfolioIntelligenceService
 from projects.registry import ProjectRegistry
 from spatial.service import SpatialService
 from storage.status import get_storage_status
+from core.capacity import compute_capacity_plan
 from core.observability import ObservabilityMiddleware, metrics_collector, observability_status, recent_traces
 from core.slo import compute_slo_status
 from tenancy.billing import TenantBillingService
 from tenancy.context import TenantContext, get_tenant_context, get_tenant_registry
 from tenancy.isolation import TenantIsolation
+from tenancy.migration import TenantMigrationService
 from tenancy.neo4j_cluster import check_cluster_health, run_auto_heal
 from tenancy.neo4j_isolation import TenantNeo4jRegistry, create_graph_adapter
 from tenancy.regions import TenantRegionRegistry, ensure_tenant_region, list_region_catalog
@@ -165,6 +167,10 @@ class BillingCancelSubscriptionRequest(BaseModel):
     at_period_end: bool = True
 
 
+class TenantMigrateRequest(BaseModel):
+    target_region: str
+
+
 class CreateGraphNodeRequest(BaseModel):
     label: NodeLabel
     properties: dict = Field(default_factory=dict)
@@ -281,6 +287,10 @@ def get_usage_metering_service() -> UsageMeteringService:
     return UsageMeteringService()
 
 
+def get_tenant_migration_service() -> TenantMigrationService:
+    return TenantMigrationService()
+
+
 @app.get("/api/v1/regions")
 async def list_regions():
     return list_region_catalog()
@@ -334,6 +344,28 @@ async def tenant_region(
     return {"tenant_id": tenant_id, "region": assigned, "validation": validation}
 
 
+@app.post("/api/v1/tenants/{tenant_id}/region/migrate")
+async def tenant_region_migrate(
+    tenant_id: str,
+    request: TenantMigrateRequest,
+    migration: TenantMigrationService = Depends(get_tenant_migration_service),
+):
+    from fastapi import HTTPException
+
+    try:
+        return migration.migrate_region(tenant_id, request.target_region)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/api/v1/tenants/{tenant_id}/region/migrations")
+async def tenant_region_migrations(
+    tenant_id: str,
+    migration: TenantMigrationService = Depends(get_tenant_migration_service),
+):
+    return migration.migration_status(tenant_id)
+
+
 @app.get("/api/v1/tenants/{tenant_id}/billing/overage")
 async def tenant_billing_overage(
     tenant_id: str,
@@ -351,6 +383,19 @@ async def tenant_billing_usage_report(
 
     try:
         return await metering.report_llm_overage(tenant_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/api/v1/tenants/{tenant_id}/billing/overage/invoice")
+async def tenant_billing_overage_invoice(
+    tenant_id: str,
+    metering: UsageMeteringService = Depends(get_usage_metering_service),
+):
+    from fastapi import HTTPException
+
+    try:
+        return await metering.create_overage_invoice(tenant_id)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -1005,6 +1050,11 @@ async def observability_metrics(limit: int = 50):
 @app.get("/api/v1/observability/slo")
 async def observability_slo():
     return compute_slo_status()
+
+
+@app.get("/api/v1/observability/capacity")
+async def observability_capacity():
+    return compute_capacity_plan()
 
 
 @app.get("/api/v1/neo4j/cluster/status")

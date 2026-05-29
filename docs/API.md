@@ -14,6 +14,7 @@ Base URL: `http://localhost:8000` (or `BACKEND_BASE_URL`).
 | GET | `/api/v1/observability/traces/jaeger` | Jaeger-compatible trace batch export |
 | GET | `/api/v1/observability/traces/otlp` | OTLP JSON trace payload |
 | GET | `/api/v1/observability/slo` | Live SLO snapshot and error-budget status |
+| GET | `/api/v1/observability/capacity` | Capacity planning snapshot and scale recommendations |
 | GET | `/api/v1/neo4j/cluster/status` | Neo4j cluster member health and active write URI |
 | POST | `/api/v1/neo4j/cluster/heal` | Re-check cluster members and select healthy write URI |
 | GET | `/api/v1/storage/{project_id}/status` | Per-project storage backends |
@@ -24,6 +25,8 @@ Base URL: `http://localhost:8000` (or `BACKEND_BASE_URL`).
 |--------|------|-------------|
 | GET | `/api/v1/regions` | Available regions and data residency zones |
 | GET | `/api/v1/tenants/{tenant_id}/region` | Tenant region assignment; validates `X-ProjectForge-Region` when routing enabled |
+| POST | `/api/v1/tenants/{tenant_id}/region/migrate` | Migrate tenant to another region |
+| GET | `/api/v1/tenants/{tenant_id}/region/migrations` | Region migration history and read-replica routing |
 
 ## Tenants (SaaS)
 
@@ -47,6 +50,7 @@ Pass `X-ProjectForge-Tenant` on requests when tenant isolation is enabled.
 | POST | `/api/v1/tenants/{tenant_id}/billing/subscription/cancel` | Cancel subscription (`at_period_end` optional) |
 | GET | `/api/v1/tenants/{tenant_id}/billing/overage` | LLM token overage summary and estimated charges |
 | POST | `/api/v1/tenants/{tenant_id}/billing/usage/report` | Report LLM overage to Stripe metered billing |
+| POST | `/api/v1/tenants/{tenant_id}/billing/overage/invoice` | Create Stripe invoice with LLM overage line items |
 | GET | `/api/v1/tenants/{tenant_id}/billing/invoices` | List tenant invoices |
 | GET | `/api/v1/billing/status` | Billing provider configuration status |
 | POST | `/api/v1/billing/webhook` | Stripe webhook (`checkout.session.completed`, `invoice.paid`, subscription events) |

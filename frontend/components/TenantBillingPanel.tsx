@@ -119,6 +119,20 @@ export function TenantBillingPanel({ tenantId = 'tenant_default' }: TenantBillin
     }
   };
 
+  const createOverageInvoice = async () => {
+    setMessage('');
+    try {
+      const result = await apiPost<{ invoice?: { invoice_id: string } }>(
+        `/api/v1/tenants/${tenantId}/billing/overage/invoice`,
+        {},
+      );
+      setMessage(result.invoice ? `Overage invoice ${result.invoice.invoice_id} created` : 'Invoice created');
+      await refresh();
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'Invoice failed');
+    }
+  };
+
   if (!quota) {
     return (
       <Card className="panel">
@@ -152,7 +166,10 @@ export function TenantBillingPanel({ tenantId = 'tenant_default' }: TenantBillin
         <Button variant="outline" onClick={startCheckout}>One-time checkout</Button>
         <Button onClick={startSubscription}>Subscribe (pro)</Button>
         {overage && overage.overage_tokens > 0 ? (
-          <Button variant="outline" onClick={reportOverage}>Report overage</Button>
+          <>
+            <Button variant="outline" onClick={reportOverage}>Report overage</Button>
+            <Button variant="outline" onClick={createOverageInvoice}>Create overage invoice</Button>
+          </>
         ) : null}
         {hasActiveSubscription ? (
           <>

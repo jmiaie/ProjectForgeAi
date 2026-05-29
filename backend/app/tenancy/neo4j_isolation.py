@@ -29,6 +29,12 @@ def tenant_uses_read_replica(tenant_id: str) -> bool:
 
 
 def resolve_read_uri(tenant_id: str | None) -> str | None:
+    if tenant_id:
+        from tenancy.migration import resolve_tenant_read_uri
+
+        regional = resolve_tenant_read_uri(tenant_id)
+        if regional:
+            return regional
     if tenant_id and tenant_uses_read_replica(tenant_id):
         return settings.NEO4J_READ_REPLICA_URI
     return None

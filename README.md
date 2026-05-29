@@ -25,7 +25,7 @@ PYTHONPATH=backend/app uvicorn main:app --reload --host 0.0.0.0 --port 8000
 cd frontend && npm install && npm run dev
 ```
 
-Tests: `PYTHONPATH=backend/app python3 -m unittest discover -s backend/app/tests` (184 tests)
+Tests: `PYTHONPATH=backend/app python3 -m unittest discover -s backend/app/tests` (193 tests)
 
 ## What ships today
 
@@ -35,7 +35,7 @@ Tests: `PYTHONPATH=backend/app python3 -m unittest discover -s backend/app/tests
 - **Compliance** — standard/HIPAA/legal/SOC2/GDPR profiles, redaction, audit trail
 - **Integrations** — OAuth PKCE (production credential gate), encrypted API keys, MCP HTTP/SSE/stdio discovery, webhook connector, connection health UI
 - **Enterprise** — RBAC, Helm, SSO/OIDC, SOC 2 export, air-gap bundles, production hardening
-- **SaaS platform** — multi-tenant isolation, observability/SLOs, billing quotas/overage metering, Stripe checkout/subscriptions/portal, Neo4j cluster failover/auto-heal, multi-region routing, Grafana dashboards/alerts
+- **SaaS platform** — multi-tenant isolation, observability/SLOs/capacity planning, billing quotas/overage invoices, Stripe checkout/subscriptions/portal, Neo4j cluster failover/auto-heal, multi-region routing/migration, Grafana dashboards/alerts
 - **Portfolio** — multi-project registry, cross-project summaries, compliance/risk rollups, executive dashboard, portfolio orchestrator
 - **Ingestion expansion** — IFC/DWG CAD stubs, codebase archives, PostgreSQL schema snapshots
 - **LLM billing** — flagship upsell routing, BYO keys, per-project usage metering
@@ -106,5 +106,6 @@ main
                                                                                       └── cursor/sprint22-webhooks-neo4j-cloud-ebb0
                                                                                            └── cursor/sprint23-subscriptions-replica-alerts-ebb0
                                                                                                 └── cursor/sprint24-portal-cluster-slo-ebb0
-                                                                                                     └── cursor/sprint25-metering-region-heal-ebb0   ← active
+                                                                                                     └── cursor/sprint25-metering-region-heal-ebb0
+                                                                                                          └── cursor/sprint26-invoice-migrate-capacity-ebb0   ← active
 ```

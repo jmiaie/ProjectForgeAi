@@ -81,6 +81,7 @@ class UsageMeteringService:
             "quantity": summary["overage_units_1k"],
             "overage_tokens": summary["overage_tokens"],
             "estimated_cents": summary["estimated_cents"],
+            "invoiced": False,
             "created_at": datetime.now(UTC).isoformat(),
         }
 
@@ -111,6 +112,124 @@ class UsageMeteringService:
         report["stripe_event_id"] = payload.get("identifier")
         self.report_store.append(tenant_id, report)
         return {"status": "reported", "mode": "stripe", "report": report, "summary": summary}
+
+    def _load_reports(self, tenant_id: str) -> list[dict[str, Any]]:
+        path = self.report_store._path(tenant_id)
+        if not path.exists():
+            return []
+        return json.loads(path.read_text())
+
+    def _save_reports(self, tenant_id: str, reports: list[dict[str, Any]]) -> None:
+        path = self.report_store._path(tenant_id)
+        path.write_text(json.dumps(reports, indent=2, sort_keys=True))
+
+    async def create_overage_invoice(self, tenant_id: str, *, report_id: str | None = None) -> dict[str, Any]:
+        from tenancy.stripe_billing import InvoiceStore
+
+        reports = self._load_reports(tenant_id)
+        report = None
+        if report_id:
+            report = next((item for item in reports if item.get("report_id") == report_id), None)
+        else:
+            for item in reversed(reports):
+                if not item.get("invoiced"):
+                    report = item
+                    break
+
+        if report is None:
+            raise ValueError("No uninvoiced usage report found")
+
+        summary = self.overage_summary(tenant_id)
+        line_item = {
+            "description": f"LLM token overage ({report['overage_tokens']:,} tokens)",
+            "quantity": report.get("quantity", summary["overage_units_1k"]),
+            "unit_amount_cents": settings.LLM_OVERAGE_CENTS_PER_1K,
+            "amount_cents": report.get("estimated_cents", summary["estimated_cents"]),
+            "type": "llm_overage",
+            "report_id": report["report_id"],
+        }
+        amount_cents = int(line_item["amount_cents"])
+        description = f"ProjectForge LLM overage — {report['overage_tokens']:,} tokens"
+
+        invoice_store = InvoiceStore()
+        if settings.STRIPE_MOCK or not settings.STRIPE_SECRET_KEY:
+            invoice = invoice_store.create(
+                tenant_id=tenant_id,
+                amount_cents=amount_cents,
+                currency="usd",
+                description=description,
+            )
+            invoice["line_items"] = [line_item]
+            invoice["invoice_type"] = "overage"
+            invoice["status"] = "open"
+            invoice_store.save(invoice)
+            report["invoiced"] = True
+            report["invoice_id"] = invoice["invoice_id"]
+            for index, item in enumerate(reports):
+                if item.get("report_id") == report["report_id"]:
+                    reports[index] = report
+            self._save_reports(tenant_id, reports)
+            return {"mode": "mock", "invoice": invoice, "report": report}
+
+        subscription = self.subscription_store.get(tenant_id)
+        customer_id = (subscription or {}).get("stripe_customer_id")
+        if not customer_id:
+            raise ValueError("No Stripe customer on file")
+
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            response = await client.post(
+                "https://api.stripe.com/v1/invoices",
+                auth=(settings.STRIPE_SECRET_KEY, ""),
+                data={
+                    "customer": customer_id,
+                    "collection_method": "charge_automatically",
+                    "metadata[tenant_id]": tenant_id,
+                    "metadata[report_id]": report["report_id"],
+                    "metadata[invoice_type]": "overage",
+                },
+            )
+            response.raise_for_status()
+            stripe_invoice = response.json()
+
+            item_response = await client.post(
+                "https://api.stripe.com/v1/invoiceitems",
+                auth=(settings.STRIPE_SECRET_KEY, ""),
+                data={
+                    "customer": customer_id,
+                    "invoice": stripe_invoice["id"],
+                    "description": line_item["description"],
+                    "quantity": str(line_item["quantity"]),
+                    "unit_amount": str(line_item["unit_amount_cents"]),
+                    "currency": "usd",
+                },
+            )
+            item_response.raise_for_status()
+
+            finalize = await client.post(
+                f"https://api.stripe.com/v1/invoices/{stripe_invoice['id']}/finalize",
+                auth=(settings.STRIPE_SECRET_KEY, ""),
+            )
+            finalize.raise_for_status()
+            finalized = finalize.json()
+
+        invoice = invoice_store.create(
+            tenant_id=tenant_id,
+            amount_cents=amount_cents,
+            currency="usd",
+            description=description,
+        )
+        invoice["line_items"] = [line_item]
+        invoice["invoice_type"] = "overage"
+        invoice["stripe_invoice_id"] = finalized.get("id")
+        invoice["status"] = finalized.get("status", "open")
+        invoice_store.save(invoice)
+        report["invoiced"] = True
+        report["invoice_id"] = invoice["invoice_id"]
+        for index, item in enumerate(reports):
+            if item.get("report_id") == report["report_id"]:
+                reports[index] = report
+        self._save_reports(tenant_id, reports)
+        return {"mode": "stripe", "invoice": invoice, "report": report, "stripe_invoice_id": finalized.get("id")}
 
     def list_reports(self, tenant_id: str) -> dict[str, Any]:
         path = self.report_store._path(tenant_id)

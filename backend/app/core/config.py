@@ -111,6 +111,8 @@ class Settings(BaseSettings):
     TENANT_REGION_ROUTING_ENABLED: bool = False
     DEFAULT_TENANT_REGION: str = "us-east-1"
     AVAILABLE_TENANT_REGIONS: str = "us-east-1:us,eu-west-1:eu,ap-southeast-1:ap"
+    TENANT_REGION_READ_REPLICAS_ENABLED: bool = False
+    REGION_READ_REPLICA_URIS: str = "us-east-1:bolt://neo4j-us-replica:7687,eu-west-1:bolt://neo4j-eu-replica:7687"
     PROJECT_TIER: str = "starter"
     PROJECT_REGISTRY_ROOT: str = "./.projects"
     DEFAULT_PROJECT_ID: str = "proj_123"

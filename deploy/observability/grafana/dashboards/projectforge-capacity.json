@@ -1,0 +1,85 @@
+{
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "panels": [
+    {
+      "datasource": "Prometheus",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "projectforge_http_requests_total{service=\"projectforge-ai\"}",
+          "legendFormat": "total requests",
+          "refId": "A"
+        }
+      ],
+      "title": "Total HTTP requests",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "rate(projectforge_http_requests_total{service=\"projectforge-ai\"}[5m])",
+          "legendFormat": "req/s",
+          "refId": "A"
+        }
+      ],
+      "title": "Request rate (5m)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "projectforge_http_request_duration_ms_avg{service=\"projectforge-ai\"}",
+          "legendFormat": "avg latency ms",
+          "refId": "A"
+        }
+      ],
+      "title": "Average latency",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "topk(10, projectforge_http_requests_by_route{service=\"projectforge-ai\"})",
+          "legendFormat": "{{route}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Top routes by volume",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "id": 5,
+      "targets": [
+        {
+          "expr": "projectforge_http_errors_total{service=\"projectforge-ai\"}",
+          "legendFormat": "5xx errors",
+          "refId": "A"
+        }
+      ],
+      "title": "Error count",
+      "type": "stat"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["projectforge", "capacity"],
+  "time": { "from": "now-24h", "to": "now" },
+  "title": "ProjectForge Capacity Planning",
+  "uid": "projectforge-capacity",
+  "version": 1
+}

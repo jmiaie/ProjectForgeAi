@@ -90,8 +90,12 @@ def ensure_tenant_region(tenant_id: str, region_id: str | None = None) -> dict[s
 
 
 def list_region_catalog() -> dict[str, Any]:
+    from tenancy.migration import region_read_replica_map
+
     return {
         "default_region": settings.DEFAULT_TENANT_REGION,
         "routing_enabled": settings.TENANT_REGION_ROUTING_ENABLED,
+        "read_replicas_enabled": settings.TENANT_REGION_READ_REPLICAS_ENABLED,
+        "read_replica_uris": region_read_replica_map(),
         "regions": list(available_regions().values()),
     }
