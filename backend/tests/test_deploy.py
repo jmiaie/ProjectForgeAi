@@ -21,7 +21,10 @@ REQUIRED_CHART_FILES = [
     "values-onprem.yaml",
     "templates/_helpers.tpl",
     "templates/deployment-backend.yaml",
+    "templates/deployment-frontend.yaml",
     "templates/service-backend.yaml",
+    "templates/service-frontend.yaml",
+    "templates/hpa-frontend.yaml",
     "templates/configmap.yaml",
     "templates/secret.yaml",
     "templates/job-migrate.yaml",
@@ -53,6 +56,7 @@ def test_values_overlays_parse() -> None:
 def test_docker_compose_prod_parses() -> None:
     compose = yaml.safe_load((ROOT / "docker-compose.prod.yml").read_text())
     assert "backend" in compose["services"]
+    assert "frontend" in compose["services"]
     assert compose["services"]["backend"].get("healthcheck")
 
 
@@ -90,6 +94,7 @@ def test_helm_template_renders_default_profile() -> None:
     rendered = result.stdout
     assert "kind: Deployment" in rendered
     assert "-backend" in rendered
+    assert "-frontend" in rendered
     assert "kind: Job" in rendered
     assert "alembic" in rendered and "upgrade" in rendered
 

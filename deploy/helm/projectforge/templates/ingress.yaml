@@ -33,9 +33,9 @@ spec:
             pathType: {{ .pathType }}
             backend:
               service:
-                name: {{ include "projectforge.fullname" $ }}-backend
+                name: {{ include "projectforge.fullname" $ }}-{{ .service | default "backend" }}
                 port:
-                  number: {{ $.Values.backend.service.port }}
+                  number: {{ if eq (.service | default "backend") "frontend" }}{{ $.Values.frontend.service.port }}{{ else }}{{ $.Values.backend.service.port }}{{ end }}
           {{- end }}
     {{- end }}
 {{- end }}

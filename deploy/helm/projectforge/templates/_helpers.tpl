@@ -42,6 +42,11 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 app.kubernetes.io/component: backend
 {{- end }}
 
+{{- define "projectforge.frontend.selectorLabels" -}}
+{{ include "projectforge.selectorLabels" . }}
+app.kubernetes.io/component: frontend
+{{- end }}
+
 {{- define "projectforge.serviceAccountName" -}}
 {{- if .Values.serviceAccount.create }}
 {{- default (include "projectforge.fullname" .) .Values.serviceAccount.name }}

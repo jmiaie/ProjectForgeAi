@@ -18,20 +18,31 @@ backend:
   oauthRedirectBaseUrl: https://app.projectforge.ai
   allowedOrigins: "https://app.projectforge.ai"
 
+frontend:
+  replicaCount: 2
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+
 ingress:
   enabled: true
   className: nginx
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
   hosts:
-    - host: api.projectforge.ai
+    - host: app.projectforge.ai
       paths:
+        - path: /api
+          pathType: Prefix
+          service: backend
         - path: /
           pathType: Prefix
+          service: frontend
   tls:
-    - secretName: projectforge-api-tls
+    - secretName: projectforge-app-tls
       hosts:
-        - api.projectforge.ai
+        - app.projectforge.ai
 
 postgresql:
   persistence:

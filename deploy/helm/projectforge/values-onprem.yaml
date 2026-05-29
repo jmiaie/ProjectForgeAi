@@ -28,8 +28,12 @@ ingress:
   hosts:
     - host: projectforge.local
       paths:
+        - path: /api
+          pathType: Prefix
+          service: backend
         - path: /
           pathType: Prefix
+          service: frontend
 
 postgresql:
   persistence:

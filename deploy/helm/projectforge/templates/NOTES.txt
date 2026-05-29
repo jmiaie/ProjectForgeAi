@@ -4,16 +4,24 @@ Release:   {{ .Release.Name }}
 Namespace: {{ .Release.Namespace }}
 Mode:      {{ .Values.global.deploymentMode }}
 
-Backend API:
+Backend API (in-cluster):
   kubectl port-forward svc/{{ include "projectforge.fullname" . }}-backend 8000:{{ .Values.backend.service.port }} -n {{ .Release.Namespace }}
   curl http://localhost:8000/health
 
+{{- if .Values.frontend.enabled }}
+
+Web UI (in-cluster):
+  kubectl port-forward svc/{{ include "projectforge.fullname" . }}-frontend 3000:{{ .Values.frontend.service.port }} -n {{ .Release.Namespace }}
+  open http://localhost:3000/projects
+{{- end }}
+
 {{- if .Values.ingress.enabled }}
 
-Ingress:
+Ingress (browser):
 {{- range .Values.ingress.hosts }}
   https://{{ .host }}
 {{- end }}
+  API routes: /api/* → backend, /* → frontend
 {{- end }}
 
 Docs: https://github.com/jmiaie/ProjectForgeAi/tree/main/deploy

@@ -67,6 +67,46 @@ backend:
     initialDelaySeconds: 10
     periodSeconds: 10
 
+frontend:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: projectforge-ai/frontend
+    tag: "0.14.0"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 3000
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+  env:
+    NEXT_PUBLIC_API_BASE_URL: ""
+  extraEnv: []
+  livenessProbe:
+    path: /
+    initialDelaySeconds: 15
+    periodSeconds: 20
+  readinessProbe:
+    path: /
+    initialDelaySeconds: 10
+    periodSeconds: 10
+  podSecurityContext:
+    fsGroup: 1001
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1001
+    allowPrivilegeEscalation: false
+
 ingress:
   enabled: false
   className: nginx
@@ -74,8 +114,13 @@ ingress:
   hosts:
     - host: projectforge.local
       paths:
+        # List /api before / so Prefix routing hits the API service first.
+        - path: /api
+          pathType: Prefix
+          service: backend
         - path: /
           pathType: Prefix
+          service: frontend
   tls: []
 
 migration:

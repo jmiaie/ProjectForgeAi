@@ -44,6 +44,8 @@ helm upgrade --install projectforge ./deploy/helm/projectforge \
 ### What the chart deploys
 
 - **Backend** Deployment with liveness/readiness probes on `/health`, PVC for Locus/OMPA/graph data
+- **Frontend** Deployment (Next.js UI) with probes on `/`, optional HPA
+- **Ingress** routes `/api/*` to the backend and `/` to the frontend (same-origin browser calls)
 - **Alembic migration** Job (Helm post-install/post-upgrade hook)
 - **PostgreSQL** StatefulSet (optional — disable for hybrid)
 - **Redis** Deployment (optional)
