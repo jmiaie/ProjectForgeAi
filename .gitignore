@@ -23,6 +23,9 @@ out/
 dist/
 build/
 *.tsbuildinfo
+frontend/test-results/
+frontend/playwright-report/
+frontend/blob-report/
 
 # Editor / OS
 .DS_Store

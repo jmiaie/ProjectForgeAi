@@ -79,6 +79,10 @@ open http://localhost:8000/docs
 
 For frontend hot reload during development, run `cd frontend && npm run dev` instead of the `frontend` compose service. API calls proxy to `http://localhost:8000` via Next.js rewrites when `NEXT_PUBLIC_API_BASE_URL` is unset.
 
+```bash
+cd frontend && npm run build && npm run test:e2e   # Playwright UI smoke (no backend required)
+```
+
 See **[docs/MERGE.md](docs/MERGE.md)** for stacked PR merge order.
 
 ### Backend (local, without Docker)

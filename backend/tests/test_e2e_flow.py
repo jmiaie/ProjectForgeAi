@@ -47,12 +47,14 @@ async def test_project_intake_graph_and_memory_e2e(app, tmp_path, monkeypatch) -
         data = {
             "name": "E2E Riverside",
             "compliance": "standard",
+            "objective": "Draft kickoff schedule and identify risks",
         }
         created = await client.post("/api/v1/projects/", data=data, files=files)
         assert created.status_code == 200, created.text
         payload = created.json()
         project_id = payload["project_id"]
         assert payload["ingestion"]["total_chunks"] >= 1
+        assert payload.get("plan") is not None
 
         project = await client.get(f"/api/v1/projects/{project_id}")
         assert project.status_code == 200

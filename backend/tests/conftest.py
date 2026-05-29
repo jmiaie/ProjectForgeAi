@@ -31,6 +31,14 @@ os.environ.setdefault("GRAPH_BACKEND", "memory")
 from app.core.config import get_settings  # noqa: E402
 from app.db.base import Base  # noqa: E402
 from app.db.session import get_engine, reset_engine  # noqa: E402
+from tests.llm_stubs import stub_llm_call  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def _stub_llm_for_tests(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Prevent tests from calling live LLM providers (Groq, Anthropic, etc.)."""
+
+    monkeypatch.setattr("app.core.llm_router.LLMRouter.call", stub_llm_call)
 
 
 @pytest.fixture(scope="session", autouse=True)

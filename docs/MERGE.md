@@ -21,6 +21,7 @@ main
                                                  └─ cursor/sprint-12-frontend-dc5d (Sprint 12)
                                                      └─ cursor/sprint-13-integration-hardening-dc5d (Sprint 13)
                                                          └─ cursor/sprint-14-helm-frontend-e2e-dc5d (Sprint 14)
+                                                             └─ cursor/sprint-15-ci-llm-playwright-dc5d (Sprint 15)
 ```
 
 ## Recommended workflow
