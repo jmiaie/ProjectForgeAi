@@ -1,6 +1,6 @@
 # ProjectForge AI — Roadmap
 
-Phases 1–6 through Sprint 25 are **complete**. Sprint 26 is **complete**.
+Phases 1–6 through Sprint 27 are **complete**. Phase 6 (SaaS platform) is finished.
 
 ## Phase 6 — SaaS platform (complete)
 
@@ -14,13 +14,16 @@ Phases 1–6 through Sprint 25 are **complete**. Sprint 26 is **complete**.
 | 24 SaaS reliability | Stripe customer portal, Neo4j cluster failover, SLO dashboards | Done |
 | 25 SaaS scale-out | LLM overage metering, Neo4j K8s auto-heal, multi-region routing | Done |
 | 26 SaaS billing ops | Overage invoice line items, region migration, capacity planning | Done |
+| 27 SaaS automation | Overage billing scheduler, tenant export/import, autoscale hooks | Done |
 
 ---
 
-## Immediate next actions
+## Post–Phase 6 ideas
 
-1. Automated overage invoice scheduling (cron + Stripe finalize webhooks)
-2. Tenant data export/import for cross-region migrations
-3. Predictive autoscaling hooks from capacity API
+Future work may extend beyond the original SaaS roadmap:
+
+1. Frontend controls for billing schedule and tenant export/import
+2. HPA operator or GitOps controller wired to `/observability/autoscale`
+3. Full Neo4j graph payload in tenant export bundles (currently metadata-focused)
 
 See [STATUS.md](STATUS.md) and [API.md](API.md).

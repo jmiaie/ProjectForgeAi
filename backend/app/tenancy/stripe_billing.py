@@ -501,8 +501,33 @@ class StripeBillingService:
             return self._handle_subscription_updated(data_object, event_id)
         if event_type == "customer.subscription.deleted":
             return self._handle_subscription_deleted(data_object, event_id)
+        if event_type == "invoice.finalized":
+            return self._handle_stripe_invoice_finalized(data_object, event_id)
 
         return {"status": "ignored", "event_type": event_type}
+
+    def _handle_stripe_invoice_finalized(self, stripe_invoice: dict[str, Any], event_id: str | None) -> dict[str, Any]:
+        metadata = stripe_invoice.get("metadata") or {}
+        tenant_id = metadata.get("tenant_id")
+        invoice_id = metadata.get("invoice_id")
+        if not tenant_id or not invoice_id:
+            return {"status": "ignored", "reason": "missing invoice metadata"}
+
+        local = self.invoice_store.get(tenant_id, invoice_id)
+        if local is None:
+            return {"status": "ignored", "reason": "local invoice not found", "invoice_id": invoice_id}
+
+        local["status"] = stripe_invoice.get("status", "paid")
+        local["stripe_invoice_id"] = stripe_invoice.get("id")
+        if stripe_invoice.get("status") == "paid":
+            local["paid_at"] = datetime.now(UTC).isoformat()
+        self.invoice_store.save(local)
+        return {
+            "status": "processed",
+            "event_type": "invoice.finalized",
+            "stripe_event_id": event_id,
+            "invoice": local,
+        }
 
     def _activate_subscription(
         self,

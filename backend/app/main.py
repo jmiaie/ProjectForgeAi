@@ -1,4 +1,4 @@
-from fastapi import Depends, FastAPI, File, Form, Header, Request, UploadFile
+from fastapi import Depends, FastAPI, File, Form, Header, Query, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -35,12 +35,15 @@ from projects.intelligence import PortfolioIntelligenceService
 from projects.registry import ProjectRegistry
 from spatial.service import SpatialService
 from storage.status import get_storage_status
+from core.autoscale import compute_autoscale_hooks
 from core.capacity import compute_capacity_plan
 from core.observability import ObservabilityMiddleware, metrics_collector, observability_status, recent_traces
 from core.slo import compute_slo_status
 from tenancy.billing import TenantBillingService
 from tenancy.context import TenantContext, get_tenant_context, get_tenant_registry
 from tenancy.isolation import TenantIsolation
+from tenancy.billing_scheduler import BillingSchedulerService
+from tenancy.data_portability import TenantDataPortabilityService
 from tenancy.migration import TenantMigrationService
 from tenancy.neo4j_cluster import check_cluster_health, run_auto_heal
 from tenancy.neo4j_isolation import TenantNeo4jRegistry, create_graph_adapter
@@ -169,6 +172,12 @@ class BillingCancelSubscriptionRequest(BaseModel):
 
 class TenantMigrateRequest(BaseModel):
     target_region: str
+    import_export_id: str | None = None
+
+
+class TenantImportRequest(BaseModel):
+    export_id: str | None = None
+    bundle: dict | None = None
 
 
 class CreateGraphNodeRequest(BaseModel):
@@ -291,6 +300,14 @@ def get_tenant_migration_service() -> TenantMigrationService:
     return TenantMigrationService()
 
 
+def get_billing_scheduler_service() -> BillingSchedulerService:
+    return BillingSchedulerService()
+
+
+def get_data_portability_service() -> TenantDataPortabilityService:
+    return TenantDataPortabilityService()
+
+
 @app.get("/api/v1/regions")
 async def list_regions():
     return list_region_catalog()
@@ -353,7 +370,51 @@ async def tenant_region_migrate(
     from fastapi import HTTPException
 
     try:
-        return migration.migrate_region(tenant_id, request.target_region)
+        result = migration.migrate_region(tenant_id, request.target_region)
+        if request.import_export_id:
+            portability = TenantDataPortabilityService()
+            import_result = portability.import_tenant_data(tenant_id, export_id=request.import_export_id)
+            result["import"] = import_result
+        return result
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/api/v1/tenants/{tenant_id}/exports")
+async def tenant_list_exports(
+    tenant_id: str,
+    portability: TenantDataPortabilityService = Depends(get_data_portability_service),
+):
+    return portability.list_exports(tenant_id)
+
+
+@app.post("/api/v1/tenants/{tenant_id}/export")
+async def tenant_export_data(
+    tenant_id: str,
+    portability: TenantDataPortabilityService = Depends(get_data_portability_service),
+):
+    from fastapi import HTTPException
+
+    try:
+        return portability.export_tenant_data(tenant_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.post("/api/v1/tenants/{tenant_id}/import")
+async def tenant_import_data(
+    tenant_id: str,
+    request: TenantImportRequest,
+    portability: TenantDataPortabilityService = Depends(get_data_portability_service),
+):
+    from fastapi import HTTPException
+
+    try:
+        return portability.import_tenant_data(
+            tenant_id,
+            export_id=request.export_id,
+            bundle=request.bundle,
+        )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -398,6 +459,19 @@ async def tenant_billing_overage_invoice(
         return await metering.create_overage_invoice(tenant_id)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/api/v1/billing/schedule/run")
+async def billing_schedule_run(
+    tenant_id: str | None = Query(default=None),
+    scheduler: BillingSchedulerService = Depends(get_billing_scheduler_service),
+):
+    from fastapi import HTTPException
+
+    try:
+        return await scheduler.run_scheduled_billing(tenant_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @app.get("/api/v1/tenants/{tenant_id}/billing/invoices")
@@ -1055,6 +1129,11 @@ async def observability_slo():
 @app.get("/api/v1/observability/capacity")
 async def observability_capacity():
     return compute_capacity_plan()
+
+
+@app.get("/api/v1/observability/autoscale")
+async def observability_autoscale():
+    return compute_autoscale_hooks()
 
 
 @app.get("/api/v1/neo4j/cluster/status")

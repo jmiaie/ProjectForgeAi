@@ -63,6 +63,12 @@ temporal:
   image: temporalio/auto-setup:1.25.2
   storage: 5Gi
 
+billing:
+  overageScheduler:
+    enabled: false
+    schedule: "0 2 * * *"
+    image: curlimages/curl:8.11.1
+
 env:
   encryptionKey: replace-with-a-secure-production-key
   oauthMockTokenExchange: "false"

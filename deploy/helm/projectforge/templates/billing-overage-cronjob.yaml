@@ -1,0 +1,27 @@
+{{- if .Values.billing.overageScheduler.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "projectforge.fullname" . }}-billing-overage
+  labels:
+    {{- include "projectforge.labels" . | nindent 4 }}
+    app.kubernetes.io/component: billing-scheduler
+spec:
+  schedule: {{ .Values.billing.overageScheduler.schedule | quote }}
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: scheduler
+              image: {{ .Values.billing.overageScheduler.image }}
+              command:
+                - /bin/sh
+                - -c
+                - >
+                  curl -sf -X POST
+                  http://{{ include "projectforge.fullname" . }}-backend:{{ .Values.backend.port }}/api/v1/billing/schedule/run
+{{- end }}

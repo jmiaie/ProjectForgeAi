@@ -90,3 +90,5 @@ On-call procedures: [RUNBOOK.md](RUNBOOK.md).
 SLO definitions and error-budget alerting: [SLO.md](SLO.md). Import `grafana/dashboards/projectforge-slo.json` for the SLO dashboard.
 
 Capacity planning: `GET /api/v1/observability/capacity` and `grafana/dashboards/projectforge-capacity.json`.
+
+Autoscale hooks: `GET /api/v1/observability/autoscale` — see [AUTOSCALE.md](AUTOSCALE.md). Enable the Helm billing overage CronJob via `billing.overageScheduler.enabled` in `deploy/helm/projectforge/values.yaml`.

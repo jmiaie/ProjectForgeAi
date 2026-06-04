@@ -113,6 +113,12 @@ class Settings(BaseSettings):
     AVAILABLE_TENANT_REGIONS: str = "us-east-1:us,eu-west-1:eu,ap-southeast-1:ap"
     TENANT_REGION_READ_REPLICAS_ENABLED: bool = False
     REGION_READ_REPLICA_URIS: str = "us-east-1:bolt://neo4j-us-replica:7687,eu-west-1:bolt://neo4j-eu-replica:7687"
+    BILLING_OVERAGE_SCHEDULER_ENABLED: bool = False
+    BILLING_OVERAGE_AUTO_INVOICE: bool = True
+    TENANT_EXPORT_ROOT: str = "./.tenant-exports"
+    AUTOSCALE_HOOKS_ENABLED: bool = True
+    AUTOSCALE_BACKEND_REPLICAS_BASE: int = 2
+    AUTOSCALE_BACKEND_REPLICAS_MAX: int = 8
     PROJECT_TIER: str = "starter"
     PROJECT_REGISTRY_ROOT: str = "./.projects"
     DEFAULT_PROJECT_ID: str = "proj_123"
