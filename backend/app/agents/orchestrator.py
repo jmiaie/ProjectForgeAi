@@ -71,11 +71,23 @@ class OrchestratorAgent:
             warnings.append(f"context_retrieval_failed: {exc}")
             state = {**state, "warnings": warnings}
 
+        from app.storage.context_optimizer import optimize_context_chunks
+
+        chunks, rtk_meta = optimize_context_chunks(chunks)
+        if rtk_meta.get("optimized_chunks", 0) < rtk_meta.get("original_chunks", 0):
+            warnings = list(state.get("warnings", []))
+            warnings.append(
+                f"context_optimized: {rtk_meta['optimized_chunks']}/"
+                f"{rtk_meta['original_chunks']} chunks"
+            )
+            state = {**state, "warnings": warnings}
+
         profile = get_compliance_profile(project_id)
         return {
             **state,
             "context": chunks,
             "compliance_category": profile.category,
+            "rtk_meta": rtk_meta,
         }
 
     async def plan(self, state: OrchestratorState) -> OrchestratorState:

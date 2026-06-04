@@ -158,6 +158,8 @@ Set `NEXT_PUBLIC_API_BASE_URL` only when the browser must call a different host 
 | GET    | `/api/v1/projects/{id}/automations/{automation_id}` | Fetch a single automation         |
 | POST   | `/api/v1/projects/{id}/automations/{automation_id}/run-now` | Trigger one cycle now      |
 | DELETE | `/api/v1/projects/{id}/automations/{automation_id}` | Cancel an automation              |
+| POST   | `/api/v1/projects/{id}/webhooks/`      | Ingest external webhook event into memory |
+| GET    | `/api/v1/system/status`                | Aggregate subsystem health checks       |
 
 ### Migrations
 
@@ -222,14 +224,25 @@ tree summary, detects dependency manifests (`package.json`, `pyproject.toml`,
 source files. Vendor directories (`.git`, `node_modules`, `venv`, …) are
 skipped automatically.
 
-## Roadmap (post Phase 1)
+## Framework v14 status
 
-1. ~~Locus + OMPA submodule wiring (replace in-memory fallbacks).~~
-2. ~~Hybrid + on-prem deployment manifests.~~
-3. ~~CAD / BIM ingestion pipeline (Phase 2).~~
-4. ~~Source-code repo ingestion (Phase 2).~~
-5. ~~Multi-tenant auth + RBAC.~~
-6. ~~Frontend buildout (dashboard, Gantt, chat, React Flow visualization).~~
+**Master Build Framework v14 is complete.** See [docs/V14_COMPLETE.md](docs/V14_COMPLETE.md) for the full sprint matrix (Phases 1–3, Sprints 0–18).
+
+### Phase summary
+
+| Phase | Scope | Status |
+| ----- | ----- | ------ |
+| **Phase 1** | Core platform, agents, persistence, OAuth, graph, automations, PDF, auth, Locus/OMPA | Complete |
+| **Phase 2** | Deploy manifests, CAD/BIM/repo ingestion, frontend dashboard, CI | Complete |
+| **Phase 3** | RTK context optimization, submodule scaffolding, webhooks, system status | Complete |
+
+## Roadmap (post v14)
+
+Optional future work (not blocking v14 release):
+
+1. Publish upstream Locus/OMPA/RTK git submodules and flip `LOCUS_BACKEND=submodule` in production.
+2. Full-stack Playwright E2E in CI (Docker Compose + backend).
+3. Enterprise tracks: portfolio intelligence, billing metering, observability (separate branches).
 
 ## License
 

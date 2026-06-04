@@ -23,6 +23,8 @@ from app.api.graph import router as graph_router
 from app.api.memory import router as memory_router
 from app.api.organizations import router as organizations_router
 from app.api.projects import router as projects_router
+from app.api.system import router as system_router
+from app.api.webhooks import router as webhooks_router
 from app.db.base import Base
 from app.db.session import get_engine
 from app.core.config import get_settings
@@ -78,6 +80,8 @@ def create_app() -> FastAPI:
     app.include_router(memory_router, prefix="/api/v1")
     app.include_router(automations_router, prefix="/api/v1")
     app.include_router(automations_catalogue_router, prefix="/api/v1")
+    app.include_router(webhooks_router, prefix="/api/v1")
+    app.include_router(system_router, prefix="/api/v1")
 
     @app.get("/health")
     async def health() -> dict[str, str]:

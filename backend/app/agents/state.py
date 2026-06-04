@@ -32,6 +32,7 @@ class OrchestratorState(TypedDict, total=False):
     outputs: dict[str, SpecialistOutput]
     final_summary: str
     warnings: list[str]
+    rtk_meta: dict[str, Any]
 
 
 def empty_state(project_id: str, objective: str) -> OrchestratorState:

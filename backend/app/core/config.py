@@ -97,6 +97,11 @@ class Settings(BaseSettings):
     TEMPORAL_TASK_QUEUE: str = "projectforge-automations"
     AUTOMATION_POLL_SECONDS: float = 5.0
 
+    # RTK context optimization (orchestrator retrieval trimming)
+    RTK_ENABLED: bool = True
+    RTK_MAX_CONTEXT_CHUNKS: int = 8
+    RTK_MAX_CONTEXT_CHARS: int = 12_000
+
     if SettingsConfigDict is not None:  # pragma: no branch
         model_config = SettingsConfigDict(
             env_file=".env",
