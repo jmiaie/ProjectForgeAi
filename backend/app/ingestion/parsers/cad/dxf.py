@@ -12,7 +12,6 @@ import io
 import logging
 import re
 from collections import Counter
-from typing import Any
 
 from app.ingestion.chunking import ChunkingOptions, chunk_text
 from app.ingestion.parsers.common.base import (

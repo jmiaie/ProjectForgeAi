@@ -23,9 +23,9 @@ import re
 import tempfile
 import threading
 import uuid
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import Any, Iterable
-
+from typing import Any
 
 _TOKEN_RE = re.compile(r"[A-Za-z0-9_]+")
 
@@ -59,7 +59,7 @@ class IndexedChunk:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "IndexedChunk":
+    def from_dict(cls, data: dict[str, Any]) -> IndexedChunk:
         return cls(
             id=data["id"],
             text=data["text"],
@@ -220,7 +220,7 @@ class LocusEngine:
         if not os.path.exists(self._index_path):
             return
         try:
-            with open(self._index_path, "r", encoding="utf-8") as fh:
+            with open(self._index_path, encoding="utf-8") as fh:
                 data = json.load(fh)
         except (OSError, json.JSONDecodeError):
             return

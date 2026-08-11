@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pytest
@@ -11,7 +11,6 @@ from fastapi.testclient import TestClient
 
 from app.automations.engine import (
     InMemoryWorkflowEngine,
-    WorkflowEngine,
     get_workflow_engine,
     reset_workflow_engine,
 )
@@ -48,20 +47,20 @@ async def _ensure_project(project_id: str, name: str = "Auto Test") -> None:
 # Schedule helpers
 # ---------------------------------------------------------------------------
 def test_compute_next_run_first_invocation_is_now() -> None:
-    now = datetime(2026, 1, 1, 12, 0, tzinfo=timezone.utc)
+    now = datetime(2026, 1, 1, 12, 0, tzinfo=UTC)
     nxt = compute_next_run(interval_seconds=3600, cron=None, last_run_at=None, now=now)
     assert nxt == now
 
 
 def test_compute_next_run_advances_by_interval() -> None:
-    now = datetime(2026, 1, 1, 12, 0, tzinfo=timezone.utc)
+    now = datetime(2026, 1, 1, 12, 0, tzinfo=UTC)
     last = now - timedelta(seconds=120)
     nxt = compute_next_run(interval_seconds=300, cron=None, last_run_at=last, now=now)
     assert nxt == last + timedelta(seconds=300)
 
 
 def test_compute_next_run_floors_to_now_when_overdue() -> None:
-    now = datetime(2026, 1, 1, 12, 0, tzinfo=timezone.utc)
+    now = datetime(2026, 1, 1, 12, 0, tzinfo=UTC)
     last = now - timedelta(days=30)
     nxt = compute_next_run(interval_seconds=3600, cron=None, last_run_at=last, now=now)
     assert nxt == now
@@ -200,7 +199,7 @@ async def test_runner_completes_after_max_runs(monkeypatch: pytest.MonkeyPatch) 
             project_id=project_id,
             interval_seconds=300,
             max_runs=1,
-            next_run_at=datetime.now(timezone.utc),
+            next_run_at=datetime.now(UTC),
         )
         automation_id = automation.id
         await session.commit()
@@ -260,8 +259,8 @@ async def test_repository_lists_due_rows() -> None:
     project_id = "proj_due"
     await _ensure_project(project_id, name="Due Test")
 
-    past = datetime.now(timezone.utc) - timedelta(seconds=10)
-    future = datetime.now(timezone.utc) + timedelta(seconds=600)
+    past = datetime.now(UTC) - timedelta(seconds=10)
+    future = datetime.now(UTC) + timedelta(seconds=600)
 
     async with get_session() as session:
         repo = AutomationRepository(session)
@@ -279,7 +278,7 @@ async def test_repository_lists_due_rows() -> None:
         )
         await session.commit()
 
-        due = await repo.list_due(datetime.now(timezone.utc))
+        due = await repo.list_due(datetime.now(UTC))
         ids = {row.id for row in due}
         assert due_one.id in ids
         assert not_yet.id not in ids

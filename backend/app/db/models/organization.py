@@ -19,7 +19,7 @@ class Organization(Base, TimestampMixin):
         String(64), unique=True, index=True, nullable=False
     )
 
-    memberships: Mapped[list["Membership"]] = relationship(  # noqa: F821
+    memberships: Mapped[list[Membership]] = relationship(  # noqa: F821
         "Membership", back_populates="organization", cascade="all, delete-orphan"
     )
 

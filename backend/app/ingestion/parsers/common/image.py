@@ -15,8 +15,8 @@ from app.ingestion.parsers.common.base import FileLike, ParsedDocument, ParserRe
 logger = logging.getLogger(__name__)
 
 try:  # pragma: no cover - optional dependency
-    from PIL import Image  # type: ignore[import-not-found]
     import pytesseract  # type: ignore[import-not-found]
+    from PIL import Image  # type: ignore[import-not-found]
 except Exception:  # pragma: no cover
     Image = None  # type: ignore[assignment]
     pytesseract = None  # type: ignore[assignment]

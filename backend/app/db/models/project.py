@@ -34,14 +34,17 @@ class Project(Base, TimestampMixin):
         index=True,
     )
 
-    connections: Mapped[list["Connection"]] = relationship(  # noqa: F821
+    connections: Mapped[list[Connection]] = relationship(  # noqa: F821
         "Connection", back_populates="project", cascade="all, delete-orphan"
     )
-    audit_entries: Mapped[list["AuditLog"]] = relationship(  # noqa: F821
+    audit_entries: Mapped[list[AuditLog]] = relationship(  # noqa: F821
         "AuditLog", back_populates="project", cascade="all, delete-orphan"
     )
-    automations: Mapped[list["Automation"]] = relationship(  # noqa: F821
+    automations: Mapped[list[Automation]] = relationship(  # noqa: F821
         "Automation", back_populates="project", cascade="all, delete-orphan"
+    )
+    forge_runs: Mapped[list[ForgeRun]] = relationship(  # noqa: F821
+        "ForgeRun", back_populates="project", cascade="all, delete-orphan"
     )
 
     def to_dict(self) -> dict[str, Any]:

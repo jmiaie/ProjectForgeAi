@@ -11,7 +11,9 @@ from app.ingestion.chunking import ChunkingOptions
 from app.ingestion.parsers.common.pdf import PDFParser
 
 reportlab = pytest.importorskip("reportlab")
+from reportlab.lib import colors  # noqa: E402
 from reportlab.lib.pagesizes import LETTER  # noqa: E402
+from reportlab.lib.styles import getSampleStyleSheet  # noqa: E402
 from reportlab.pdfgen import canvas  # noqa: E402
 from reportlab.platypus import (  # noqa: E402
     Paragraph,
@@ -20,8 +22,6 @@ from reportlab.platypus import (  # noqa: E402
     Table,
     TableStyle,
 )
-from reportlab.lib import colors  # noqa: E402
-from reportlab.lib.styles import getSampleStyleSheet  # noqa: E402
 
 
 @dataclass

@@ -8,8 +8,8 @@ from app.automations.engine import (
     reset_workflow_engine,
 )
 from app.automations.kinds import (
-    AutomationKind,
     AUTOMATION_KINDS,
+    AutomationKind,
     get_automation_kind,
 )
 from app.automations.runner import AutomationRunner

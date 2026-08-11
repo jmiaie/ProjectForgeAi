@@ -18,10 +18,10 @@ import os
 import re
 import threading
 import uuid
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Any, Iterable
-
+from datetime import UTC, datetime
+from typing import Any
 
 CLASSIFICATIONS = (
     "decision",
@@ -57,7 +57,7 @@ class JournalEntry:
     tags: list[str] = field(default_factory=list)
     properties: dict[str, Any] = field(default_factory=dict)
     timestamp: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+        default_factory=lambda: datetime.now(UTC).isoformat()
     )
 
     def to_dict(self) -> dict[str, Any]:
@@ -72,7 +72,7 @@ class JournalEntry:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "JournalEntry":
+    def from_dict(cls, data: dict[str, Any]) -> JournalEntry:
         return cls(
             id=data["id"],
             session_id=data.get("session_id"),
@@ -81,7 +81,7 @@ class JournalEntry:
             tags=list(data.get("tags", [])),
             properties=data.get("properties", {}),
             timestamp=data.get("timestamp")
-            or datetime.now(timezone.utc).isoformat(),
+            or datetime.now(UTC).isoformat(),
         )
 
 
@@ -106,7 +106,7 @@ class OmpaEngine:
             session_id = f"sess_{uuid.uuid4().hex[:16]}"
             session = {
                 "session_id": session_id,
-                "started_at": datetime.now(timezone.utc).isoformat(),
+                "started_at": datetime.now(UTC).isoformat(),
                 "ended_at": None,
                 "metadata": dict(metadata or {}),
                 "entry_count": 0,
@@ -122,7 +122,7 @@ class OmpaEngine:
             if target is None or target not in self._sessions:
                 return None
             self._sessions[target]["ended_at"] = datetime.now(
-                timezone.utc
+                UTC
             ).isoformat()
             if self._current_session_id == target:
                 self._current_session_id = None
@@ -182,7 +182,7 @@ class OmpaEngine:
             results: list[dict[str, Any]] = []
             if not os.path.exists(self._entries_path):
                 return results
-            with open(self._entries_path, "r", encoding="utf-8") as fh:
+            with open(self._entries_path, encoding="utf-8") as fh:
                 for line in fh:
                     line = line.strip()
                     if not line:
@@ -210,7 +210,7 @@ class OmpaEngine:
             counts: dict[str, int] = {kind: 0 for kind in CLASSIFICATIONS}
             total = 0
             if os.path.exists(self._entries_path):
-                with open(self._entries_path, "r", encoding="utf-8") as fh:
+                with open(self._entries_path, encoding="utf-8") as fh:
                     for line in fh:
                         line = line.strip()
                         if not line:
@@ -238,7 +238,7 @@ class OmpaEngine:
         if not os.path.exists(self._sessions_path):
             return
         try:
-            with open(self._sessions_path, "r", encoding="utf-8") as fh:
+            with open(self._sessions_path, encoding="utf-8") as fh:
                 data = json.load(fh)
         except (OSError, json.JSONDecodeError):
             return

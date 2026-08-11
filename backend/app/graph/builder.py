@@ -14,12 +14,12 @@ from app.graph.schema import Edge, EdgeKind, Node, NodeKind
 
 
 def _node_id(project_id: str, kind: NodeKind, key: str) -> str:
-    digest = hashlib.sha1(f"{project_id}:{kind.value}:{key}".encode("utf-8")).hexdigest()[:12]
+    digest = hashlib.sha1(f"{project_id}:{kind.value}:{key}".encode()).hexdigest()[:12]
     return f"{kind.value.lower()}_{digest}"
 
 
 def _edge_id(source: str, target: str, kind: EdgeKind) -> str:
-    digest = hashlib.sha1(f"{source}:{target}:{kind.value}".encode("utf-8")).hexdigest()[:12]
+    digest = hashlib.sha1(f"{source}:{target}:{kind.value}".encode()).hexdigest()[:12]
     return f"e_{digest}"
 
 

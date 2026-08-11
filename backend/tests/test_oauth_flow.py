@@ -21,7 +21,6 @@ from app.integrations.oauth.providers import get_provider_metadata
 from app.main import app
 from app.security import decrypt_text
 
-
 # -----------------------------------------------------------------------------
 # Configure provider creds for the test session
 # -----------------------------------------------------------------------------

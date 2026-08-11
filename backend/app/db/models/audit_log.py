@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import JSON, DateTime, ForeignKey, String
@@ -12,7 +12,7 @@ from app.db.base import Base
 
 
 def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class AuditLog(Base):
@@ -32,7 +32,7 @@ class AuditLog(Base):
         DateTime(timezone=True), default=_utcnow, nullable=False, index=True
     )
 
-    project: Mapped["Project | None"] = relationship(  # noqa: F821
+    project: Mapped[Project | None] = relationship(  # noqa: F821
         "Project", back_populates="audit_entries"
     )
 

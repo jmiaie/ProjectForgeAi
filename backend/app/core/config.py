@@ -3,6 +3,18 @@
 The settings here are intentionally permissive in development so the API can
 boot without every secret configured. Production deployments should provide
 all required values via environment variables or a mounted ``.env`` file.
+
+Production guardrails
+---------------------
+When ``APP_ENV=production`` the following checks run at import time:
+
+* Wildcard CORS (``ALLOWED_ORIGINS=["*"]``) is rejected.
+* Known development-only secrets for ``JWT_SECRET`` and ``ENCRYPTION_KEY``
+  are rejected.
+* ``AUTO_CREATE_SCHEMA`` must be ``False`` (use Alembic migrations in prod).
+
+These checks raise :class:`ValueError` with actionable messages so the
+process fails fast rather than starting with unsafe defaults.
 """
 
 from __future__ import annotations
@@ -20,6 +32,10 @@ except ImportError:  # pragma: no cover - fallback for older pydantic versions
 
 DeploymentMode = Literal["saas", "hybrid", "onprem"]
 
+# Secrets that are only safe during local development.
+_DEV_JWT_SECRETS = {"dev-only-jwt-secret-change-me"}
+_DEV_ENCRYPTION_KEYS = {"dev-only-not-secure-change-me"}
+
 
 class Settings(BaseSettings):
     """Global application settings."""
@@ -27,6 +43,11 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "ProjectForge AI"
     PROJECT_VERSION: str = "0.14.0"
     DEPLOYMENT_MODE: DeploymentMode = "saas"
+
+    # ``APP_ENV`` drives production safety checks. Recognised values:
+    # ``development`` (default), ``test``, ``staging``, ``production``.
+    # Set to ``production`` to activate fail-closed guardrails.
+    APP_ENV: str = "development"
 
     DEFAULT_COMPLIANCE: str = "standard"
     DEFAULT_LLM_MODEL: str = "groq/llama-3.1-70b-versatile"
@@ -137,6 +158,49 @@ def resolve_database_url(settings: Settings) -> str:
     if settings.POSTGRES_URI.startswith("postgresql://"):
         return settings.POSTGRES_URI.replace("postgresql://", "postgresql+asyncpg://", 1)
     return settings.POSTGRES_URI
+
+
+def validate_production_settings(settings: Settings) -> None:
+    """Raise :class:`ValueError` if *settings* contains unsafe production values.
+
+    This function is a no-op unless ``APP_ENV`` is ``"production"``.
+    Call it explicitly (e.g. in the ASGI lifespan) when you want fail-closed
+    startup behaviour, or call it from tests to verify the guardrails.
+    """
+    if settings.APP_ENV != "production":
+        return
+
+    errors: list[str] = []
+
+    if "*" in settings.ALLOWED_ORIGINS:
+        errors.append(
+            "ALLOWED_ORIGINS contains '*' – wildcard CORS is not allowed in production. "
+            "Set ALLOWED_ORIGINS to the explicit list of trusted origins."
+        )
+
+    if settings.JWT_SECRET in _DEV_JWT_SECRETS:
+        errors.append(
+            "JWT_SECRET is set to a known development default. "
+            "Generate a strong secret and set JWT_SECRET in your environment."
+        )
+
+    if settings.ENCRYPTION_KEY in _DEV_ENCRYPTION_KEYS:
+        errors.append(
+            "ENCRYPTION_KEY is set to a known development default. "
+            "Generate a strong key and set ENCRYPTION_KEY in your environment."
+        )
+
+    if settings.AUTO_CREATE_SCHEMA:
+        errors.append(
+            "AUTO_CREATE_SCHEMA=true is not allowed in production. "
+            "Run Alembic migrations instead and set AUTO_CREATE_SCHEMA=false."
+        )
+
+    if errors:
+        joined = "\n  - ".join(errors)
+        raise ValueError(
+            f"Unsafe production configuration detected:\n  - {joined}"
+        )
 
 
 @lru_cache(maxsize=1)

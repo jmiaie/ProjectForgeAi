@@ -17,7 +17,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from abc import ABC, abstractmethod
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from app.automations.runner import AutomationRunner
@@ -81,7 +81,7 @@ class InMemoryWorkflowEngine(WorkflowEngine):
         self._stopping.set()
         try:
             await asyncio.wait_for(self._task, timeout=self.poll_interval_seconds + 1)
-        except asyncio.TimeoutError:  # pragma: no cover - defensive
+        except TimeoutError:  # pragma: no cover - defensive
             self._task.cancel()
         self._task = None
 
@@ -96,13 +96,13 @@ class InMemoryWorkflowEngine(WorkflowEngine):
                 await asyncio.wait_for(
                     self._stopping.wait(), timeout=self.poll_interval_seconds
                 )
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 continue
 
     async def _tick(self, runner: AutomationRunner) -> None:
         async with get_session() as session:
             repo = AutomationRepository(session)
-            due = await repo.list_due(datetime.now(timezone.utc))
+            due = await repo.list_due(datetime.now(UTC))
             ids = [row.id for row in due]
         for automation_id in ids:
             try:

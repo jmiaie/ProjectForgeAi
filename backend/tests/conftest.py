@@ -56,7 +56,6 @@ def _initialise_database() -> None:
 
     asyncio.run(_drop())
 
-from fastapi.testclient import TestClient
 
 from app.api import agents, projects
 from app.main import app
