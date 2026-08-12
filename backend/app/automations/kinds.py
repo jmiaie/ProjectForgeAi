@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-
 _DAY = 86_400
 _WEEK = 7 * _DAY
 

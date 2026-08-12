@@ -14,8 +14,8 @@ from app.integrations.oauth.flow import (
 )
 from app.integrations.oauth.pkce import generate_pkce_pair
 from app.integrations.oauth.providers import (
-    OAuthProviderMetadata,
     PROVIDERS,
+    OAuthProviderMetadata,
     get_provider_metadata,
 )
 

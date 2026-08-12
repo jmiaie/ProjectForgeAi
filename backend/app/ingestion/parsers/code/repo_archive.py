@@ -14,8 +14,8 @@ import os
 import tarfile
 import zipfile
 from collections import Counter
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable
 
 from app.ingestion.chunking import ChunkingOptions, chunk_text
 from app.ingestion.parsers.common.base import (

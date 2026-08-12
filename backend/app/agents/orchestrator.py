@@ -13,7 +13,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, Awaitable, Callable, Iterable
+from collections.abc import Awaitable, Callable, Iterable
+from typing import Any
 
 from app.agents.specialists import DEFAULT_SPECIALISTS, SpecialistAgent
 from app.agents.state import OrchestratorState, SpecialistOutput, empty_state

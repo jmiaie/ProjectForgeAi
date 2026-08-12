@@ -10,7 +10,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import Membership, Organization
 
-
 _SLUG_RE = re.compile(r"[^a-z0-9]+")
 
 

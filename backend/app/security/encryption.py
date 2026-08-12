@@ -36,7 +36,7 @@ def derive_fernet_key(secret: str) -> bytes:
 
 
 @lru_cache(maxsize=1)
-def _fernet() -> "Fernet | None":
+def _fernet() -> Fernet | None:
     if Fernet is None:
         logger.warning(
             "cryptography is not installed; encryption helper using INSECURE base64 fallback"

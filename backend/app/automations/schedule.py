@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 
 def compute_next_run(
@@ -24,7 +24,7 @@ def compute_next_run(
     if interval_seconds is None:
         return None  # cron-only: Temporal handles it; in-memory engine skips
 
-    base = now or datetime.now(timezone.utc)
+    base = now or datetime.now(UTC)
     if last_run_at is None:
         return base
     candidate = last_run_at + timedelta(seconds=interval_seconds)

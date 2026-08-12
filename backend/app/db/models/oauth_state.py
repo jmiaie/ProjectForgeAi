@@ -8,7 +8,7 @@ without trusting the client. Rows are short-lived (TTL via
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column
@@ -17,7 +17,7 @@ from app.db.base import Base
 
 
 def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class OAuthState(Base):
@@ -36,6 +36,6 @@ class OAuthState(Base):
     def is_expired(self, ttl_seconds: int) -> bool:
         created = self.created_at
         if created.tzinfo is None:
-            created = created.replace(tzinfo=timezone.utc)
-        age = (datetime.now(timezone.utc) - created).total_seconds()
+            created = created.replace(tzinfo=UTC)
+        age = (datetime.now(UTC) - created).total_seconds()
         return age > ttl_seconds

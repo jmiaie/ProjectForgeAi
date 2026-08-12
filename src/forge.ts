@@ -35,7 +35,27 @@ async function isDirectoryEmpty(dir: string): Promise<boolean> {
 }
 
 function substituteVars(content: string, vars: Record<string, string>): string {
-  return content.replace(VAR_PATTERN, (_, key: string) => vars[key] ?? "");
+  return content.replace(VAR_PATTERN, (match: string, key: string) => {
+    if (!(key in vars)) {
+      throw new Error(`Unresolved template variable: {{${key}}}`);
+    }
+    return vars[key];
+  });
+}
+
+/**
+ * Resolve `relative` under `base` and verify it does not escape `base`.
+ * Throws if the resolved path is outside the base directory.
+ */
+function safeResolvePath(base: string, relative: string): string {
+  const resolvedBase = path.resolve(base);
+  const resolved = path.resolve(base, relative);
+  if (!resolved.startsWith(resolvedBase + path.sep) && resolved !== resolvedBase) {
+    throw new Error(
+      `Path traversal detected: ${JSON.stringify(relative)} escapes output directory`
+    );
+  }
+  return resolved;
 }
 
 async function collectTemplateFiles(
@@ -93,14 +113,14 @@ export async function runForge(options: ForgeOptions): Promise<ForgeManifest> {
   const writtenFiles: string[] = [];
 
   for (const rel of relativeFiles) {
-    const src = path.join(recipe.templateDir, rel);
-    const dest = path.join(outputDir, rel);
+    const src = safeResolvePath(recipe.templateDir, rel);
+    const dest = safeResolvePath(outputDir, rel);
     await fs.mkdir(path.dirname(dest), { recursive: true });
 
-    const raw = await fs.readFile(src, "utf8");
     const isText = !rel.endsWith(".png") && !rel.endsWith(".ico");
-    const content = isText ? substituteVars(raw, vars) : raw;
     if (isText) {
+      const raw = await fs.readFile(src, "utf8");
+      const content = substituteVars(raw, vars);
       await fs.writeFile(dest, content, "utf8");
     } else {
       await fs.writeFile(dest, await fs.readFile(src));

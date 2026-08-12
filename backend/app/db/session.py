@@ -7,8 +7,8 @@ Call :func:`reset_engine` from teardown code if you need to swap URLs.
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import AsyncIterator, Optional
 
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -19,8 +19,8 @@ from sqlalchemy.ext.asyncio import (
 
 from app.core.config import get_settings, resolve_database_url
 
-_engine: Optional[AsyncEngine] = None
-_sessionmaker: Optional[async_sessionmaker[AsyncSession]] = None
+_engine: AsyncEngine | None = None
+_sessionmaker: async_sessionmaker[AsyncSession] | None = None
 
 
 def create_engine_and_sessionmaker(

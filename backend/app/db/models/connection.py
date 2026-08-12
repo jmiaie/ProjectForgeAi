@@ -35,7 +35,7 @@ class Connection(Base, TimestampMixin):
         "metadata", JSON, default=dict, nullable=False
     )
 
-    project: Mapped["Project | None"] = relationship(  # noqa: F821
+    project: Mapped[Project | None] = relationship(  # noqa: F821
         "Project", back_populates="connections"
     )
 

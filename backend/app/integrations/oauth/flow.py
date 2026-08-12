@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import urlencode
 
@@ -27,7 +27,6 @@ from app.core.config import (
 from app.db.models import OAuthState
 from app.integrations.oauth.pkce import generate_pkce_pair, make_state
 from app.integrations.oauth.providers import (
-    OAuthProviderMetadata,
     get_provider_metadata,
 )
 
@@ -64,7 +63,7 @@ class OAuthTokenResponse:
             "expires_in": self.expires_in,
             "scope": self.scope,
             "obtained_at": (
-                self.obtained_at or datetime.now(timezone.utc)
+                self.obtained_at or datetime.now(UTC)
             ).isoformat(),
             "has_refresh_token": self.refresh_token is not None,
         }
@@ -192,7 +191,7 @@ class OAuthFlow:
             expires_in=body.get("expires_in"),
             scope=body.get("scope"),
             raw=body,
-            obtained_at=datetime.now(timezone.utc),
+            obtained_at=datetime.now(UTC),
         )
 
     # ------------------------------------------------------------------

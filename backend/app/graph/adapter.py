@@ -19,8 +19,9 @@ import json
 import logging
 import os
 from abc import ABC, abstractmethod
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import Any, Iterable
+from typing import Any
 
 from app.core.config import Settings, get_settings
 from app.graph.schema import Edge, EdgeKind, Node, NodeKind
@@ -145,7 +146,7 @@ class InMemoryGraphAdapter(GraphAdapter):
         path = self._path(project_id)
         if not os.path.exists(path):
             return {"nodes": {}, "edges": {}}
-        with open(path, "r", encoding="utf-8") as fh:
+        with open(path, encoding="utf-8") as fh:
             return json.load(fh)
 
     def _save(self, project_id: str, data: dict[str, Any]) -> None:

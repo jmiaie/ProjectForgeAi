@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -73,7 +73,7 @@ async def create_automation(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     interval = payload.interval_seconds or kind.default_interval_seconds
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     next_run = compute_next_run(
         interval_seconds=interval,
         cron=payload.cron,

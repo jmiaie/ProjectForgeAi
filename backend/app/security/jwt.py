@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from app.core.config import get_settings
@@ -30,7 +30,7 @@ def create_access_token(
     if jwt is None:  # pragma: no cover
         raise RuntimeError("PyJWT is required to create access tokens")
     settings = get_settings()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     minutes = expires_minutes or settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES
     payload: dict[str, Any] = {
         "sub": subject,

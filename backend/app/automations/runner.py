@@ -7,7 +7,7 @@ identical regardless of where the schedule lives.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from app.agents.specialists import DEFAULT_SPECIALISTS
@@ -38,7 +38,7 @@ class AutomationRunner:
 
             result = await self._execute(automation)
 
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             next_run = compute_next_run(
                 interval_seconds=automation.interval_seconds,
                 cron=automation.cron,

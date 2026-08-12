@@ -31,10 +31,10 @@ class Membership(Base, TimestampMixin):
     )
     role: Mapped[str] = mapped_column(String(32), default="member", nullable=False)
 
-    user: Mapped["User"] = relationship(  # noqa: F821
+    user: Mapped[User] = relationship(  # noqa: F821
         "User", back_populates="memberships"
     )
-    organization: Mapped["Organization"] = relationship(  # noqa: F821
+    organization: Mapped[Organization] = relationship(  # noqa: F821
         "Organization", back_populates="memberships"
     )
 

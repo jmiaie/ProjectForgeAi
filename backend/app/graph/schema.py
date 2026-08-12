@@ -55,7 +55,7 @@ class Node:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "Node":
+    def from_dict(cls, data: dict[str, Any]) -> Node:
         return cls(
             id=data["id"],
             kind=NodeKind(data["kind"]),
@@ -82,7 +82,7 @@ class Edge:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "Edge":
+    def from_dict(cls, data: dict[str, Any]) -> Edge:
         return cls(
             id=data["id"],
             source=data["source"],

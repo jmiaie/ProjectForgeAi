@@ -8,8 +8,9 @@ in OMPA.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import asdict
-from typing import Any, Iterable
+from typing import Any
 
 from app.ingestion.parsers.cad import DXFParser, IFCParser
 from app.ingestion.parsers.code import RepoArchiveParser

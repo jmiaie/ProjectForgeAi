@@ -5,7 +5,6 @@ from __future__ import annotations
 from app.agents.specialists.base import SpecialistAgent
 from app.agents.state import OrchestratorState, SpecialistOutput
 
-
 CATEGORY_CONTROLS: dict[str, list[str]] = {
     "standard": [
         "Data classification & handling baseline",

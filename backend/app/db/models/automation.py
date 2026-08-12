@@ -8,7 +8,7 @@ truth for *what* should happen and *when*.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String
@@ -18,7 +18,7 @@ from app.db.base import Base, TimestampMixin
 
 
 def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class Automation(Base, TimestampMixin):
@@ -50,7 +50,7 @@ class Automation(Base, TimestampMixin):
     workflow_handle: Mapped[str | None] = mapped_column(String(128), nullable=True)
     config: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
 
-    project: Mapped["Project | None"] = relationship(  # noqa: F821
+    project: Mapped[Project | None] = relationship(  # noqa: F821
         "Project", back_populates="automations"
     )
 

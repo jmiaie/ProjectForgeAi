@@ -8,8 +8,8 @@ new functionality should land in feature routers under :mod:`app.api`.
 from __future__ import annotations
 
 import logging
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -24,12 +24,12 @@ from app.api.graph import router as graph_router
 from app.api.memory import router as memory_router
 from app.api.organizations import router as organizations_router
 from app.api.projects import router as projects_router
-from app.db.base import Base
-from app.db.session import get_engine
 from app.core.config import get_settings
 from app.core.integrations_manager import IntegrationsManager
-from app.graph.status import graph_backend_status
 from app.core.llm_router import LLMRouter
+from app.db.base import Base
+from app.db.session import get_engine
+from app.graph.status import graph_backend_status
 from app.integrations.intake_form import router as intake_router
 from app.integrations.oauth.routes import router as oauth_router
 
