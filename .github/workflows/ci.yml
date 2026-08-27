@@ -35,6 +35,10 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run build
+      - name: Git identity for forge publish tests
+        run: |
+          git config --global user.email "ci@projectforge.invalid"
+          git config --global user.name "ProjectForge CI"
       - run: npm test
 
   frontend:
@@ -58,6 +62,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      - name: Git identity for forge publish
+        run: |
+          git config --global user.email "ci@projectforge.invalid"
+          git config --global user.name "ProjectForge CI"
       - run: npm run forge -- validate --spec ./examples/specs/api-service.json
       - run: npm run forge -- run --recipe minimal --output ./tmp-forge-output --name ci-smoke
       - run: npm run forge -- publish --output ./tmp-forge-output --branch forge/ci-smoke
