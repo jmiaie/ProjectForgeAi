@@ -8,7 +8,7 @@ Turning a product or technical spec into a working repository is repetitive. Tea
 
 **ProjectForgeAi Forge CLI** produces reproducible, reviewable repository scaffolding from versioned **forge recipes** and JSON specs—alongside the v14 **Project Management OS** (backend + frontend in this repo).
 
-## Forge v0.2 (current)
+## Forge CLI (current — see root README for v0.3 commands)
 
 - `forge validate --spec <file>` — JSON Schema validation
 - `forge run --spec <file>` — planner maps spec → recipe + template vars
