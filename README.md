@@ -1,17 +1,17 @@
 # ProjectForge AI
 
-> **Universal Agentic Project Management OS in a Box.**
+> Agentic project scaffolding + experimental **PM OS** scaffold in one repo.
+> **Honest status:** [`docs/STATUS.md`](docs/STATUS.md) — Forge CLI is the MVP path; full “OS in a Box” is WIP.
 
 Master Build Framework v14 + **Forge CLI** (v0.3).
 
 ## Highlights
 
-- LangGraph orchestrator, Postgres, OAuth, JWT + RBAC
-- Locus + OMPA memory, project graph (Neo4j-ready)
-- Automations, PDF/CAD/repo ingestion
-- **Forge CLI** — spec → scaffold → `forge publish` (git + draft PR)
-- **Frontend** — intake wizard, projects list, React Flow graph viewer
-- Helm + production Docker Compose
+- **Forge CLI (primary demo)** — spec → scaffold → `forge publish` (git + optional draft PR)
+- Backend scaffold — FastAPI, Postgres-oriented persistence, auth/RBAC hooks (needs stack)
+- Frontend scaffold — intake wizard, projects list, React Flow graph viewer
+- Optional integrations in tree (LangGraph, memory hooks, PDF/CAD/repo ingestion) — **not all verified offline**
+- Helm + production Docker Compose artifacts
 
 ## Quick start
 
