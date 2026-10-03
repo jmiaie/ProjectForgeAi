@@ -31,6 +31,27 @@ function runGit(cwd: string, args: string[]): string {
   return execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] }).trim();
 }
 
+function ensureGitIdentity(cwd: string): void {
+  const name =
+    process.env.GIT_AUTHOR_NAME ||
+    process.env.GIT_COMMITTER_NAME ||
+    "ProjectForge";
+  const email =
+    process.env.GIT_AUTHOR_EMAIL ||
+    process.env.GIT_COMMITTER_EMAIL ||
+    "forge@localhost";
+  try {
+    runGit(cwd, ["config", "--get", "user.name"]);
+  } catch {
+    runGit(cwd, ["config", "user.name", name]);
+  }
+  try {
+    runGit(cwd, ["config", "--get", "user.email"]);
+  } catch {
+    runGit(cwd, ["config", "user.email", email]);
+  }
+}
+
 function hasGh(): boolean {
   const r = spawnSync("gh", ["--version"], { encoding: "utf8" });
   return r.status === 0;
@@ -78,6 +99,8 @@ export async function publishForgeOutput(
       runGit(outputDir, ["checkout", "-b", branch]);
     }
   }
+
+  ensureGitIdentity(outputDir);
 
   runGit(outputDir, ["add", "-A"]);
   const status = runGit(outputDir, ["status", "--porcelain"]);
