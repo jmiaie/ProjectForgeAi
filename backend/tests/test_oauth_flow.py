@@ -20,6 +20,7 @@ from app.integrations.oauth.pkce import generate_pkce_pair, make_state
 from app.integrations.oauth.providers import get_provider_metadata
 from app.main import app
 from app.security import decrypt_text
+from tests.auth_helpers import authed_client
 
 # -----------------------------------------------------------------------------
 # Configure provider creds for the test session
@@ -143,7 +144,7 @@ async def test_full_callback_persists_encrypted_token(monkeypatch: pytest.Monkey
 
     monkeypatch.setattr(OAuthFlow, "_post_token_exchange", fake_post)
 
-    client = TestClient(app)
+    client = authed_client()
 
     auth_res = client.get(
         "/api/v1/intake/oauth/google/authorize",

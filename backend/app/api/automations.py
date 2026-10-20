@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.dependencies import require_authenticated_user
 from app.automations.engine import get_workflow_engine
 from app.automations.kinds import AUTOMATION_KINDS, get_automation_kind
 from app.automations.schedule import compute_next_run
@@ -19,9 +20,12 @@ from app.db.repositories import (
 )
 from app.db.session import fastapi_get_session
 
+# Authentication only. Membership in the project's organisation is NOT yet
+# checked -- see docs/ROADMAP.md (P0 backend authorization).
 router = APIRouter(
     prefix="/projects/{project_id}/automations",
     tags=["automations"],
+    dependencies=[Depends(require_authenticated_user)],
 )
 
 

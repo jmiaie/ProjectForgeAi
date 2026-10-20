@@ -6,15 +6,21 @@ all required values via environment variables or a mounted ``.env`` file.
 
 Production guardrails
 ---------------------
-When ``APP_ENV=production`` the following checks run at import time:
+:func:`validate_production_settings` is called by :func:`app.main.create_app`
+before the ASGI app is built, so it runs at application startup (importing
+``app.main`` builds the app). It does nothing unless ``APP_ENV=production``.
+In production it enforces:
 
-* Wildcard CORS (``ALLOWED_ORIGINS=["*"]``) is rejected.
+* Wildcard CORS (``ALLOWED_ORIGINS=["*"]``) is rejected. The API always sends
+  ``allow_credentials=True``, and wildcard origins plus credentials would let
+  any site make credentialed requests.
 * Known development-only secrets for ``JWT_SECRET`` and ``ENCRYPTION_KEY``
   are rejected.
 * ``AUTO_CREATE_SCHEMA`` must be ``False`` (use Alembic migrations in prod).
 
 These checks raise :class:`ValueError` with actionable messages so the
-process fails fast rather than starting with unsafe defaults.
+process refuses to boot rather than starting with unsafe defaults. Importing
+this module on its own does not run them.
 """
 
 from __future__ import annotations
@@ -50,8 +56,13 @@ class Settings(BaseSettings):
     APP_ENV: str = "development"
 
     DEFAULT_COMPLIANCE: str = "standard"
+    # LiteLLM model identifiers; override with the ``DEFAULT_LLM_MODEL`` and
+    # ``FLAGSHIP_LLM_MODEL`` environment variables.
+    # NOTE: the Groq default below was not re-verified (Groq retired
+    # ``llama-3.1-70b-versatile``). Set ``DEFAULT_LLM_MODEL`` to a model Groq
+    # currently serves; see docs/ROADMAP.md.
     DEFAULT_LLM_MODEL: str = "groq/llama-3.1-70b-versatile"
-    FLAGSHIP_LLM_MODEL: str = "anthropic/claude-3-5-sonnet-20241022"
+    FLAGSHIP_LLM_MODEL: str = "anthropic/claude-sonnet-5-5"
 
     NEO4J_URI: str = "bolt://localhost:7687"
     NEO4J_USER: str = "neo4j"
@@ -164,8 +175,7 @@ def validate_production_settings(settings: Settings) -> None:
     """Raise :class:`ValueError` if *settings* contains unsafe production values.
 
     This function is a no-op unless ``APP_ENV`` is ``"production"``.
-    Call it explicitly (e.g. in the ASGI lifespan) when you want fail-closed
-    startup behaviour, or call it from tests to verify the guardrails.
+    :func:`app.main.create_app` calls it at startup.
     """
     if settings.APP_ENV != "production":
         return

@@ -147,8 +147,11 @@ async def create_project(
 async def list_projects(
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
+    _user: User = Depends(require_authenticated_user),
     session: AsyncSession = Depends(fastapi_get_session),
 ) -> dict[str, Any]:
+    # TODO(ROADMAP P0): scope to the caller's organisations; today any
+    # authenticated user sees every project.
     projects = ProjectRepository(session)
     rows = await projects.list(limit=limit, offset=offset)
     return {
@@ -161,6 +164,7 @@ async def list_projects(
 @router.get("/{project_id}")
 async def get_project(
     project_id: str,
+    _user: User = Depends(require_authenticated_user),
     session: AsyncSession = Depends(fastapi_get_session),
 ) -> dict[str, Any]:
     projects = ProjectRepository(session)

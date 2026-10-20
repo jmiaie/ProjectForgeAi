@@ -5,7 +5,6 @@ from __future__ import annotations
 import io
 
 import pytest
-from fastapi.testclient import TestClient
 
 from app.db.repositories import (
     AuditLogRepository,
@@ -13,8 +12,8 @@ from app.db.repositories import (
     ProjectRepository,
 )
 from app.db.session import get_session
-from app.main import app
 from app.security import decrypt_text, encrypt_text
+from tests.auth_helpers import authed_client
 
 SAMPLE_EMAIL = b"""From: alice@example.com
 To: bob@example.com
@@ -92,7 +91,7 @@ async def test_audit_log_filtering() -> None:
 
 
 def test_create_project_persists_and_lists() -> None:
-    client = TestClient(app)
+    client = authed_client()
     files = [("files", ("kickoff.eml", io.BytesIO(SAMPLE_EMAIL), "message/rfc822"))]
     res = client.post(
         "/api/v1/projects/",
@@ -117,7 +116,7 @@ def test_create_project_persists_and_lists() -> None:
 
 
 def test_intake_connection_persisted() -> None:
-    client = TestClient(app)
+    client = authed_client()
     res = client.post(
         "/api/v1/intake/connections",
         json={
@@ -136,7 +135,7 @@ def test_intake_connection_persisted() -> None:
 
 
 def test_audit_log_endpoint_returns_recent_events() -> None:
-    client = TestClient(app)
+    client = authed_client()
     res = client.get("/api/v1/audit/", params={"limit": 50})
     assert res.status_code == 200
     actions = {entry["action"] for entry in res.json()["items"]}
@@ -144,6 +143,6 @@ def test_audit_log_endpoint_returns_recent_events() -> None:
 
 
 def test_get_project_404() -> None:
-    client = TestClient(app)
+    client = authed_client()
     res = client.get("/api/v1/projects/proj_does_not_exist")
     assert res.status_code == 404

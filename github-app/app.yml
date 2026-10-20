@@ -1,0 +1,25 @@
+# GitHub App manifest for the Forge GitHub App.
+# Format: https://docs.github.com/en/apps/sharing-github-apps/registering-a-github-app-from-a-manifest
+# Placeholders (example.invalid) must be replaced before registering.
+name: ProjectForge Forge
+url: https://example.invalid/projectforge
+description: Label an issue that contains a Forge spec; Forge opens a draft PR for review.
+public: false
+
+hook_attributes:
+  url: https://example.invalid/webhook
+  active: true
+
+# Only the issues event is needed to trigger a run (issues.labeled).
+default_events:
+  - issues
+
+# Least privilege for "read the labelled issue, push a branch, open a draft PR".
+default_permissions:
+  metadata: read        # mandatory for every GitHub App
+  issues: read          # receive issues.labeled and read the spec in the body
+  contents: write       # push the forge/issue-<n> branch
+  pull_requests: write  # open the draft PR
+# Not requested: administration, workflows, checks, actions, secrets, members.
+# Posting a status comment back on the issue would need `issues: write`;
+# see docs/ROADMAP.md (N2) before adding it.

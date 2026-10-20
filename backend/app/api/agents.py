@@ -8,6 +8,8 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
 from app.agents.orchestrator import OrchestratorAgent
+from app.auth.dependencies import require_authenticated_user
+from app.db.models import User
 
 router = APIRouter(prefix="/agents", tags=["agents"])
 
@@ -31,6 +33,7 @@ class OrchestrateRequest(BaseModel):
 @router.post("/orchestrate")
 async def orchestrate(
     payload: OrchestrateRequest,
+    _user: User = Depends(require_authenticated_user),
     orchestrator: OrchestratorAgent = Depends(get_orchestrator),
 ) -> dict[str, Any]:
     state = await orchestrator.run(

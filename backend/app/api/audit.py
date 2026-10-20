@@ -7,10 +7,17 @@ from typing import Any
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.dependencies import require_authenticated_user
 from app.db.repositories import AuditLogRepository
 from app.db.session import fastapi_get_session
 
-router = APIRouter(prefix="/audit", tags=["audit"])
+# Authentication only. Entries are NOT yet scoped to the caller's
+# organisations -- see docs/ROADMAP.md (P0 backend authorization).
+router = APIRouter(
+    prefix="/audit",
+    tags=["audit"],
+    dependencies=[Depends(require_authenticated_user)],
+)
 
 
 @router.get("/")

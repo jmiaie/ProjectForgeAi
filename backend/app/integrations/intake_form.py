@@ -9,7 +9,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.dependencies import require_authenticated_user
 from app.core.integrations_manager import IntegrationsManager
+from app.db.models import User
 from app.db.repositories import AuditLogRepository, ConnectionRepository
 from app.db.session import fastapi_get_session
 from app.integrations.registry import ConnectorRegistry
@@ -42,6 +44,7 @@ async def list_connectors(
 @router.post("/connections")
 async def run_intake(
     payload: ConnectRequest,
+    _user: User = Depends(require_authenticated_user),
     manager: IntegrationsManager = Depends(get_integrations_manager),
     session: AsyncSession = Depends(fastapi_get_session),
 ) -> dict[str, Any]:
@@ -99,6 +102,7 @@ async def run_intake(
 @router.get("/connections")
 async def list_connections(
     project_id: str | None = None,
+    _user: User = Depends(require_authenticated_user),
     session: AsyncSession = Depends(fastapi_get_session),
 ) -> dict[str, Any]:
     repo = ConnectionRepository(session)

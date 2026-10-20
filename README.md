@@ -106,6 +106,21 @@ raised at startup (via `validate_production_settings` in
 | Variable | Default | Purpose |
 |---|---|---|
 | `APP_ENV` | `development` | Deployment environment (`development`, `test`, `staging`, `production`) |
+| `DEFAULT_LLM_MODEL` | `groq/llama-3.1-70b-versatile` | LiteLLM id for routine calls. Groq retired this model; set a current one (see [ROADMAP](docs/ROADMAP.md) P0-6) |
+| `FLAGSHIP_LLM_MODEL` | `anthropic/claude-sonnet-5-5` | LiteLLM id for flagship calls |
+
+## Forge GitHub App (scaffold)
+
+`github-app/` contains a dependency-free webhook server. It verifies
+`X-Hub-Signature-256`, and when an issue gets the trigger label (default `forge`)
+it runs the Forge CLI on the issue's ```` ```json ```` spec. Opening the draft
+PR is not built yet (raises `NotImplementedError`; see
+[docs/ROADMAP.md](docs/ROADMAP.md) N2). Product spec: [docs/PRD.md](docs/PRD.md).
+
+```bash
+npm run build && npm run app:build
+GITHUB_WEBHOOK_SECRET=... FORGE_TRIGGER_LABEL=forge npm run app:start
+```
 
 ## Graph / Neo4j
 

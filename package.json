@@ -11,7 +11,9 @@
     "test": "vitest run",
     "forge": "node dist/cli.js",
     "preforge": "npm run build",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit && tsc --noEmit -p github-app",
+    "app:build": "tsc -p github-app",
+    "app:start": "node github-app/dist/main.js"
   },
   "engines": {
     "node": ">=20"

@@ -16,6 +16,8 @@ from app.agents.forge_service import (
     InvalidSpecError,
     ProjectNotFoundError,
 )
+from app.auth.dependencies import require_authenticated_user
+from app.db.models import User
 from app.db.session import fastapi_get_session
 
 router = APIRouter(prefix="/forge", tags=["forge"])
@@ -113,6 +115,7 @@ async def plan_forge_spec(spec: ForgeSpec) -> ForgePlanResponse:
 @router.post("/runs", status_code=202)
 async def create_forge_run(
     body: ForgeRunRequest,
+    _user: User = Depends(require_authenticated_user),
     session: AsyncSession = Depends(fastapi_get_session),
 ) -> ForgeRunResponse:
     """Create and immediately execute a Forge run for a project.
@@ -135,6 +138,7 @@ async def create_forge_run(
 @router.get("/runs/{run_id}")
 async def get_forge_run(
     run_id: str,
+    _user: User = Depends(require_authenticated_user),
     session: AsyncSession = Depends(fastapi_get_session),
 ) -> ForgeRunResponse:
     """Retrieve a Forge run by ID."""
@@ -148,6 +152,7 @@ async def get_forge_run(
 @router.get("/runs")
 async def list_forge_runs(
     project_id: str,
+    _user: User = Depends(require_authenticated_user),
     session: AsyncSession = Depends(fastapi_get_session),
 ) -> list[ForgeRunResponse]:
     """List all Forge runs for a project."""
