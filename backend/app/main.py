@@ -24,7 +24,7 @@ from app.api.graph import router as graph_router
 from app.api.memory import router as memory_router
 from app.api.organizations import router as organizations_router
 from app.api.projects import router as projects_router
-from app.core.config import get_settings
+from app.core.config import get_settings, validate_production_settings
 from app.core.integrations_manager import IntegrationsManager
 from app.core.llm_router import LLMRouter
 from app.db.base import Base
@@ -40,6 +40,10 @@ def create_app() -> FastAPI:
     """Application factory used by ASGI servers and tests."""
 
     settings = get_settings()
+    # Fail closed: in production, refuse to build the app with wildcard CORS
+    # (credentials are always allowed below), dev JWT/encryption keys, or
+    # AUTO_CREATE_SCHEMA. No-op outside APP_ENV=production.
+    validate_production_settings(settings)
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:

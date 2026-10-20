@@ -24,6 +24,7 @@ from app.db.repositories import (
 )
 from app.db.session import get_session
 from app.main import app
+from tests.auth_helpers import authed_client
 
 
 # ---------------------------------------------------------------------------
@@ -112,7 +113,7 @@ def test_list_automation_kinds_endpoint() -> None:
 
 def test_create_list_run_cancel_automation_lifecycle() -> None:
     asyncio.run(_ensure_project("proj_auto_lc"))
-    client = TestClient(app)
+    client = authed_client()
 
     res = client.post(
         "/api/v1/projects/proj_auto_lc/automations/",
@@ -152,7 +153,7 @@ def test_create_list_run_cancel_automation_lifecycle() -> None:
 
 
 def test_create_automation_404_when_project_missing() -> None:
-    client = TestClient(app)
+    client = authed_client()
     res = client.post(
         "/api/v1/projects/proj_missing/automations/",
         json={"kind": "status_report"},
@@ -162,7 +163,7 @@ def test_create_automation_404_when_project_missing() -> None:
 
 def test_create_automation_400_for_unknown_kind() -> None:
     asyncio.run(_ensure_project("proj_auto_kind"))
-    client = TestClient(app)
+    client = authed_client()
     res = client.post(
         "/api/v1/projects/proj_auto_kind/automations/",
         json={"kind": "definitely-not-real"},
@@ -172,7 +173,7 @@ def test_create_automation_400_for_unknown_kind() -> None:
 
 def test_run_now_404_when_unknown_automation() -> None:
     asyncio.run(_ensure_project("proj_auto_run404"))
-    client = TestClient(app)
+    client = authed_client()
     res = client.post(
         "/api/v1/projects/proj_auto_run404/automations/auto_unknown/run-now"
     )

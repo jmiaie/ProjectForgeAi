@@ -10,9 +10,17 @@ from app.agents.forge_service import (
     PathTraversalError,
     UnresolvedVariableError,
 )
-from app.main import app
+from tests.auth_helpers import authed_client
 
-client = TestClient(app)
+client: TestClient
+
+
+@pytest.fixture(autouse=True)
+def _authed_client() -> None:
+    """Forge run routes require authentication; give each test a fresh user."""
+
+    global client
+    client = authed_client()
 
 
 # ---------------------------------------------------------------------------

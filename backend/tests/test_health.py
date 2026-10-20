@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi.testclient import TestClient
 
 from app.main import app
+from tests.auth_helpers import authed_client
 
 
 def test_health_endpoint() -> None:
@@ -29,7 +30,7 @@ def test_intake_connectors_endpoint() -> None:
 
 
 def test_intake_connection_post_oauth_stub() -> None:
-    client = TestClient(app)
+    client = authed_client()
     res = client.post(
         "/api/v1/intake/connections",
         json={
@@ -45,7 +46,7 @@ def test_intake_connection_post_oauth_stub() -> None:
 
 
 def test_intake_connection_unknown_connector() -> None:
-    client = TestClient(app)
+    client = authed_client()
     res = client.post(
         "/api/v1/intake/connections",
         json={"connector_type": "totally_made_up", "auth_data": {}},

@@ -11,6 +11,7 @@ from app.agents.orchestrator import OrchestratorAgent
 from app.agents.specialists.base import SpecialistAgent
 from app.agents.state import OrchestratorState, SpecialistOutput
 from app.main import app
+from tests.auth_helpers import authed_client
 
 
 class _FakeSpecialist(SpecialistAgent):
@@ -70,7 +71,7 @@ async def test_orchestrator_honours_explicit_specialist_list() -> None:
 
 
 def test_agents_orchestrate_endpoint() -> None:
-    client = TestClient(app)
+    client = authed_client()
     res = client.post(
         "/api/v1/agents/orchestrate",
         json={"project_id": "p1", "objective": "Spin up new project"},

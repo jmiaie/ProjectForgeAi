@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
+import { getAuthToken } from '@/lib/api';
+
 type Connector = {
   name: string;
   type: string;
@@ -62,7 +64,11 @@ export default function IntakeWizard({
     try {
       const res = await fetch(`${apiBaseUrl}/api/v1/intake/connections`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          // POST /intake/connections requires a signed-in user.
+          ...(getAuthToken() ? { Authorization: `Bearer ${getAuthToken()}` } : {}),
+        },
         body: JSON.stringify({
           connector_type: connector.name,
           auth_data: connector.type === 'mcp' ? { server_url: 'http://localhost:9000' } : {},

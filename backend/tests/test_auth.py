@@ -17,6 +17,7 @@ from app.security import (
     hash_password,
     verify_password,
 )
+from tests.auth_helpers import authed_client
 
 
 # ---------------------------------------------------------------------------
@@ -258,7 +259,7 @@ def test_authenticated_project_creation_binds_org_and_creator() -> None:
     project = _create_project(client, headers=_auth_headers(token))
     project_id = project["project_id"]
 
-    res = client.get(f"/api/v1/projects/{project_id}")
+    res = client.get(f"/api/v1/projects/{project_id}", headers=_auth_headers(token))
     assert res.status_code == 200
     fetched = res.json()
     assert fetched["organization_id"] == org_id
@@ -303,7 +304,9 @@ def test_delete_project_requires_admin_role_in_org() -> None:
     assert res.json()["status"] == "deleted"
 
     # Project really gone.
-    res = client.get(f"/api/v1/projects/{project_id}")
+    res = client.get(
+        f"/api/v1/projects/{project_id}", headers=_auth_headers(owner_token)
+    )
     assert res.status_code == 404
 
 
@@ -312,7 +315,8 @@ def test_anonymous_project_creation_still_works_without_org_binding() -> None:
 
     client = TestClient(app)
     project = _create_project(client)
-    res = client.get(f"/api/v1/projects/{project['project_id']}")
+    # Reading projects requires authentication (creation is still anonymous).
+    res = authed_client().get(f"/api/v1/projects/{project['project_id']}")
     assert res.status_code == 200
     fetched = res.json()
     assert fetched["organization_id"] is None
